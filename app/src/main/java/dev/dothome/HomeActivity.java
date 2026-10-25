@@ -31,6 +31,7 @@ public class HomeActivity extends Activity implements SensorEventListener {
   static final int BIND = 10, CONFIG = 11, PHOTO = 12, WALL = 13, EXPORT = 14, IMPORT = 15;
   static final String STORE = "workspace-v1.json";
   JSONArray items = new JSONArray(), dock = new JSONArray();
+  static volatile HomeActivity activeHome;
   JSONObject settings = new JSONObject();
   final ArrayList<App> apps = new ArrayList<>();
   final ExecutorService worker = Executors.newFixedThreadPool(2);
@@ -136,6 +137,7 @@ public class HomeActivity extends Activity implements SensorEventListener {
   @Override
   public void onCreate(Bundle state) {
     super.onCreate(state);
+    activeHome = this;
     prefs = getSharedPreferences("runtime", 0);
     android.content.SharedPreferences.Editor cleanup = prefs.edit();
     for (String key : prefs.getAll().keySet()) if (key.startsWith("weather")) cleanup.remove(key);
@@ -209,6 +211,7 @@ public class HomeActivity extends Activity implements SensorEventListener {
 
   @Override
   public void onDestroy() {
+    if (activeHome == this) activeHome = null;
     unregisterReceiver(packages);
     unregisterReceiver(notificationChanges);
     worker.shutdownNow();

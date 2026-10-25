@@ -40,15 +40,39 @@ public class UiSmoke extends Instrumentation {
     }
   }
 
+  void syncActivity() {
+    try {
+      Class<?> type =
+          Class.forName("dev.dothome.HomeActivity", true, getTargetContext().getClassLoader());
+      Field current = type.getDeclaredField("activeHome");
+      current.setAccessible(true);
+      Activity actual = (Activity) current.get(null);
+      if (actual != null && !actual.isDestroyed()) {
+        home = actual;
+        ui = field(home, "ui");
+      }
+    } catch (Exception e) {
+      throw new RuntimeException(e);
+    }
+  }
+
   void onUi(Runnable work) {
-    runOnMainSync(work);
+    runOnMainSync(
+        () -> {
+          syncActivity();
+          work.run();
+        });
     waitForIdleSync();
     SystemClock.sleep(450);
   }
 
   void assertText(String expected) {
     final boolean[] found = {false};
-    runOnMainSync(() -> found[0] = contains(home.getWindow().getDecorView(), expected));
+    runOnMainSync(
+        () -> {
+          syncActivity();
+          found[0] = contains(home.getWindow().getDecorView(), expected);
+        });
     if (!found[0]) throw new AssertionError("Missing UI text: " + expected);
   }
 
@@ -81,7 +105,11 @@ public class UiSmoke extends Instrumentation {
   boolean awaitFocus(boolean expected) {
     final boolean[] value = {false};
     for (int n = 0; n < 50; n++) {
-      runOnMainSync(() -> value[0] = home.hasWindowFocus());
+      runOnMainSync(
+          () -> {
+            syncActivity();
+            value[0] = home.hasWindowFocus();
+          });
       if (value[0] == expected) return true;
       SystemClock.sleep(100);
     }
@@ -145,11 +173,12 @@ public class UiSmoke extends Instrumentation {
       waitForIdleSync();
       SystemClock.sleep(1800);
       ui = field(home, "ui");
+      onUi(() -> {});
       assertText("Welcome to Dot Home");
       screenshot("setup");
       onUi(
           () -> {
-            home.getSharedPreferences("runtime", 0).edit().putBoolean("setupSeen2", true).apply();
+            home.getSharedPreferences("runtime", 0).edit().putBoolean("setupSeen2", true).commit();
             call(ui, "close", new Class[] {});
           });
       if (getTargetContext().checkSelfPermission("android.permission.INTERNET")
@@ -301,11 +330,11 @@ public class UiSmoke extends Instrumentation {
       }
       waitForIdleSync();
       SystemClock.sleep(600);
-      onUi(
-          () -> {
-            if (field(ui, "overlay") != null)
-              throw new AssertionError("Back gesture did not close setup");
-          });
+      final boolean[] closed = {false};
+      onUi(() -> closed[0] = field(ui, "overlay") == null);
+      if (!closed[0])
+        throw new AssertionError(
+            "Back gesture did not close setup" + navigationDiagnostic(connected));
       onUi(() -> call(ui, "navigation", new Class[] {}));
       assertText("Edge gestures are running");
       screenshot("gestures-running");
