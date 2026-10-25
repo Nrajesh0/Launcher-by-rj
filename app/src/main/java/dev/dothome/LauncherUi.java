@@ -19,6 +19,7 @@ import org.json.*;
 /** Persistent launcher surface, visual editing and reversible in-process transitions. */
 final class LauncherUi {
   final HomeActivity a;
+  final BatchEditor batch;
   FrameLayout screen, workspace, overlay;
   LinearLayout pageStrip, dots, hotseat;
   Pager pager;
@@ -39,6 +40,7 @@ final class LauncherUi {
 
   LauncherUi(HomeActivity activity) {
     a = activity;
+    batch = new BatchEditor(this);
   }
 
   int d(float x) {
@@ -46,12 +48,14 @@ final class LauncherUi {
   }
 
   int duration() {
-    return a.settings.optBoolean("reduceMotion", false) ? 0 : 260;
+    return a.settings.optBoolean("reduceMotion", false) || !ValueAnimator.areAnimatorsEnabled()
+        ? 0
+        : 260;
   }
 
   TextView title(String s, int size) {
     TextView v = a.text(s, size, a.fg);
-    v.setTypeface(Typeface.create("sans-serif-medium", 0));
+    v.setTypeface(LauncherTypography.medium(a));
     return v;
   }
 
@@ -201,7 +205,8 @@ final class LauncherUi {
     dragBar.setOnDragListener(
         (v, e) -> {
           if (e.getAction() == DragEvent.ACTION_DROP && dragging != null && !dragNew) {
-            remove(dragging);
+            if (batch.groupDragging) batch.removeSelection();
+            else remove(dragging);
             dropChanged = true;
             return true;
           }
@@ -326,6 +331,10 @@ final class LauncherUi {
   }
 
   void close() {
+    if (drawerController != null) {
+      drawerController.dispose();
+      drawerController = null;
+    }
     if (appearanceRollback != null) {
       Runnable restore = appearanceRollback;
       appearanceRollback = null;
@@ -333,6 +342,7 @@ final class LauncherUi {
     }
     if (overlay == null) return;
     FrameLayout old = overlay;
+    boolean closingDrawer = state.equals("drawer");
     boolean closingFolder = state.equals("folder");
     LinearLayout panel = activePanel;
     Rect origin = folderOrigin;
@@ -355,6 +365,12 @@ final class LauncherUi {
     }
     ((InputMethodManager) a.getSystemService(Context.INPUT_METHOD_SERVICE))
         .hideSoftInputFromWindow(old.getWindowToken(), 0);
+    if (panel != null && closingDrawer) {
+      panel.animate().cancel();
+      panel.animate().translationY(screen.getHeight()).setDuration(duration()).start();
+    }
+    old.setOnClickListener(null);
+    old.setVisibility(View.VISIBLE);
     if (duration() == 0) {
       screen.removeView(old);
       return;
@@ -368,6 +384,10 @@ final class LauncherUi {
   }
 
   boolean back() {
+    if (batch.active && overlay == null) {
+      batch.finish();
+      return true;
+    }
     if (overlay != null) {
       close();
       return true;
@@ -438,7 +458,12 @@ final class LauncherUi {
 
   void overview() {
     changeState("overview");
-    LinearLayout content = surface("Home screen", false);
+    LinearLayout body = surface("Home screen", true);
+    changeState("overview");
+    ScrollView editScroll = new ScrollView(a);
+    LinearLayout content = vertical();
+    editScroll.addView(content);
+    body.addView(editScroll, new LinearLayout.LayoutParams(-1, 0, 1));
     content.addView(a.label("PAGES"));
     HorizontalScrollView sv = new HorizontalScrollView(a);
     LinearLayout previews = new LinearLayout(a);
@@ -469,6 +494,8 @@ final class LauncherUi {
         new LinearLayout.LayoutParams(d(95), d(150)));
     sv.addView(previews);
     content.addView(sv);
+    content.addView(
+        button("Select items", () -> batch.start()), new LinearLayout.LayoutParams(-1, d(58)));
     content.addView(
         button("Widgets", () -> widgetPicker()), new LinearLayout.LayoutParams(-1, d(58)));
     content.addView(
@@ -538,7 +565,8 @@ final class LauncherUi {
   void endDrag() {
     if (dragging == null) return;
     JSONObject old = dragging;
-    boolean showActions = !dropChanged && !dragNew;
+    boolean showActions = !dropChanged && !dragNew && !batch.groupDragging;
+    batch.groupDragging = false;
     dragging = null;
     dragNew = false;
     sourceFolder = null;
@@ -576,6 +604,7 @@ final class LauncherUi {
   boolean drop(int page, int col, int row, JSONObject target) {
     JSONObject x = dragging;
     if (x == null) return false;
+    if (batch.groupDragging) return batch.drop(page, col, row);
     try {
       boolean same =
           !dragNew && x.optInt("page") == page && x.optInt("x") == col && x.optInt("y") == row;
@@ -643,9 +672,47 @@ final class LauncherUi {
     }
   }
 
+  void photoEditor(JSONObject item) {
+    LinearLayout body = surface("Photo", true);
+    if (item.optString("uri").isEmpty()) {
+      close();
+      a.pickPhoto(item);
+      return;
+    }
+    PhotoView preview = new PhotoView(a, item, true);
+    body.addView(preview, new LinearLayout.LayoutParams(-1, 0, 1));
+    body.addView(a.text("Drag to position · pinch to zoom", 13, a.muted));
+    body.addView(
+        button(
+            "Apply crop",
+            () -> {
+              HomeActivity.put(item, "cropX", preview.cropX);
+              HomeActivity.put(item, "cropY", preview.cropY);
+              HomeActivity.put(item, "cropScale", preview.scale);
+              a.save();
+              close();
+              refresh();
+            }),
+        new LinearLayout.LayoutParams(-1, d(50)));
+    body.addView(
+        button(
+            "Choose another photo",
+            () -> {
+              close();
+              a.pickPhoto(item);
+            }),
+        new LinearLayout.LayoutParams(-1, d(50)));
+    body.addView(button("Cancel", () -> close()), new LinearLayout.LayoutParams(-1, d(48)));
+  }
+
   void itemActions(JSONObject x, View anchor) {
     LinearLayout body =
         surface(x.optString("label", x.optString("name", x.optString("type"))), false);
+    ScrollView actionsScroll = new ScrollView(a);
+    LinearLayout actions = vertical();
+    actionsScroll.addView(actions);
+    body.addView(actionsScroll, new LinearLayout.LayoutParams(-1, 0, 1));
+    body = actions;
     String type = x.optString("type");
     body.addView(
         button(
@@ -659,18 +726,7 @@ final class LauncherUi {
         new LinearLayout.LayoutParams(-1, d(54)));
     if (type.equals("photo")) {
       body.addView(
-          button(
-              "Photo crop position",
-              () ->
-                  a.menu(
-                      "Crop position",
-                      new String[] {"Top", "Centre", "Bottom"},
-                      n -> {
-                        HomeActivity.put(x, "crop", n);
-                        a.save();
-                        close();
-                        refresh();
-                      })),
+          button("Photo crop position", () -> photoEditor(x)),
           new LinearLayout.LayoutParams(-1, d(54)));
     }
     if (!type.equals("app") && !type.equals("folder") && !type.equals("widget")) {
@@ -892,134 +948,16 @@ final class LauncherUi {
         new LinearLayout.LayoutParams(-1, d(52)));
   }
 
+  DrawerController drawerController;
+  int drawerPosition;
+
   void drawer(Consumer<HomeActivity.App> pick) {
-    LinearLayout body = surface(pick == null ? "Apps" : "Choose an app", true);
-    changeState("drawer");
-    a.search = new EditText(a);
-    EditText search = a.search;
-    search.setSingleLine();
-    search.setTextColor(a.fg);
-    search.setHintTextColor(a.muted);
-    search.setHint("Search apps");
-    search.setPadding(d(18), 0, d(18), 0);
-    search.setBackground(a.shape(a.card, 28));
-    search.setImeOptions(android.view.inputmethod.EditorInfo.IME_ACTION_GO);
-    LinearLayout modes = new LinearLayout(a);
-    final int[] group = {-1};
-    TextView mode = button("All apps ▾", () -> {});
-    modes.addView(mode, new LinearLayout.LayoutParams(-1, d(44)));
-    body.addView(modes);
-    ScrollView scroll = new ScrollView(a);
-    GridLayout grid = new GridLayout(a);
-    grid.setColumnCount(a.cols());
-    scroll.addView(grid);
-    body.addView(scroll, new LinearLayout.LayoutParams(-1, 0, 1));
-    body.addView(search, new LinearLayout.LayoutParams(-1, d(54)));
-    final ArrayList<HomeActivity.App> matched = new ArrayList<>();
-    Runnable filter =
-        () -> {
-          grid.removeAllViews();
-          matched.clear();
-          String q = search.getText().toString().toLowerCase(Locale.ROOT).trim();
-          for (HomeActivity.App app : a.apps)
-            if (app.label.toLowerCase(Locale.ROOT).contains(q)
-                && !a.hidden(app.key)
-                && (group[0] < 0 || a.categoryOf(app) == group[0])) matched.add(app);
-          int width = (a.getResources().getDisplayMetrics().widthPixels - d(44)) / a.cols();
-          for (HomeActivity.App app : matched) {
-            View view = a.appView(app, true);
-            grid.addView(view, new ViewGroup.LayoutParams(width, d(98)));
-            a.click(
-                view,
-                () -> {
-                  close();
-                  if (pick == null) a.launch(app.key);
-                  else pick.accept(app);
-                });
-            view.setOnLongClickListener(
-                v -> {
-                  if (pick != null) {
-                    pick.accept(app);
-                    close();
-                    return true;
-                  }
-                  JSONObject x = a.obj("app");
-                  HomeActivity.put(x, "key", app.key);
-                  HomeActivity.put(x, "label", app.label);
-                  beginDrag(v, x, true);
-                  return true;
-                });
-          }
-          if (matched.isEmpty()) grid.addView(title("No matching apps", 16));
-        };
-    a.click(
-        mode,
-        () ->
-            a.menu(
-                "App organisation",
-                new String[] {
-                  "All apps",
-                  "Games",
-                  "Audio",
-                  "Video",
-                  "Images",
-                  "Social",
-                  "News",
-                  "Maps",
-                  "Productivity",
-                  "Accessibility",
-                  "Manage hidden apps"
-                },
-                n -> {
-                  if (n == 10) {
-                    hiddenApps();
-                    return;
-                  }
-                  group[0] = n - 1;
-                  mode.setText(
-                      n == 0
-                          ? "All apps ▾"
-                          : new String[] {
-                                    "Games",
-                                    "Audio",
-                                    "Video",
-                                    "Images",
-                                    "Social",
-                                    "News",
-                                    "Maps",
-                                    "Productivity",
-                                    "Accessibility"
-                                  }
-                                  [n - 1]
-                              + " ▾");
-                  filter.run();
-                }));
-    search.addTextChangedListener(
-        new android.text.TextWatcher() {
-          public void beforeTextChanged(CharSequence s, int st, int c, int f) {}
-
-          public void onTextChanged(CharSequence s, int st, int before, int count) {
-            filter.run();
-          }
-
-          public void afterTextChanged(android.text.Editable e) {}
-        });
-    search.setOnEditorActionListener(
-        (v, id, event) -> {
-          if (matched.isEmpty()) return false;
-          HomeActivity.App app = matched.get(0);
-          close();
-          if (pick == null) a.launch(app.key);
-          else pick.accept(app);
-          return true;
-        });
-    filter.run();
-    body.setOnApplyWindowInsetsListener(
-        (v, in) -> {
-          int bottom = in.getInsets(WindowInsets.Type.ime()).bottom;
-          body.setPadding(d(22), d(20), d(22), Math.max(d(18), bottom));
-          return in;
-        });
+    // surface() closes the previous drawer; assign this controller only afterwards.
+    close();
+    DrawerController controller = new DrawerController(this, pick);
+    controller.mount();
+    drawerController = controller;
+    controller.filter();
   }
 
   void hiddenApps() {
@@ -1062,7 +1000,8 @@ final class LauncherUi {
     "sound",
     "dnd",
     "breathing",
-    "timer"
+    "timer",
+    "away"
   };
   final String[] names = {
     "Clock",
@@ -1080,7 +1019,8 @@ final class LauncherUi {
     "Sound",
     "Do Not Disturb",
     "Breathing",
-    "Elapsed timer"
+    "Elapsed timer",
+    "Away time"
   };
 
   void widgetPicker() {
@@ -1186,6 +1126,7 @@ final class LauncherUi {
                 || type.equals("media")
                 || type.equals("photo")
                 || type.equals("breathing")
+                || type.equals("away")
             ? 2
             : 1);
     if (Arrays.asList("torch", "bluetooth", "sound", "dnd").contains(type)) {
@@ -1201,7 +1142,7 @@ final class LauncherUi {
     LinearLayout list = vertical();
     scroll.addView(list);
     body.addView(scroll, new LinearLayout.LayoutParams(-1, 0, 1));
-    for (int style = 0; style < (type.equals("clock") ? 5 : 3); style++) {
+    for (int style = 0; style < WidgetCatalogue.styles(type).length; style++) {
       final int variant = style;
       JSONObject candidate = sample(type, style);
       if (existing != null)
@@ -1215,23 +1156,9 @@ final class LauncherUi {
       LinearLayout.LayoutParams ap = new LinearLayout.LayoutParams(-1, d(165));
       ap.setMargins(0, d(12), 0, d(8));
       list.addView(preview, ap);
-      list.addView(
-          a.label(
-              (type.equals("clock")
-                      ? new String[] {
-                            "DOT MATRIX", "ANALOGUE", "SERIF", "TICK DIAL", "ROUNDED DIGITAL"
-                          }
-                          [style]
-                      : (type.equals("photo")
-                              ? new String[] {"RECTANGLE", "CIRCLE", "STICKER"}
-                              : new String[] {"CLASSIC", "INVERTED", "MINIMAL"})
-                          [style])
-                  + " · SAMPLE PREVIEW"));
+      list.addView(a.label(WidgetCatalogue.styles(type)[style] + " · SAMPLE PREVIEW"));
       LinearLayout sizes = new LinearLayout(a);
-      int[][] options =
-          type.equals("clock") || type.equals("media") || type.equals("breathing")
-              ? new int[][] {{2, 2}, {4, 2}}
-              : new int[][] {{1, 1}, {2, 1}, {2, 2}};
+      int[][] options = WidgetCatalogue.sizes(type);
       for (int[] span : options) {
         final int w = Math.min(a.cols(), span[0]), h = span[1];
         sizes.addView(
@@ -1305,7 +1232,6 @@ final class LauncherUi {
               () -> {
                 HomeActivity.put(a.settings, "wallpaperPreset", preset);
                 a.settings.remove("wallpaper");
-                HomeActivity.put(a.settings, "dark", !preset.equals("mist"));
                 a.save();
                 refresh();
                 close();
@@ -1323,27 +1249,7 @@ final class LauncherUi {
     boolean previousDark = a.dark();
     String previousMaterial = a.settings.optString("material", "classic");
     changeState("appearance");
-    View preview =
-        new View(a) {
-          @Override
-          protected void onDraw(Canvas canvas) {
-            if (a.root.getWidth() == 0 || a.root.getHeight() == 0) return;
-            float scale =
-                Math.min(
-                    getWidth() / (float) a.root.getWidth(),
-                    getHeight() / (float) a.root.getHeight());
-            canvas.save();
-            canvas.translate((getWidth() - a.root.getWidth() * scale) / 2, 0);
-            canvas.scale(scale, scale);
-            android.graphics.drawable.Drawable background = screen.getBackground();
-            Rect old = new Rect(background.getBounds());
-            background.setBounds(0, 0, a.root.getWidth(), a.root.getHeight());
-            background.draw(canvas);
-            background.setBounds(old);
-            a.root.draw(canvas);
-            canvas.restore();
-          }
-        };
+    View preview = new HomePreview(this);
     body.addView(preview, new LinearLayout.LayoutParams(-1, 0, 1));
     LinearLayout modes = new LinearLayout(a);
     for (boolean dark : new boolean[] {false, true}) {
@@ -1393,6 +1299,71 @@ final class LauncherUi {
 
   void customise() {
     LinearLayout body = surface("Customisation", true);
+    changeState("customisation");
+    ScrollView scroll = new ScrollView(a);
+    LinearLayout content = vertical();
+    scroll.addView(content);
+    body.addView(scroll, new LinearLayout.LayoutParams(-1, 0, 1));
+    HomePreview preview = new HomePreview(this);
+    content.addView(preview, new LinearLayout.LayoutParams(-1, d(260)));
+    GridLayout choices = new GridLayout(a);
+    choices.setColumnCount(2);
+    String[] names = {
+      "Appearance", "Wallpaper", "Icons", "Home layout", "Widgets", "Home settings"
+    };
+    Runnable[] actions = {
+      () -> appearance(),
+      () -> wallpaperPresets(),
+      () -> iconSettings(),
+      () -> gridPicker(),
+      () -> widgetPicker(),
+      () -> homeSettings()
+    };
+    for (int n = 0; n < names.length; n++) {
+      TextView tile = button(names[n], actions[n]);
+      tile.setTextSize(16);
+      tile.setTypeface(LauncherTypography.medium(a));
+      GridLayout.LayoutParams lp = new GridLayout.LayoutParams();
+      lp.width = 0;
+      lp.height = d(78);
+      lp.columnSpec = GridLayout.spec(n % 2, 1f);
+      lp.setMargins(d(4), d(4), d(4), d(4));
+      choices.addView(tile, lp);
+    }
+    content.addView(choices);
+  }
+
+  void iconSettings() {
+    LinearLayout body = surface("Icons", true);
+    for (String mode : new String[] {"Original colour", "Monochrome"})
+      body.addView(
+          button(
+              mode,
+              () -> {
+                HomeActivity.put(a.settings, "mono", mode.equals("Monochrome"));
+                a.icons.clear();
+                a.save();
+                refresh();
+                iconSettings();
+              }),
+          new LinearLayout.LayoutParams(-1, d(56)));
+    body.addView(
+        button("Choose installed icon pack", () -> a.chooseIconPack()),
+        new LinearLayout.LayoutParams(-1, d(56)));
+    body.addView(
+        button(
+            a.settings.optBoolean("labels", true) ? "Labels: shown" : "Labels: hidden",
+            () -> {
+              HomeActivity.put(a.settings, "labels", !a.settings.optBoolean("labels", true));
+              a.save();
+              refresh();
+              iconSettings();
+            }),
+        new LinearLayout.LayoutParams(-1, d(56)));
+  }
+
+  void homeSettings() {
+    LinearLayout body = surface("Home settings", true);
     ScrollView scroll = new ScrollView(a);
     LinearLayout list = vertical();
     scroll.addView(list);
@@ -1689,7 +1660,7 @@ final class LauncherUi {
   class HomeSurface extends FrameLayout {
     float downX, downY;
     long downTime;
-    boolean tracking, claimed;
+    boolean tracking, claimed, pullingDrawer;
     int direction;
 
     HomeSurface() {
@@ -1718,12 +1689,14 @@ final class LauncherUi {
 
     @Override
     public boolean dispatchTouchEvent(MotionEvent event) {
+      if (batch.handle(event)) return true;
       int action = event.getActionMasked();
       if (action == MotionEvent.ACTION_DOWN) {
         downX = event.getX();
         downY = event.getY();
         downTime = event.getEventTime();
         claimed = false;
+        pullingDrawer = false;
         direction = 0;
         WindowInsets insets = getRootWindowInsets();
         int bottom =
@@ -1734,7 +1707,8 @@ final class LauncherUi {
                             | WindowInsets.Type.mandatorySystemGestures())
                     .bottom;
         tracking =
-            overlay == null
+            !batch.active
+                && overlay == null
                 && state.equals("home")
                 && dragging == null
                 && resizing == null
@@ -1758,9 +1732,18 @@ final class LauncherUi {
           cancel.recycle();
           claimed = true;
           direction = dy < 0 ? -1 : 1;
+          if (direction < 0) {
+            drawer(null);
+            pullingDrawer = true;
+            activePanel.animate().cancel();
+            activePanel.setAlpha(1);
+          }
         }
       }
       if (claimed) {
+        if (pullingDrawer && activePanel != null) {
+          activePanel.setTranslationY(Math.max(0, screen.getHeight() + dy * 2.5f));
+        }
         if (action == MotionEvent.ACTION_UP || action == MotionEvent.ACTION_CANCEL) {
           boolean complete =
               tracking
@@ -1769,10 +1752,19 @@ final class LauncherUi {
                   && Math.abs(dy) > Math.abs(dx) * 1.4f;
           claimed = false;
           tracking = false;
-          if (complete && overlay == null && dragging == null && resizing == null) {
-            if (direction < 0) drawer(null);
-            else overview();
-          }
+          if (pullingDrawer) {
+            pullingDrawer = false;
+            if (complete && activePanel != null) {
+              activePanel
+                  .animate()
+                  .translationY(0)
+                  .alpha(1)
+                  .setDuration(duration())
+                  .setInterpolator(new DecelerateInterpolator(1.6f))
+                  .start();
+            } else close();
+          } else if (complete && overlay == null && dragging == null && resizing == null)
+            overview();
         }
         return true;
       }

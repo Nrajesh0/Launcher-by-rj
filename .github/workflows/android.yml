@@ -1,7 +1,7 @@
 name: Android build and release
 on:
   push:
-    branches: [main]
+    branches: [main, rebuild-v3]
     tags: ['v*']
   workflow_dispatch:
 permissions:
@@ -120,13 +120,13 @@ jobs:
           profile: pixel_6
           ram-size: 4096M
           disable-animations: false
-          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -no-snapshot -camera-back none -skin 720x1600
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -no-snapshot -camera-back none -skin 720x1600 -prop qemu.sf.lcd_density=280
           script: |
             adb shell am force-stop com.android.launcher3
             adb shell am start -W -a android.intent.action.MAIN -c android.intent.category.HOME
             adb install -r build/ui-test/app.apk
             adb install -r build/ui-test/tests.apk
-            adb shell screenrecord --time-limit 25 --bit-rate 2000000 /sdcard/Download/ui-motion.mp4 & recording_pid=$!; timeout 150s adb shell am instrument -w dev.dothome.test/dev.dothome.test.UiSmoke > build/ui-test/result.txt || echo RUNNER_ERROR_OR_TIMEOUT >> build/ui-test/result.txt; wait "$recording_pid" || true
+            adb shell screenrecord --time-limit 25 --bit-rate 2000000 /sdcard/Download/ui-motion.mp4 & recording_pid=$!; timeout 210s adb shell am instrument -w dev.dothome.test/dev.dothome.test.UiSmoke > build/ui-test/result.txt || echo RUNNER_ERROR_OR_TIMEOUT >> build/ui-test/result.txt; wait "$recording_pid" || true
             cat build/ui-test/result.txt
             adb logcat -d -s AndroidRuntime > build/ui-test/runtime.txt
             adb pull /sdcard/Download build/ui-test/screenshots

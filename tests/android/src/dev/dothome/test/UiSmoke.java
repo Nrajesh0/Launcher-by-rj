@@ -427,6 +427,19 @@ public class UiSmoke extends Instrumentation {
       onUi(() -> call(ui, "overview", new Class[] {}));
       assertText("Home screen");
       screenshot("overview");
+      if (!clickSystemText("Select items")) throw new AssertionError("Batch editing entry missing");
+      SystemClock.sleep(500);
+      assertText("0 selected");
+      if (!clickSystemText("0 selected")) throw new AssertionError("Select-all control missing");
+      SystemClock.sleep(250);
+      Object batch = field(ui, "batch");
+      if (((java.util.Set<?>) field(batch, "selected")).isEmpty())
+        throw new AssertionError("Batch selection did not select Home items");
+      screenshot("batch-selection");
+      shell("input keyevent KEYCODE_BACK");
+      SystemClock.sleep(400);
+      if ((boolean) field(batch, "active"))
+        throw new AssertionError("Back did not leave batch editing");
       onUi(() -> call(ui, "referencePage", new Class[] {}));
       screenshot("styled-page");
       onUi(() -> call(ui, "close", new Class[] {}));

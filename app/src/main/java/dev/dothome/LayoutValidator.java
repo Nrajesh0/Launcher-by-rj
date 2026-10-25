@@ -36,6 +36,7 @@ public final class LayoutValidator {
                 "countdown",
                 "compass",
                 "usage",
+                "away",
                 "controls",
                 "breathing",
                 "timer",

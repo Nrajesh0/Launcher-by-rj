@@ -2,22 +2,16 @@
 set -euo pipefail
 cd "$(dirname "$0")"
 SDK="${ANDROID_SDK_ROOT:-${ANDROID_HOME:-/workspace/android-sdk}}"
+export ANDROID_HOME="$SDK"
 BT="${BUILD_TOOLS_DIR:-$SDK/build-tools/36.0.0}"
 if [[ ! -d "$BT" && -d "$SDK/build-tools/android-16" ]]; then BT="$SDK/build-tools/android-16"; fi
 PLATFORM="$SDK/platforms/android-36/android.jar"
-rm -rf build/classes build/dex build/generated
-mkdir -p build/classes build/dex build/generated
+mkdir -p build
 VERSION="$(python3 scripts/prepare_version.py)"
 python3 tests/check_offline.py
-"$BT/aapt2" compile --dir app/src/main/res -o build/resources.zip
-"$BT/aapt2" link -o build/base.apk -I "$PLATFORM" --manifest build/generated/AndroidManifest.xml --java build/generated build/resources.zip
-find app/src/main/java build/generated -name '*.java' > build/sources.txt
-javac -encoding UTF-8 -source 17 -target 17 -classpath "$PLATFORM" -d build/classes @build/sources.txt
-jar --create --file build/classes.jar -C build/classes .
-"$BT/d8" --lib "$PLATFORM" --min-api 35 --output build/dex build/classes.jar
-cp build/base.apk build/unsigned.apk
-(cd build/dex && zip -q -u ../unsigned.apk classes*.dex)
-"$BT/zipalign" -f -p 4 build/unsigned.apk build/aligned.apk
+GRADLE_BIN="${GRADLE_BIN:-$PWD/gradlew}"
+"$GRADLE_BIN" :app:assembleRelease --no-daemon
+cp app/build/outputs/apk/release/app-release-unsigned.apk build/aligned.apk
 if [[ "${1:-}" == '--unsigned' ]]; then
   OUTPUT="build/dot-home-$VERSION-unsigned.apk"
   cp build/aligned.apk "$OUTPUT"

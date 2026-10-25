@@ -1,5 +1,16 @@
 # Changelog
 
+## 3.0.0 — 2026-10-25
+
+- Verify actual default Home ownership on selection/resume, handle declined selection, and show recovery when a previously confirmed assignment is lost.
+- Use a dedicated recycled drawer with alphabetical fast scrolling, category folders/manual assignment, private hidden-app search handling and reversible pull motion.
+- Add in-place multi-selection, transactional group moves across pages and collision/bounds rollback.
+- Rework Customisation into Home previews and focused controls; apply/cancel appearance independently of wallpaper. Bundle licensed Geist typography.
+- Add async local photo display and non-destructive drag/pinch crop editing, plus screen-off break history with explicit optional usage access.
+- Share widget style/size capabilities between configuration and rendering; remove redundant/non-functional style choices.
+- Use one checksum-pinned Gradle build for local/CI release compilation, resources, dex and release lint. Keep the original signing identity local.
+- No Internet permission, Accessibility service, global gesture overlays or protected-settings grant.
+
 ## 2.0.1 — 2026-10-25
 
 - Fix real swipe-up drawer opening across Home tiles, workspace and dock. Cancel child clicks before completing the gesture and animate the full drawer into view. Preserve horizontal paging, short/cancelled swipe rollback and hosted-widget scrolling.

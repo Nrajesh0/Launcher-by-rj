@@ -57,6 +57,7 @@ public class HomeActivity extends Activity implements SensorEventListener {
   long lastCompassUpdate = 0;
   int fg, bg, card, muted, accent = Color.rgb(218, 74, 61), battery = 0;
   boolean charging = false;
+  volatile AwayTimeStats away = AwayTimeStats.unavailable();
   String agenda = "Tap to connect calendar", usage = "Tap to allow usage access";
   float heading;
   SensorManager sensors;
@@ -234,7 +235,10 @@ public class HomeActivity extends Activity implements SensorEventListener {
   public void onNewIntent(Intent i) {
     super.onNewIntent(i);
     setIntent(i);
-    if (ui != null) ui.close();
+    if (ui != null) {
+      ui.close();
+      ui.batch.finish();
+    }
     if (drawer != null) drawer.dismiss();
     page = 0;
     render();
@@ -605,6 +609,7 @@ public class HomeActivity extends Activity implements SensorEventListener {
     t.setTextColor(color);
     t.setGravity(Gravity.CENTER_VERTICAL);
     t.setFontFeatureSettings("tnum");
+    t.setTypeface(LauncherTypography.regular(this));
     return t;
   }
 
@@ -780,6 +785,24 @@ public class HomeActivity extends Activity implements SensorEventListener {
 
     @Override
     protected void onDraw(Canvas c) {
+      if (ui.batch.active) {
+        paint.setStyle(Paint.Style.STROKE);
+        paint.setStrokeWidth(dp(2));
+        paint.setColor(accent);
+        for (JSONObject selected : visible)
+          if (ui.batch.selected.contains(selected.optString("id"))) {
+            c.drawRoundRect(
+                new RectF(
+                    selected.optInt("x") * cw() + dp(3),
+                    selected.optInt("y") * ch() + dp(3),
+                    (selected.optInt("x") + selected.optInt("w", 1)) * cw() - dp(3),
+                    (selected.optInt("y") + selected.optInt("h", 1)) * ch() - dp(3)),
+                dp(22),
+                dp(22),
+                paint);
+          }
+        paint.setStyle(Paint.Style.FILL);
+      }
       if (ui.resizing != null && ui.resizing.optInt("page") == boardPage) {
         JSONObject x = ui.resizing;
         paint.setStyle(Paint.Style.STROKE);
@@ -1047,6 +1070,13 @@ public class HomeActivity extends Activity implements SensorEventListener {
   void fillTile(LinearLayout tile, JSONObject x) {
     tile.removeAllViews();
     String type = x.optString("type");
+    if (type.equals("photo") && !x.optString("uri").isEmpty()) {
+      tile.setPadding(0, 0, 0, 0);
+      tile.setBackgroundColor(Color.TRANSPARENT);
+      tile.addView(new PhotoView(this, x, false), new LinearLayout.LayoutParams(-1, -1));
+      click(tile, () -> ui.photoEditor(x));
+      return;
+    }
     if ((!type.equals("media") && !type.equals("photo"))
         || (type.equals("photo") && x.optString("uri").isEmpty())) {
       tile.setPadding(0, 0, 0, 0);
@@ -1245,6 +1275,7 @@ public class HomeActivity extends Activity implements SensorEventListener {
       case "photo":
         pickPhoto(x);
         break;
+      case "away":
       case "usage":
         open(new Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS));
         break;
@@ -1459,6 +1490,10 @@ public class HomeActivity extends Activity implements SensorEventListener {
                           midnight.getTimeInMillis(), System.currentTimeMillis());
               for (UsageStats s : stats.values()) total += s.getTotalTimeInForeground();
               usage = (total / 3600000) + "h " + (total / 60000 % 60) + "m · app usage";
+              away = AwayTimeStats.read(this, System.currentTimeMillis());
+            } else {
+              usage = "Tap to allow usage access";
+              away = AwayTimeStats.unavailable();
             }
           } catch (Exception ignored) {
           }
@@ -1688,8 +1723,10 @@ public class HomeActivity extends Activity implements SensorEventListener {
               try {
                 JSONObject recovery =
                     new JSONObject(
-                        java.nio.file.Files.readString(
-                            new File(getFilesDir(), "before-import.json").toPath()));
+                        new String(
+                            java.nio.file.Files.readAllBytes(
+                                new File(getFilesDir(), "before-import.json").toPath()),
+                            java.nio.charset.StandardCharsets.UTF_8));
                 validateBackup(recovery);
                 OfflineMigration.apply(recovery);
                 items = recovery.getJSONArray("items");

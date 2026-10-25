@@ -76,4 +76,53 @@ public final class WorkspaceModel {
     a.put("x", x);
     a.put("y", y);
   }
+
+  /** Atomic group translation. Original JSON is never changed on success or failure. */
+  public static JSONArray moveGroup(
+      JSONArray original,
+      Set<String> selected,
+      String anchorId,
+      int page,
+      int x,
+      int y,
+      int columns,
+      int rows)
+      throws JSONException {
+    if (selected == null || selected.isEmpty() || !selected.contains(anchorId))
+      throw new JSONException("Select an anchor item");
+    JSONArray stationary = new JSONArray();
+    ArrayList<JSONObject> moving = new ArrayList<>();
+    JSONObject anchor = null;
+    HashSet<String> found = new HashSet<>();
+    for (int n = 0; n < original.length(); n++) {
+      JSONObject item = new JSONObject(original.getJSONObject(n).toString());
+      String id = item.getString("id");
+      if (selected.contains(id)) {
+        if (!found.add(id)) throw new JSONException("Duplicate item identifier");
+        moving.add(item);
+        if (id.equals(anchorId)) anchor = item;
+      } else stationary.put(item);
+    }
+    if (anchor == null || !found.equals(selected)) throw new JSONException("Selection changed");
+    int dx = x - anchor.getInt("x"), dy = y - anchor.getInt("y"), dp = page - anchor.getInt("page");
+    for (JSONObject item : moving) {
+      int px = item.getInt("x") + dx, py = item.getInt("y") + dy, pp = item.getInt("page") + dp;
+      if (!fits(
+          stationary, null, pp, px, py, item.optInt("w", 1), item.optInt("h", 1), columns, rows))
+        throw new JSONException("The selected group does not fit here");
+      item.put("x", px).put("y", py).put("page", pp);
+      stationary.put(item);
+    }
+    // Preserve original draw order and stable item identity.
+    JSONArray result = new JSONArray();
+    for (int n = 0; n < original.length(); n++) {
+      String id = original.getJSONObject(n).getString("id");
+      for (int at = 0; at < stationary.length(); at++)
+        if (stationary.getJSONObject(at).getString("id").equals(id)) {
+          result.put(stationary.getJSONObject(at));
+          break;
+        }
+    }
+    return result;
+  }
 }

@@ -4,6 +4,7 @@ rootProject.file('version.properties').withInputStream { releaseVersion.load(it)
 android {
     namespace 'dev.dothome'
     compileSdk 36
+    buildToolsVersion "36.0.0"
     defaultConfig { applicationId 'dev.dothome'; minSdk 35; targetSdk 36; versionCode releaseVersion.versionCode.toInteger(); versionName releaseVersion.versionName }
     compileOptions { sourceCompatibility JavaVersion.VERSION_17; targetCompatibility JavaVersion.VERSION_17 }
     sourceSets.main.manifest.srcFile layout.buildDirectory.file('generated/manifest/AndroidManifest.xml')

@@ -23,6 +23,16 @@ Android handles system Home, Back and Recents with the gestures or buttons selec
 
 Some manufacturers restrict native gesture navigation with third-party launchers. Being a Play Store launcher does not bypass this restriction; see the [primary-source comparison](docs/navigation-research.md). Keep the stock system launcher installed because Android may use it for Recents. If you previously hid the system buttons with ADB, [restore the original navigation setting](docs/adb-navigation.md) before relying on this version.
 
+## Arrangement, drawer and appearance
+
+The dedicated app drawer uses a recycled grid with alphabetical fast scrolling, local search and optional category folders. Categories come from local Android metadata; manual reassignment is available in the drawer menu. Hidden apps stay excluded from ordinary search. This is not a proprietary AI classifier.
+
+Open Home editing → Select items to select several apps/widgets. Tap the selection count to select the current page; hold a selected item to move the group, or choose Move to send it to a page. The entire group is validated as one transaction. Back/Done exits selection. Existing layout undo remains available in advanced settings.
+
+Customisation shows the actual Home preview, with focused Appearance, Wallpaper, Icons, Home layout, Widgets and Home settings entries. Appearance selects Light/Dark independently of Classic/Translucent and requires Apply; Cancel or Back rolls back the preview. Wallpaper tint is derived locally. The reference/provenance record is in docs/reference/README.md.
+
+Photos load locally off the UI thread. Tap a photo to drag/pinch its crop, Apply, Cancel or choose another image. Sticker mode supports transparent source images; the app does not claim automatic AI background removal. Away time uses locally available Android screen-interactive events after optional usage access and labels the result as screen-off breaks rather than inferred physical phone placement.
+
 ## Included widgets
 
 Dot-matrix, minimal analogue, tick dial, serif and rounded digital clocks, date, battery, breathing, an elapsed timer, media controls, upcoming calendar event, photo, editable note, date countdown, compass, aggregate app usage and quick controls. Standard Android provider widgets can be bound, configured, resized and removed.
@@ -47,13 +57,13 @@ Backups contain layouts and references, not third-party widget internals or port
 
 ## Build
 
-The supplied APK is built with `build.sh` using JDK 21, Android platform 36 and build tools 36.0.0. It has no external runtime libraries. Set Java's `bin` directory on PATH and run:
+The supplied APK is built with `build.sh`, which invokes the checksum-pinned Gradle 8.11.1 wrapper and Android Gradle Plugin 8.10.1 using JDK 21, Android platform 36 and build tools 36.0.0. It has no external runtime libraries. Geist fonts are bundled under their SIL Open Font License; no downloadable font provider is used. Set Java's `bin` directory on PATH and run:
 
 ```sh
 ANDROID_SDK_ROOT=/path/to/android-sdk BUILD_TOOLS_DIR=/path/to/android-sdk/build-tools/36.0.0 bash build.sh
 ```
 
-The current environment's extracted tools directory is named `android-16`; `BUILD_TOOLS_DIR` overrides that local default. Output is `build/dot-home-<version>.apk` plus a SHA-256 file. An Android Studio/Gradle project is also supplied; that build path has not been executed in this environment.
+The current environment's extracted tools directory is named `android-16`; `BUILD_TOOLS_DIR` overrides that local default. Output is `build/dot-home-<version>.apk` plus a SHA-256 file. Android Studio and the command-line release script use the same Gradle project. The Gradle release build and release lint have been executed successfully.
 
 `build.sh` generates a local signing key in `keys/` if missing and reuses it for updates. The keystore password in the script is for local development and is not a production secret-management scheme. Preserve the key privately to continue updating the installed build. The source archive excludes keys and generated build files. A separately built APK signed with a different key cannot update the existing installation directly.
 
@@ -75,7 +85,7 @@ This repository retains its existing GPL-3.0 licence in `LICENSE`. Original Dot 
 
 ## GitHub Actions and releases
 
-`version.properties` is the single version source: versionName 2.0.1, versionCode 4. Both the manifest and About screen receive these values during build. Increase versionCode on every release; push a matching tag such as `v2.0.1` after updating the version name. CI rejects mismatching tags.
+`version.properties` is the single version source: versionName 3.0.0, versionCode 5. Both the manifest and About screen receive these values during build. Increase versionCode on every release; push a matching tag such as `v3.0.0` after updating the version name. CI rejects mismatching tags.
 
 Pushes to main, version tags, and manual workflow runs compile the app, run model/offline tests and Android 16 emulator UI checks, and upload versioned APK/checksum artifacts plus screenshots. Emulator testing uses an ephemeral runner-only signing identity; release signing retains the existing private identity locally. Without signing secrets, CI produces an explicitly unsigned artifact which cannot be installed directly. Tagged builds automatically publish installable APKs to GitHub Releases when signing secrets are configured. Locally signed releases may also be attached after CI passes. Build-time toolchain/test downloads do not give the installed APK Internet access.
 

@@ -29,7 +29,7 @@ final class WidgetArtwork extends View {
   void text(Canvas c, String value, float x, float y, float size, int color, boolean mono) {
     p.setColor(color);
     p.setStyle(Paint.Style.FILL);
-    p.setTypeface(mono ? Typeface.create("monospace", 0) : Typeface.create("sans-serif-medium", 0));
+    p.setTypeface(mono ? Typeface.create("monospace", 0) : LauncherTypography.medium(a));
     p.setTextSize(size);
     c.drawText(value, x, y, p);
   }
@@ -224,6 +224,25 @@ final class WidgetArtwork extends View {
         p.setStyle(Paint.Style.FILL);
         break;
       case "battery":
+        if (style == 1) {
+          text(
+              c,
+              (preview ? 76 : a.battery) + "%",
+              pad,
+              h * .61f,
+              Math.min(w * .34f, h * .48f),
+              ink,
+              false);
+          text(
+              c,
+              !preview && a.charging ? "Charging" : "Battery",
+              pad,
+              h - pad,
+              Math.min(a.dp(12), w * .1f),
+              secondary,
+              false);
+          break;
+        }
         if (style == 2) {
           float percentValue = preview ? 76 : a.battery;
           int columns = 18, rows = 4;
@@ -270,7 +289,15 @@ final class WidgetArtwork extends View {
         break;
       case "photo":
         if (style == 2) {
-          car(c);
+          drawControl(c, "photo", w / 2, h * .43f, u * .18f, ink);
+          text(
+              c,
+              preview ? "YOUR STICKER" : "Choose a photo",
+              pad,
+              h - pad,
+              Math.min(a.dp(12), w * .085f),
+              ink,
+              false);
           break;
         }
         if (control) {
@@ -315,6 +342,41 @@ final class WidgetArtwork extends View {
             secondary,
             false);
         text(c, "‹       Ⅱ       ›", pad, h - pad, Math.min(w * .095f, h * .2f), ink, false);
+        break;
+      case "away":
+        text(c, "Away time", pad, pad + size * .4f, Math.min(size, a.dp(12)), secondary, false);
+        AwayTimeStats stats = a.away;
+        String longest =
+            preview
+                ? "3h 19m"
+                : stats.available ? AwayTimeStats.duration(stats.longest) : "Connect usage";
+        text(c, longest, pad, h * .47f, Math.min(w * .18f, h * .23f), ink, false);
+        text(
+            c,
+            "Screen-off breaks · 7 days",
+            pad,
+            h * .62f,
+            Math.min(a.dp(10), w * .06f),
+            secondary,
+            false);
+        long max = 1;
+        for (long total : stats.daily) max = Math.max(max, total);
+        for (int n = 0; n < 7; n++) {
+          float ratio =
+              preview
+                  ? new float[] {.4f, .65f, .5f, .8f, .35f, .9f, .6f}[n]
+                  : stats.available ? stats.daily[n] / (float) max : 0;
+          float bw = (w - pad * 2) / 10;
+          p.setColor(ink);
+          p.setAlpha(stats.available || preview ? 180 : 50);
+          float left = pad + n * (w - pad * 2) / 7;
+          c.drawRoundRect(
+              new RectF(left, h - pad - h * .2f * ratio - 2, left + bw, h - pad),
+              bw / 2,
+              bw / 2,
+              p);
+        }
+        p.setAlpha(255);
         break;
       case "breathing":
         float progress =
