@@ -1,0 +1,49 @@
+name: Publish signed preview
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'release-assets/v2.0.0/**'
+      - '.github/workflows/publish-preview.yml'
+      - 'scripts/verify_preview.py'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: publish-preview
+  cancel-in-progress: false
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      actions: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - uses: android-actions/setup-android@v3
+        with:
+          packages: platform-tools
+          log-accepted-android-sdk-licenses: false
+      - run: sdkmanager 'build-tools;36.0.0'
+      - name: Verify preview signature, offline contract and original CI payload
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: python3 scripts/verify_preview.py
+      - name: Publish APK as a preview release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          version=$(python3 scripts/prepare_version.py)
+          source=$(python3 -c 'import json; print(json.load(open("release-assets/v2.0.0/provenance.json"))["source_commit"])')
+          if gh release view "v$version" >/dev/null 2>&1; then
+            gh release edit "v$version" --prerelease --title "Dot Home $version Preview" --notes-file "release-assets/v$version/NOTES.md"
+            gh release upload "v$version" "release-assets/v$version/dot-home-$version.apk" "release-assets/v$version/dot-home-$version.apk.sha256" --clobber
+          else
+            gh release create "v$version" "release-assets/v$version/dot-home-$version.apk" "release-assets/v$version/dot-home-$version.apk.sha256" --target "$source" --prerelease --title "Dot Home $version Preview" --notes-file "release-assets/v$version/NOTES.md"
+          fi
