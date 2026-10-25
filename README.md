@@ -4,7 +4,7 @@ An independent native Android home-screen replacement inspired by Nothing's mono
 
 ## Install and use
 
-Install the versioned APK from [GitHub Releases](https://github.com/Nrajesh0/Launcher-by-rj/releases), open Dot Home, then use **Choose default Home** in the first-run setup. You can reopen setup under Customisation → Setup & permissions, or use Home settings → Set as default Home. Android may ask you to permit installation from the app used to download the file. Keep POCO Launcher installed.
+Install the versioned APK from [GitHub Releases](https://github.com/Nrajesh0/Launcher-by-rj/releases), open Dot Home and choose it in Android’s default-launcher prompt, which opens once on first launch when Dot Home is not already the default. If dismissed, use **Choose default Home** in setup. You can reopen setup under Customisation → Setup & permissions, or use Home settings → Set as default Home. Android may ask you to permit installation from the app used to download the file. Keep POCO Launcher installed.
 
 - Swipe up or tap Search apps for the integrated local drawer. Search, categories and hidden-app controls work offline.
 - Long press empty space for page management, Widgets, Customisation and Home settings.

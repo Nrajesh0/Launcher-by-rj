@@ -168,7 +168,12 @@ public class HomeActivity extends Activity implements SensorEventListener {
             android.window.OnBackInvokedDispatcher.PRIORITY_DEFAULT, () -> onBackPressed());
     render();
     if (getIntent().getBooleanExtra("navigationSetup", false)) handler.post(() -> ui.navigation());
-    else if (!prefs.getBoolean("setupSeen2", false)) handler.post(() -> ui.setup());
+    else if (!prefs.getBoolean("setupSeen2", false))
+      handler.post(
+          () -> {
+            ui.setup();
+            handler.postDelayed(this::askDefaultHomeOnce, 450);
+          });
     loadApps();
   }
 
@@ -301,6 +306,16 @@ public class HomeActivity extends Activity implements SensorEventListener {
       }
       defaults();
     }
+  }
+
+  void askDefaultHomeOnce() {
+    android.app.role.RoleManager roles = getSystemService(android.app.role.RoleManager.class);
+    if (prefs.getBoolean("homeRoleAsked2", false)
+        || roles == null
+        || !roles.isRoleAvailable(android.app.role.RoleManager.ROLE_HOME)
+        || roles.isRoleHeld(android.app.role.RoleManager.ROLE_HOME)) return;
+    prefs.edit().putBoolean("homeRoleAsked2", true).apply();
+    requestHomeRole();
   }
 
   void requestHomeRole() {
