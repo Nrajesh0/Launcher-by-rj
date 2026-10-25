@@ -47,7 +47,7 @@ final class TileContext extends ContextWrapper {
       settings.put("material", prefs.getString("material", "classic"));
       settings.put("reduceMotion", prefs.getBoolean("reduceMotion", false));
     } catch (Exception ignored) {}
-    accent = prefs.getString("material", "classic").equals("classic") ? 0xffd71920 : prefs.getInt("accent", 0xff98b9a5);
+    accent = prefs.getInt("accent", prefs.getString("material", "classic").equals("classic") ? 0xffd71920 : 0xff98b9a5);
     muted = dark() ? 0xffa9aaa1 : 0xff65685e;
     card=dark()?0xff252625:0xffe4e5dc; bg=dark()?0xff101110:0xfff4f4ef;
     Intent state = registerReceiver(null, new IntentFilter(Intent.ACTION_BATTERY_CHANGED));

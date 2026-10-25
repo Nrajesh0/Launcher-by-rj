@@ -1,5 +1,7 @@
 # Dot Home
 
+**`rebuild-v4` development branch:** the rejected v3 UI is being replaced with a pinned offline Launcher3/Lawnchair engine. This branch is not a finished Nothing OS replica or a new release. See the [acceptance checklist](docs/reference/v4-audit.md) and [replacement build instructions](foundation/README.md). The installation and feature notes below describe the released v3 preview.
+
 An independent native Android home-screen replacement inspired by Nothing's monochrome visual language. Targets POCO X6 Pro / HyperOS 3 / Android 16; minimum Android 15. This repository contains original Java code and vector artwork, with no copied Nothing binaries, fonts or branded assets.
 
 ## Install and use

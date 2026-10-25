@@ -40,7 +40,7 @@ public final class TileConfiguration extends Activity {
     String type=item.optString("type");
     LinearLayout header=new LinearLayout(this);header.setGravity(Gravity.CENTER_VERTICAL);
     header.addView(label(type.equals("photo")?"Photos":"Widget style",19),new LinearLayout.LayoutParams(0,d(50),1));
-    TextView done=label("Done",15);done.setOnClickListener(v->{save();finish();});header.addView(done,new LinearLayout.LayoutParams(-2,d(50)));body.addView(header);
+    TextView done=label("Done",15);done.setOnClickListener(v->{if(photo!=null){put("cropX",photo.cropX);put("cropY",photo.cropY);put("cropScale",photo.scale);}save();finish();});header.addView(done,new LinearLayout.LayoutParams(-2,d(50)));body.addView(header);
     if(type.equals("photo") && !item.optString("uri").isEmpty()) {
       photo=new PhotoView(adapter,item,true);body.addView(photo,new LinearLayout.LayoutParams(-1,0,1));
       body.addView(label("Drag to position · pinch to zoom",12));
@@ -50,7 +50,7 @@ public final class TileConfiguration extends Activity {
       action("Choose a photo",()->startActivityForResult(new Intent(Intent.ACTION_OPEN_DOCUMENT).setType("image/*").addCategory(Intent.CATEGORY_OPENABLE).addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION|Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION),31));
       LinearLayout shapes=new LinearLayout(this);
       String[] names={"Rectangle","Circle","Sticker"};
-      for(int n=0;n<names.length;n++) {final int variant=n;TextView choice=label(names[n],13);choice.setGravity(Gravity.CENTER);shapes.addView(choice,new LinearLayout.LayoutParams(0,d(48),1));choice.setOnClickListener(v->{put("style",variant);save();show();});}
+      for(int n=0;n<names.length;n++) {final int variant=n;TextView choice=label(names[n],13);choice.setGravity(Gravity.CENTER);shapes.addView(choice,new LinearLayout.LayoutParams(0,d(48),1));choice.setOnClickListener(v->{put("style",variant);photo=null;show();});}
       body.addView(shapes);
     } else if(type.equals("notes")) {
       EditText input=new EditText(this);input.setText(item.optString("text"));input.setTextColor(ink);input.setTypeface(TileTypography.regular(this));input.setHint("Write a note");body.addView(input,new LinearLayout.LayoutParams(-1,d(120)));
@@ -67,14 +67,14 @@ public final class TileConfiguration extends Activity {
         Calendar day=Calendar.getInstance();new DatePickerDialog(this,(picker,y,m,d)->{day.set(y,m,d,0,0,0);day.set(Calendar.MILLISECOND,0);put("deadline",day.getTimeInMillis());put("name",name.getText().toString());save();finish();},day.get(Calendar.YEAR),day.get(Calendar.MONTH),day.get(Calendar.DAY_OF_MONTH)).show();
       });
     }
-    if(!type.equals("photo")) action(item.optInt("style")==1?"Use light surface":"Invert surface",()->{put("style",item.optInt("style")==1?0:1);save();show();});
+    if(!type.equals("photo")) action(item.optInt("style")==1?"Use light surface":"Invert surface",()->{put("style",item.optInt("style")==1?0:1);show();});
     action("Cancel",this::finish);
   }
   @Override public void onActivityResult(int request,int result,Intent data) {
     super.onActivityResult(request,result,data);
     if(request==31 && result==RESULT_OK && data!=null && data.getData()!=null) {
       try { getContentResolver().takePersistableUriPermission(data.getData(),Intent.FLAG_GRANT_READ_URI_PERMISSION); } catch(SecurityException ignored) {}
-      put("uri",data.getData().toString());save();show();
+      put("uri",data.getData().toString());photo=null;show();
     }
   }
 }

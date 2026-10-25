@@ -31,12 +31,16 @@ open class DotTile(private val context: Context, val kind: String, val face: Int
         private val handler=Handler(Looper.getMainLooper())
         private val sensors=TileSensors(adapter,tile.kind) { invalidateArtwork() }
         private fun invalidateArtwork() { for(n in 0 until childCount) getChildAt(n).invalidate() }
+        private var signature=""
         private var id=-1L
         private var item=TileContext.load(context,id,tile.kind,tile.face)
         private val refresh=object: Runnable { override fun run() { if(windowVisibility==VISIBLE && isShown) { adapter.sync(); render(); sensors.start(); handler.postDelayed(this,if(tile.kind=="media") 1000 else 30000) } } }
         private fun render() {
-            removeAllViews()
             item.put("w",if(width>height*1.4f) 4 else tile.columns); item.put("h",tile.rows)
+            val nextSignature=item.toString()
+            if(tile.kind!="media" && childCount>0 && signature==nextSignature) { invalidateArtwork(); return }
+            signature=nextSignature
+            removeAllViews()
             val art: View = if(tile.kind=="photo" && item.optString("uri").isNotEmpty()) PhotoView(adapter,item,false) else TileArtwork(adapter,item,false)
             addView(art,LayoutParams(-1,-1))
             contentDescription=tile.label

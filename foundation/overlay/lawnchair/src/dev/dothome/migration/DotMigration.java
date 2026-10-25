@@ -45,7 +45,7 @@ public final class DotMigration {
         int columns=settings.optInt("columns",4), rows=settings.optInt("rows",7);
         JSONArray source=WorkspaceModel.normalise(data.getJSONArray("items"),columns,rows);
         boolean sample=knownUnconfiguredSample(source);
-        if(sample) source=fresh(launcher).getJSONArray("items");
+        if(sample) source=WorkspaceModel.normalise(fresh(launcher).getJSONArray("items"),columns,rows);
         ArrayList<ItemInfo> converted=new ArrayList<>();
         var tileState=launcher.getSharedPreferences("dot-tiles",0).edit();
         for(int n=0;n<source.length();n++) {
@@ -135,7 +135,11 @@ public final class DotMigration {
   private static boolean knownUnconfiguredSample(JSONArray source) {
     if(source.length()!=9)return false;
     String[] types={"clock","photo","bluetooth","dnd","timer","photo","torch","battery","breathing"};
-    for(int n=0;n<9;n++) if(!source.optJSONObject(n).optString("type").equals(types[n])||!source.optJSONObject(n).optString("uri").isEmpty()) return false;
+    int[][] cells={{0,0,2,2},{2,0,2,2},{0,2,1,1},{1,2,1,1},{2,4,2,1},{0,5,1,1},{1,5,1,1},{0,6,2,1},{2,5,2,2}};
+    for(int n=0;n<9;n++) {
+      JSONObject item=source.optJSONObject(n);
+      if(item==null||!item.optString("type").equals(types[n])||!item.optString("uri").isEmpty()||item.optInt("page")!=0||item.optInt("x")!=cells[n][0]||item.optInt("y")!=cells[n][1]||item.optInt("w",1)!=cells[n][2]||item.optInt("h",1)!=cells[n][3]||item.optInt("style")!=(n==0?1:n==1?2:n==7?2:0))return false;
+    }
     return true;
   }
 

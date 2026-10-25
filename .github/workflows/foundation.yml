@@ -41,7 +41,24 @@ jobs:
           echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm.rules
           sudo udevadm control --reload-rules
           sudo udevadm trigger --name-match=kvm
+      - name: Cache Android 16 system image
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.ANDROID_HOME }}/system-images/android-36/default/x86_64
+          key: foundation-android36-default-x86_64-v1
+      - name: Install and verify emulator image
+        timeout-minutes: 20
+        run: |
+          for attempt in 1 2 3; do
+            if timeout 480s sdkmanager 'system-images;android-36;default;x86_64' && test -s "$ANDROID_HOME/system-images/android-36/default/x86_64/system.img"; then
+              exit 0
+            fi
+            echo "System image installation attempt $attempt failed; retrying the SDK download."
+            if [ -d "$ANDROID_HOME/.temp" ]; then rm -rf "$ANDROID_HOME/.temp"; fi
+          done
+          exit 1
       - name: Exercise native launcher interactions
+        timeout-minutes: 12
         uses: reactivecircus/android-emulator-runner@v2
         with:
           api-level: 36
@@ -59,6 +76,7 @@ jobs:
             adb install -r build/ui-test/app.apk
             adb install -r build/ui-test/tests.apk
             timeout 240s adb shell am instrument -w dev.dothome.test/dev.dothome.test.FoundationSmoke > build/ui-test/foundation-result.txt || echo RUNNER_ERROR_OR_TIMEOUT >> build/ui-test/foundation-result.txt
+            adb shell screencap -p /sdcard/Download/foundation-last-screen.png
             cat build/ui-test/foundation-result.txt
             adb logcat -d -s AndroidRuntime DotMigration CustomWidgetManager > build/ui-test/foundation-runtime.txt
             adb pull /sdcard/Download build/ui-test/foundation-screenshots

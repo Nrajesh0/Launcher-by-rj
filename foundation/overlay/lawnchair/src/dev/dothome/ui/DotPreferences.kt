@@ -82,7 +82,7 @@ open class DotPreferences : Activity() {
         header.addView(back, FrameLayout.LayoutParams(d(44), -1, Gravity.START))
         val title = text(when(next) {
             "appearance" -> "Theme & Style"; "wallpaper" -> "Wallpapers"; "grid" -> "Home screen layout"
-            "icons" -> "Icon pack"; "home" -> "Home settings"; "access" -> "Optional access"
+            "icons" -> "Icon pack"; "home" -> "Home settings"; "access" -> "Optional access"; "licenses" -> "Open-source licences"
             else -> "Customisation"
         }, 17f).apply { gravity = Gravity.CENTER; setAccessibilityHeading(true) }
         header.addView(title, FrameLayout.LayoutParams(-1, -1).apply { leftMargin = d(48); rightMargin = d(48) })
@@ -96,7 +96,7 @@ open class DotPreferences : Activity() {
             WindowInsetsController.APPEARANCE_LIGHT_STATUS_BARS or WindowInsetsController.APPEARANCE_LIGHT_NAVIGATION_BARS)
         when(next) {
             "appearance" -> appearance(); "wallpaper" -> wallpapers(); "grid" -> grid(); "icons" -> icons()
-            "home" -> home(); "access" -> access(); else -> customisation()
+            "home" -> home(); "access" -> access(); "licenses" -> licences(); else -> customisation()
         }
     }
 
@@ -120,6 +120,9 @@ open class DotPreferences : Activity() {
         val row = row(title)
         row.addView(Switch(this).apply {
             isChecked = checked; contentDescription = title
+            val states=arrayOf(intArrayOf(android.R.attr.state_checked),intArrayOf())
+            thumbTintList=android.content.res.ColorStateList(states,intArrayOf(if(dark)0xff222321.toInt() else Color.WHITE,if(dark)0xffbfc3bd.toInt() else Color.WHITE))
+            trackTintList=android.content.res.ColorStateList(states,intArrayOf(if(dark)0xffeeeeea.toInt() else 0xff222321.toInt(),if(dark)0xff444743.toInt() else 0xffd5d7d0.toInt()))
             setOnCheckedChangeListener { _, value -> change(value) }
         }, LinearLayout.LayoutParams(-2, -2))
     }
@@ -246,7 +249,16 @@ open class DotPreferences : Activity() {
         row("Default Home app", if(role?.isRoleHeld(RoleManager.ROLE_HOME) == true) "Dot Home" else "Choose") { if(role != null) startActivityForResult(role.createRequestRoleIntent(RoleManager.ROLE_HOME), 62) else startActivity(Intent(Settings.ACTION_HOME_SETTINGS)) }
         row("Hidden icons") { startActivity(Intent(this,DotHidden::class.java)) }
         row("Optional access") { show("access") }
+        row("Open-source licences") { show("licenses") }
         gap(); body.addView(text("Dot Home · ${com.android.launcher3.BuildConfig.VERSION_NAME}", 12f, secondary))
+    }
+
+    private fun licences() {
+        assets.list("licenses")?.sorted()?.forEach { name ->
+            body.addView(text(name.removeSuffix(".txt"),14f).apply {setTypeface(typeface,Typeface.BOLD)},LinearLayout.LayoutParams(-1,d(48)))
+            body.addView(text(assets.open("licenses/$name").bufferedReader().use {it.readText()},11f,secondary).apply {setTextIsSelectable(true)},LinearLayout.LayoutParams(-1,-2))
+            gap(20)
+        }
     }
 
     private fun access() {

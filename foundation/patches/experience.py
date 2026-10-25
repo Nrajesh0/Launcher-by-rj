@@ -27,6 +27,7 @@ def function(path, signature, replacement):
         at += 1
     file.write_text(text[:start] + replacement + text[at:])
 
+edit("build.gradle", 'final def buildCommit = providers.exec {', 'final def buildCommit = System.getenv("DOT_HOME_SOURCE_COMMIT")?.take(7) ?: providers.exec {')
 edit("build.gradle", "applicationId 'app.lawnchair'", "applicationId 'dev.dothome'")
 edit("build.gradle", 'applicationIdSuffix ".debug"', '// Preserve the installed package for test and release variants.')
 edit("build.gradle", "versionCode 15_00_02_03_00", "versionCode " + version["versionCode"])
@@ -99,6 +100,8 @@ for name in ("geist_regular.ttf", "geist_medium.ttf"):
 licenses = root / "lawnchair/assets/licenses"
 licenses.mkdir(parents=True, exist_ok=True)
 shutil.copy2(project / "LICENSES/Geist-OFL.txt", licenses / "Geist-OFL.txt")
+shutil.copy2(root / "LICENSE.txt", licenses / "Launcher3-Lawnchair-Apache-2.0.txt")
+(licenses / "DotHome-NOTICE.txt").write_text("Dot Home adapts Launcher3/Lawnchair; upstream source and patches: https://github.com/Nrajesh0/Launcher-by-rj/tree/rebuild-v4\nPinned Lawnchair source: https://github.com/LawnchairLauncher/lawnchair/tree/505dbc40e6154c05158b5d0271c45f6a885a411b\nModified for offline operation, native Dot Home identity, local icons/widgets, appearance, arrangement and legacy migration. Upstream source notices are retained.\n")
 for file in (project / "foundation/overlay").rglob("*"):
     if file.is_file():
         dest = root / file.relative_to(project / "foundation/overlay")
@@ -111,6 +114,10 @@ edit("src/com/android/launcher3/widget/custom/CustomWidgetManager.java", "if (en
 edit("src/com/android/launcher3/widget/custom/CustomWidgetManager.java", 'private static final String PLUGIN_PKG = "android";', 'private static final String PLUGIN_PKG = "dev.dothome";')
 file = root/"lawnchair/AndroidManifest.xml"
 tree=ET.parse(file); doc=tree.getroot(); app=doc.find("application"); a="{http://schemas.android.com/apk/res/android}"
+seed=ET.SubElement(app,"receiver",{a+"name":"dev.dothome.widgets.LocalWidgetSeed",a+"exported":"false",a+"label":"Dot Home"})
+intent=ET.SubElement(seed,"intent-filter")
+ET.SubElement(intent,"action",{a+"name":"android.appwidget.action.APPWIDGET_UPDATE"})
+ET.SubElement(seed,"meta-data",{a+"name":"android.appwidget.provider",a+"resource":"@xml/dot_seed_widget"})
 ET.SubElement(app,"activity",{a+"name":"dev.dothome.ui.DotHidden",a+"exported":"false",a+"theme":"@android:style/Theme.Material.Light.NoActionBar"})
 ET.SubElement(app,"activity",{a+"name":"dev.dothome.widgets.TileConfiguration",a+"exported":"false",a+"theme":"@android:style/Theme.Material.Light.NoActionBar"})
 ET.SubElement(app,"activity",{a+"name":"dev.dothome.migration.UnavailableApp",a+"exported":"false",a+"theme":"@android:style/Theme.Material.Light.NoActionBar"})
