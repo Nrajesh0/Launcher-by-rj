@@ -13,7 +13,7 @@ Install the versioned APK from [GitHub Releases](https://github.com/Nrajesh0/Lau
 - Enlarged folders launch their visible apps directly. Tap the folder label to open all contents; drag an app out to extract it.
 - The unified Widgets screen shows built-in previews, style/size choices and installed Android widget providers. Long press a built-in preview to drag it onto Home, or select a size to place it automatically.
 - Tap or long press a dock slot to choose its app. Swipe horizontally or tap a page indicator to change pages; add pages from the overview.
-- Customisation includes live theme preview, visual grid choices, labels, icons, wallpaper, layout lock, notification dots, reduced motion and navigation setup. Advanced Home settings include backups, import, recovery and icon packs. Add a Styled page from Customisation for a sparse reference-inspired arrangement without replacing your layout. Original Ocean/Soft mist wallpaper presets are bundled offline. Built-in item actions include colour and background opacity; photos support rectangle, circle and transparent-source sticker styles.
+- Customisation includes live theme preview, visual grid choices, labels, icons, wallpaper, layout lock, notification dots, reduced motion and navigation setup. Advanced Home settings include backups, import, recovery and icon packs. Add a Styled page from Customisation for a sparse reference-inspired arrangement without replacing your layout. Original Ocean/Soft mist wallpaper presets are bundled offline. Appearance switches the coordinated light/dark palette without moving items; user-selected wallpapers remain unchanged. The built-in sticker preview uses an original decorative car drawing; tap it to choose your own local image. Built-in item actions include colour and background opacity; photos support rectangle, circle and transparent-source sticker styles.
 
 ### Gestures on HyperOS
 
@@ -28,7 +28,7 @@ Hiding the three-button bar is a separate firmware setting. The setup opens the 
 
 ## Included widgets
 
-Dot-matrix, minimal analogue, tick dial, serif and rounded digital clocks, date, battery, breathing, media controls, upcoming calendar event, photo, editable note, date countdown, compass, aggregate app usage and quick controls. Standard Android provider widgets can be bound, configured, resized and removed.
+Dot-matrix, minimal analogue, tick dial, serif and rounded digital clocks, date, battery, breathing, an elapsed timer, media controls, upcoming calendar event, photo, editable note, date countdown, compass, aggregate app usage and quick controls. Standard Android provider widgets can be bound, configured, resized and removed.
 
 **The app has no Internet permission, networking implementation, or online option.** Version 1.1.0 removes weather, city search and the Internet-settings shortcut. Existing weather tiles are removed from saved layouts, imported backups, recovery and undo. No analytics, advertising, telemetry, remote configuration or in-app update requests are included. Other installed apps and widget providers run under their own permissions.
 

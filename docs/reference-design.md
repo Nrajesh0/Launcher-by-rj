@@ -9,8 +9,8 @@ The images supplied in this conversation guide proportions and visual language. 
 | Round monochrome apps and smaller dock | Adaptive monochrome layers where available, consistent circular fallback containers, configurable dock. Fallbacks do not recreate proprietary icons. |
 | White/ink/sage/red cards and translucent surfaces | Built-in colour/opacity choices, original offline Ocean/Soft mist backgrounds and local-image wallpaper selection. Transparency is not live background blur. |
 | Focus orbital artwork | Original breathing animation with reduced-motion support. It does not claim medical effects. |
-| Floating photo/sticker | Local images with rectangle/circle/sticker presentation; sticker transparency comes from the chosen image. No automatic object extraction is implied. |
-| Media artwork, notes and date cards | Actual local media-session data, editable notes and date countdowns; no invented flight status or online content. |
+| Floating photo/sticker | Local images with rectangle/circle/sticker presentation and an original decorative car drawing when the sticker has no chosen image; source-image transparency is preserved. No automatic object extraction is implied. |
+| Media artwork, notes and date cards | Actual local media-session data, editable notes, date countdowns and a local elapsed timer; no invented flight status or online content. |
 | Earbud/headphone batteries | Provider widgets may supply these. No fake accessory percentages or new Bluetooth data permission is added. |
 | Weather, online galleries and cloud/AI services | Excluded under the required no-Internet contract. |
 | Glyph timers | POCO has no Nothing Glyph hardware; timers can be delegated to the installed Clock app. |

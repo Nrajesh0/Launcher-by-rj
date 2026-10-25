@@ -22,7 +22,8 @@ final class LauncherUi {
   FrameLayout screen, workspace, overlay;
   LinearLayout pageStrip, dots, hotseat;
   Pager pager;
-  TextView dragBar;
+  TextView dragBar, searchHint;
+  View searchLens;
   String state = "home";
   LinearLayout activePanel;
   Rect folderOrigin;
@@ -106,6 +107,11 @@ final class LauncherUi {
         screen.setBackground(a.scaledImage(android.net.Uri.parse(wall)));
       } catch (Exception ignored) {
       }
+    if (searchHint != null) {
+      searchHint.setTextColor(a.fg);
+      searchHint.setBackground(a.shape(a.dark() ? 0xcc202120 : 0xaaf0f2eb, 100));
+    }
+    if (searchLens != null) searchLens.invalidate();
     renderPages();
     renderDock();
   }
@@ -138,7 +144,9 @@ final class LauncherUi {
     hotseat.setGravity(Gravity.CENTER);
     a.root.addView(hotseat, new LinearLayout.LayoutParams(-1, d(80)));
     FrameLayout search = new FrameLayout(a);
-    search.addView(button("Search", () -> drawer(null)), new FrameLayout.LayoutParams(-1, -1));
+    searchHint = button("Search", () -> drawer(null));
+    searchHint.setTextSize(13);
+    search.addView(searchHint, new FrameLayout.LayoutParams(-1, -1));
     View lens =
         new View(a) {
           final Paint paint = new Paint(3);
@@ -152,6 +160,7 @@ final class LauncherUi {
             canvas.drawLine(d(12), d(12), d(17), d(17), paint);
           }
         };
+    searchLens = lens;
     FrameLayout.LayoutParams lensPosition =
         new FrameLayout.LayoutParams(d(22), d(22), Gravity.START | Gravity.CENTER_VERTICAL);
     lensPosition.leftMargin = d(18);

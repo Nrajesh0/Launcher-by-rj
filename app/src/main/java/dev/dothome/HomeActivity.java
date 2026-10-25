@@ -438,6 +438,28 @@ public class HomeActivity extends Activity implements SensorEventListener {
                           chosen = app;
                           break;
                         }
+                    if (chosen == null) {
+                      String[] hints =
+                          slot == 0
+                              ? new String[] {"dialer"}
+                              : slot == 1
+                                  ? new String[] {"messaging", "mms"}
+                                  : slot == 2
+                                      ? new String[] {"camera"}
+                                      : new String[] {"chrome", "browser", "firefox"};
+                      for (App candidate : apps) {
+                        for (String hint : hints)
+                          if (candidate
+                              .component
+                              .getPackageName()
+                              .toLowerCase(java.util.Locale.ROOT)
+                              .contains(hint)) {
+                            chosen = candidate;
+                            break;
+                          }
+                        if (chosen != null) break;
+                      }
+                    }
                     if (chosen != null && dock.optString(slot, "").isEmpty())
                       try {
                         dock.put(slot, chosen.key);
