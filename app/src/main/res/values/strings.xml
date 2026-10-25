@@ -1,0 +1,1 @@
+<resources><string name="navigation_description">Optional edge gestures for Back, Home and Recent apps. Draws narrow touch areas at screen edges. Does not read screen content or typed text. Enable explicitly in Android Accessibility settings. Use the Dot Home navigation Quick Settings tile to return to setup if needed.</string></resources>

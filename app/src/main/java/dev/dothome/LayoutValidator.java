@@ -5,7 +5,8 @@ import org.json.*;
 
 public final class LayoutValidator {
   public static void validate(JSONObject x) throws Exception {
-    if (x.getInt("schema") != 1 && x.getInt("schema") != 2) throw new Exception("Unsupported backup version");
+    if (x.getInt("schema") != 1 && x.getInt("schema") != 2)
+      throw new Exception("Unsupported backup version");
     JSONArray list = x.getJSONArray("items");
     if (list.length() > 150) throw new Exception("Too many items");
     JSONObject s = x.getJSONObject("settings");
@@ -13,7 +14,10 @@ public final class LayoutValidator {
       throw new Exception("Invalid grid");
     if (s.optInt("iconSize", 46) < 24 || s.optInt("iconSize", 46) > 96)
       throw new Exception("Invalid icon size");
-    if(s.optInt("rows",6)<5||s.optInt("rows",6)>8||s.optInt("pages",2)<1||s.optInt("pages",2)>64)throw new Exception("Invalid workspace dimensions");
+    if (s.optInt("rows", 6) < 5
+        || s.optInt("rows", 6) > 8
+        || s.optInt("pages", 2) < 1
+        || s.optInt("pages", 2) > 64) throw new Exception("Invalid workspace dimensions");
     HashSet<String> ids = new HashSet<>();
     Set<String> types =
         new HashSet<>(
@@ -32,7 +36,12 @@ public final class LayoutValidator {
                 "countdown",
                 "compass",
                 "usage",
-                "controls", "breathing", "torch", "bluetooth", "sound", "dnd"));
+                "controls",
+                "breathing",
+                "torch",
+                "bluetooth",
+                "sound",
+                "dnd"));
     for (int i = 0; i < list.length(); i++) {
       JSONObject item = list.getJSONObject(i);
       if (!types.contains(item.getString("type"))

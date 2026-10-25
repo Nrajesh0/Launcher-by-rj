@@ -1,5 +1,17 @@
 # Changelog
 
+## 2.0.0 — 2026-10-25
+
+- Rebuild Home with explicit cell placement, preserved empty space, direct dragging, collision checks, edge paging and resize handles.
+- Add dynamic pages, drag-to-folder creation/extraction, enlarged folders, cover choices and folder open/close transitions.
+- Replace the old widget list with a searchable preview gallery, style/size selection and Android provider previews.
+- Add original dot-matrix/analogue/digital clock artwork, breathing and individual quick-control widgets.
+- Add an integrated swipe-up drawer, sheet transitions, reduced motion and visual grid/theme customisation.
+- Use adaptive monochrome icon layers when available; add optional local notification dots and live media callbacks.
+- Add optional Accessibility-based Back/Home/Recents edge gestures and a recovery Quick Settings tile. No ADB, computer or root is required for these actions; hiding HyperOS buttons remains firmware-dependent. The service cannot read window contents.
+- Add Android 16 emulator UI checks and screenshot artifacts in GitHub Actions.
+- Preserve offline-only operation, upgrade migration, package and signing identity.
+
 ## 1.1.0 — 2026-10-25
 
 - Remove Internet permission and all HTTP, weather, forecast and city-search code.

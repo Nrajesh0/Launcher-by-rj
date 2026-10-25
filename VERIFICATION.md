@@ -33,3 +33,13 @@ The deliverable is a compiled independent launcher build. Exact Nothing OS fidel
 Removed Internet permission, HTTP/geocoding/forecast code, weather choices, city-search UI and the Internet-settings shortcut. Migration removes legacy weather tiles from layouts, imported backups, recovery and undo. Cached weather preferences are deleted on startup.
 
 Passed locally: Java/resource compilation, dex generation, alignment, signature verification, 400 random layouts, 10 malformed backups, migration/idempotence test, source networking check and compiled APK permission/version check. The release uses the prior signing identity. Physical-device runtime verification remains outstanding.
+
+## UI rebuild 2.0.0 — 25 October 2026
+
+Local checks pass for Java/resources/dex compilation, 400 legacy random layouts, 100 mixed explicit-cell placements, empty-space preservation, rejected-drop rollback, schema validation, offline migration and the no-network source/APK contract. The instrumentation APK also compiles.
+
+The initial v2 source at `09a681e` passed GitHub Actions run [40159215833](https://github.com/Nrajesh0/Launcher-by-rj/actions/runs/40159215833): build plus a hardware-accelerated Android 16 emulator UI run. Home, drawer, widget gallery, styles, customisation, overview, folder and navigation setup rendered, text assertions passed, screenshots were retained, and no AndroidRuntime fatal exception was found. Home/gallery/customisation screenshots were visually inspected. This supersedes the earlier unsuccessful local-emulator attempt for those flows.
+
+The subsequent navigation update adds an emulator check that enables the Accessibility service only inside the disposable emulator, verifies three actual overlay windows and no window-content retrieval capability, injects an inward edge swipe and checks that the global Back action dismisses the setup. Final source CI must pass before publication; the release provenance identifies the exact passing source run.
+
+Physical POCO X6 Pro / HyperOS 3 testing is still required for vendor navigation settings, hiding the three-button bar, service survival, Home/Recents gestures, provider-specific widgets, permission flows and battery/performance. Android emulator evidence does not establish those vendor behaviours or exact Nothing OS parity.

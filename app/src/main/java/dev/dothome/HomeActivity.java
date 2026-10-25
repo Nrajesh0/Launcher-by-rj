@@ -52,8 +52,7 @@ public class HomeActivity extends Activity implements SensorEventListener {
   long lastCompassUpdate = 0;
   int fg, bg, card, muted, accent = Color.rgb(218, 74, 61), battery = 0;
   boolean charging = false;
-  String agenda = "Tap to connect calendar",
-      usage = "Tap to allow usage access";
+  String agenda = "Tap to connect calendar", usage = "Tap to allow usage access";
   float heading;
   SensorManager sensors;
   Sensor rotation;
@@ -75,7 +74,16 @@ public class HomeActivity extends Activity implements SensorEventListener {
         }
       };
 
-  final BroadcastReceiver notificationChanges=new BroadcastReceiver(){public void onReceive(Context c,Intent i){if(ui!=null){ui.refreshBadges();refreshTiles();}}};
+  final BroadcastReceiver notificationChanges =
+      new BroadcastReceiver() {
+        public void onReceive(Context c, Intent i) {
+          if (ui != null) {
+            ui.refreshBadges();
+            refreshTiles();
+          }
+        }
+      };
+
   static class App {
     String label, key;
     ComponentName component;
@@ -123,7 +131,9 @@ public class HomeActivity extends Activity implements SensorEventListener {
   public void onCreate(Bundle state) {
     super.onCreate(state);
     prefs = getSharedPreferences("runtime", 0);
-    android.content.SharedPreferences.Editor cleanup=prefs.edit(); for(String key:prefs.getAll().keySet())if(key.startsWith("weather"))cleanup.remove(key); cleanup.apply();
+    android.content.SharedPreferences.Editor cleanup = prefs.edit();
+    for (String key : prefs.getAll().keySet()) if (key.startsWith("weather")) cleanup.remove(key);
+    cleanup.apply();
     load();
     lastSavedLayout = items.toString();
     colors();
@@ -141,11 +151,15 @@ public class HomeActivity extends Activity implements SensorEventListener {
     f.addAction(Intent.ACTION_PACKAGE_CHANGED);
     f.addDataScheme("package");
     registerReceiver(packages, f, Context.RECEIVER_EXPORTED);
-    registerReceiver(notificationChanges,new IntentFilter("dev.dothome.NOTIFICATION_CHANGED"),Context.RECEIVER_NOT_EXPORTED);
+    registerReceiver(
+        notificationChanges,
+        new IntentFilter("dev.dothome.NOTIFICATION_CHANGED"),
+        Context.RECEIVER_NOT_EXPORTED);
     getOnBackInvokedDispatcher()
         .registerOnBackInvokedCallback(
             android.window.OnBackInvokedDispatcher.PRIORITY_DEFAULT, () -> onBackPressed());
     render();
+    if (getIntent().getBooleanExtra("navigationSetup", false)) handler.post(() -> ui.navigation());
     loadApps();
   }
 
@@ -196,10 +210,11 @@ public class HomeActivity extends Activity implements SensorEventListener {
   @Override
   public void onNewIntent(Intent i) {
     super.onNewIntent(i);
-    if(ui!=null)ui.close();
+    if (ui != null) ui.close();
     if (drawer != null) drawer.dismiss();
     page = 0;
     render();
+    if (i.getBooleanExtra("navigationSetup", false)) ui.navigation();
   }
 
   @Override
@@ -210,7 +225,7 @@ public class HomeActivity extends Activity implements SensorEventListener {
 
   @Override
   public void onBackPressed() {
-    if(ui!=null&&ui.back())return;
+    if (ui != null && ui.back()) return;
     if (drawer != null && drawer.isShowing()) drawer.dismiss();
     else if (movingId != null) {
       movingId = null;
@@ -410,7 +425,21 @@ public class HomeActivity extends Activity implements SensorEventListener {
       icons.put(a.key, d);
     }
     if (settings.optBoolean("mono", true)) {
-      if(d instanceof AdaptiveIconDrawable){Drawable mono=((AdaptiveIconDrawable)d).getMonochrome();if(mono!=null){Bitmap bitmap=Bitmap.createBitmap(dp(64),dp(64),Bitmap.Config.ARGB_8888);Canvas canvas=new Canvas(bitmap);Paint paint=new Paint(Paint.ANTI_ALIAS_FLAG);paint.setColor(fg);canvas.drawCircle(dp(32),dp(32),dp(30),paint);mono=mono.mutate();mono.setTint(bg);mono.setBounds(dp(10),dp(10),dp(54),dp(54));mono.draw(canvas);return new android.graphics.drawable.BitmapDrawable(getResources(),bitmap);}}
+      if (d instanceof AdaptiveIconDrawable) {
+        Drawable mono = ((AdaptiveIconDrawable) d).getMonochrome();
+        if (mono != null) {
+          Bitmap bitmap = Bitmap.createBitmap(dp(64), dp(64), Bitmap.Config.ARGB_8888);
+          Canvas canvas = new Canvas(bitmap);
+          Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
+          paint.setColor(fg);
+          canvas.drawCircle(dp(32), dp(32), dp(30), paint);
+          mono = mono.mutate();
+          mono.setTint(bg);
+          mono.setBounds(dp(10), dp(10), dp(54), dp(54));
+          mono.draw(canvas);
+          return new android.graphics.drawable.BitmapDrawable(getResources(), bitmap);
+        }
+      }
       ColorMatrix cm = new ColorMatrix();
       cm.setSaturation(0);
       d.setColorFilter(new ColorMatrixColorFilter(cm));
@@ -443,7 +472,20 @@ public class HomeActivity extends Activity implements SensorEventListener {
   }
 
   void click(View v, Runnable action) {
-    v.setOnTouchListener((view,event)->{if(ui==null||ui.duration()==0)return false;switch(event.getAction()){case MotionEvent.ACTION_DOWN:view.animate().scaleX(.96f).scaleY(.96f).setDuration(90).start();break;case MotionEvent.ACTION_UP:case MotionEvent.ACTION_CANCEL:view.animate().scaleX(1).scaleY(1).setDuration(140).start();break;}return false;});
+    v.setOnTouchListener(
+        (view, event) -> {
+          if (ui == null || ui.duration() == 0) return false;
+          switch (event.getAction()) {
+            case MotionEvent.ACTION_DOWN:
+              view.animate().scaleX(.96f).scaleY(.96f).setDuration(90).start();
+              break;
+            case MotionEvent.ACTION_UP:
+            case MotionEvent.ACTION_CANCEL:
+              view.animate().scaleX(1).scaleY(1).setDuration(140).start();
+              break;
+          }
+          return false;
+        });
     v.setOnClickListener(
         w -> {
           w.performHapticFeedback(HapticFeedbackConstants.CONTEXT_CLICK);
@@ -463,7 +505,12 @@ public class HomeActivity extends Activity implements SensorEventListener {
     }
   }
 
-  void render() { if(isFinishing())return;if(ui==null)ui=new LauncherUi(this);ui.refresh(); }
+  void render() {
+    if (isFinishing()) return;
+    if (ui == null) ui = new LauncherUi(this);
+    ui.refresh();
+  }
+
   View appView(App a, boolean withLabel) {
     LinearLayout box = new LinearLayout(this);
     box.setOrientation(1);
@@ -471,7 +518,23 @@ public class HomeActivity extends Activity implements SensorEventListener {
     ImageView im = new ImageView(this);
     im.setImageDrawable(icon(a));
     int size = dp(settings.optInt("iconSize", 46));
-    FrameLayout iconFrame=new FrameLayout(this);im.setScaleType(ImageView.ScaleType.FIT_CENTER);iconFrame.addView(im,new FrameLayout.LayoutParams(-1,-1));View badge=new View(this);badge.setTag("badge:"+a.component.getPackageName());badge.setBackground(shape(accent,100));FrameLayout.LayoutParams badgePosition=new FrameLayout.LayoutParams(dp(8),dp(8),Gravity.TOP|Gravity.END);iconFrame.addView(badge,badgePosition);badge.setVisibility(settings.optBoolean("notificationDots",true)&&prefs.getStringSet("badgePackages",java.util.Collections.emptySet()).contains(a.component.getPackageName())?View.VISIBLE:View.GONE);box.addView(iconFrame,new LinearLayout.LayoutParams(size,size));
+    FrameLayout iconFrame = new FrameLayout(this);
+    im.setScaleType(ImageView.ScaleType.FIT_CENTER);
+    iconFrame.addView(im, new FrameLayout.LayoutParams(-1, -1));
+    View badge = new View(this);
+    badge.setTag("badge:" + a.component.getPackageName());
+    badge.setBackground(shape(accent, 100));
+    FrameLayout.LayoutParams badgePosition =
+        new FrameLayout.LayoutParams(dp(8), dp(8), Gravity.TOP | Gravity.END);
+    iconFrame.addView(badge, badgePosition);
+    badge.setVisibility(
+        settings.optBoolean("notificationDots", true)
+                && prefs
+                    .getStringSet("badgePackages", java.util.Collections.emptySet())
+                    .contains(a.component.getPackageName())
+            ? View.VISIBLE
+            : View.GONE);
+    box.addView(iconFrame, new LinearLayout.LayoutParams(size, size));
     if (withLabel) {
       TextView title = text(a.label, 11, fg);
       title.setGravity(Gravity.CENTER);
@@ -485,16 +548,217 @@ public class HomeActivity extends Activity implements SensorEventListener {
   }
 
   class Board extends ViewGroup {
-    final int boardPage; ArrayList<JSONObject> visible=new ArrayList<>(); int hoverX=-1,hoverY=-1,resizeW=1,resizeH=1; float downX,downY; final Paint paint=new Paint(Paint.ANTI_ALIAS_FLAG); final Handler touchHandler=new Handler(Looper.getMainLooper()); boolean longPressed,resizeTouch;
-    final Runnable hold=()->{longPressed=true;ui.overview();};
-    Board(int page){super(HomeActivity.this);boardPage=page;setWillNotDraw(false);for(int i=0;i<items.length();i++){JSONObject x=items.optJSONObject(i);if(x!=null&&x.optInt("page")==page){visible.add(x);addView(itemView(x));}}}
-    int cw(){return Math.max(1,getWidth()/cols());} int ch(){return Math.max(1,getHeight()/ui.rows());}
-    @Override protected void onMeasure(int ws,int hs){int width=MeasureSpec.getSize(ws),height=MeasureSpec.getSize(hs);setMeasuredDimension(width,height);for(int i=0;i<getChildCount();i++){JSONObject x=visible.get(i);getChildAt(i).measure(MeasureSpec.makeMeasureSpec(Math.max(1,x.optInt("w",1)*width/cols()-dp(10)),MeasureSpec.EXACTLY),MeasureSpec.makeMeasureSpec(Math.max(1,x.optInt("h",1)*height/ui.rows()-dp(10)),MeasureSpec.EXACTLY));}}
-    @Override protected void onLayout(boolean c,int l,int t,int r,int b){for(int i=0;i<getChildCount();i++){JSONObject x=visible.get(i);View view=getChildAt(i);int left=x.optInt("x")*cw()+dp(5),top=x.optInt("y")*ch()+dp(5);view.layout(left,top,left+view.getMeasuredWidth(),top+view.getMeasuredHeight());}}
-    @Override protected void onDraw(Canvas c){if(ui.resizing!=null&&ui.resizing.optInt("page")==boardPage){JSONObject x=ui.resizing;paint.setStyle(Paint.Style.STROKE);paint.setStrokeWidth(dp(2));paint.setColor(accent);RectF outline=new RectF(x.optInt("x")*cw()+dp(3),x.optInt("y")*ch()+dp(3),(x.optInt("x")+x.optInt("w",1))*cw()-dp(3),(x.optInt("y")+x.optInt("h",1))*ch()-dp(3));c.drawRoundRect(outline,dp(24),dp(24),paint);paint.setStyle(Paint.Style.FILL);c.drawCircle(outline.right,outline.bottom,dp(8),paint);}if(ui.dragging!=null){paint.setColor(0x447f7f7f);for(int y=0;y<ui.rows();y++)for(int x=0;x<cols();x++)c.drawCircle((x+.5f)*cw(),(y+.5f)*ch(),dp(2),paint);if(hoverX>=0){JSONObject moving=ui.dragging;boolean fits=WorkspaceModel.fits(items,ui.dragNew?null:moving.optString("id"),boardPage,hoverX,hoverY,moving.optInt("w",1),moving.optInt("h",1),cols(),ui.rows());paint.setColor(fits?0x557fba91:0x55da4a3d);c.drawRoundRect(new RectF(hoverX*cw()+dp(5),hoverY*ch()+dp(5),(hoverX+moving.optInt("w",1))*cw()-dp(5),(hoverY+moving.optInt("h",1))*ch()-dp(5)),dp(22),dp(22),paint);}}}
-    @Override public boolean onDragEvent(DragEvent e){if(e.getAction()==DragEvent.ACTION_DRAG_STARTED)return e.getLocalState() instanceof JSONObject; if(ui.dragging==null)return false;switch(e.getAction()){case DragEvent.ACTION_DRAG_LOCATION:hoverX=Math.max(0,Math.min(cols()-1,(int)e.getX()/cw()));hoverY=Math.max(0,Math.min(ui.rows()-1,(int)e.getY()/ch()));invalidate();long now=android.os.SystemClock.elapsedRealtime();if(now-ui.edgeAt>800){if(e.getX()>getWidth()-dp(24)&&boardPage<ui.pages()-1){ui.edgeAt=now;ui.goPage(boardPage+1,true);}else if(e.getX()<dp(24)&&boardPage>0){ui.edgeAt=now;ui.goPage(boardPage-1,true);}}return true;case DragEvent.ACTION_DROP:JSONObject target=null;for(JSONObject x:visible)if(e.getX()>=x.optInt("x")*cw()&&e.getX()<(x.optInt("x")+x.optInt("w",1))*cw()&&e.getY()>=x.optInt("y")*ch()&&e.getY()<(x.optInt("y")+x.optInt("h",1))*ch())target=x;return ui.drop(boardPage,Math.max(0,(int)e.getX()/cw()),Math.max(0,(int)e.getY()/ch()),target);case DragEvent.ACTION_DRAG_EXITED:case DragEvent.ACTION_DRAG_ENDED:hoverX=-1;invalidate();return true;}return true;}
-    @Override public boolean onInterceptTouchEvent(MotionEvent e){return ui.resizing!=null&&ui.resizing.optInt("page")==boardPage;}
-    @Override public boolean onTouchEvent(MotionEvent e){if(ui.resizing!=null&&ui.resizing.optInt("page")==boardPage){JSONObject x=ui.resizing;if(e.getAction()==MotionEvent.ACTION_DOWN)resizeTouch=Math.abs(e.getX()-(x.optInt("x")+x.optInt("w",1))*cw())<dp(32)&&Math.abs(e.getY()-(x.optInt("y")+x.optInt("h",1))*ch())<dp(32);if(!resizeTouch)return true;resizeW=Math.max(1,Math.min(cols()-x.optInt("x"),Math.round(e.getX()/cw())-x.optInt("x")));resizeH=Math.max(1,Math.min(ui.rows()-x.optInt("y"),Math.round(e.getY()/ch())-x.optInt("y")));if(e.getAction()==MotionEvent.ACTION_UP){if(WorkspaceModel.fits(items,x.optString("id"),boardPage,x.optInt("x"),x.optInt("y"),resizeW,resizeH,cols(),ui.rows())){put(x,"w",resizeW);put(x,"h",resizeH);ui.resizing=null;save();render();}else toast("No room for that size");}else if(e.getAction()==MotionEvent.ACTION_CANCEL)ui.resizing=null;invalidate();return true;}switch(e.getAction()){case MotionEvent.ACTION_DOWN:downX=e.getX();downY=e.getY();longPressed=false;touchHandler.postDelayed(hold,ViewConfiguration.getLongPressTimeout());return true;case MotionEvent.ACTION_MOVE:if(Math.abs(e.getX()-downX)>dp(12)||Math.abs(e.getY()-downY)>dp(12))touchHandler.removeCallbacks(hold);return true;case MotionEvent.ACTION_UP:case MotionEvent.ACTION_CANCEL:touchHandler.removeCallbacks(hold);return true;}return true;}
+    final int boardPage;
+    ArrayList<JSONObject> visible = new ArrayList<>();
+    int hoverX = -1, hoverY = -1, resizeW = 1, resizeH = 1;
+    float downX, downY;
+    final Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
+    final Handler touchHandler = new Handler(Looper.getMainLooper());
+    boolean longPressed, resizeTouch;
+    final Runnable hold =
+        () -> {
+          longPressed = true;
+          ui.overview();
+        };
+
+    Board(int page) {
+      super(HomeActivity.this);
+      boardPage = page;
+      setWillNotDraw(false);
+      for (int i = 0; i < items.length(); i++) {
+        JSONObject x = items.optJSONObject(i);
+        if (x != null && x.optInt("page") == page) {
+          visible.add(x);
+          addView(itemView(x));
+        }
+      }
+    }
+
+    int cw() {
+      return Math.max(1, getWidth() / cols());
+    }
+
+    int ch() {
+      return Math.max(1, getHeight() / ui.rows());
+    }
+
+    @Override
+    protected void onMeasure(int ws, int hs) {
+      int width = MeasureSpec.getSize(ws), height = MeasureSpec.getSize(hs);
+      setMeasuredDimension(width, height);
+      for (int i = 0; i < getChildCount(); i++) {
+        JSONObject x = visible.get(i);
+        getChildAt(i)
+            .measure(
+                MeasureSpec.makeMeasureSpec(
+                    Math.max(1, x.optInt("w", 1) * width / cols() - dp(10)), MeasureSpec.EXACTLY),
+                MeasureSpec.makeMeasureSpec(
+                    Math.max(1, x.optInt("h", 1) * height / ui.rows() - dp(10)),
+                    MeasureSpec.EXACTLY));
+      }
+    }
+
+    @Override
+    protected void onLayout(boolean c, int l, int t, int r, int b) {
+      for (int i = 0; i < getChildCount(); i++) {
+        JSONObject x = visible.get(i);
+        View view = getChildAt(i);
+        int left = x.optInt("x") * cw() + dp(5), top = x.optInt("y") * ch() + dp(5);
+        view.layout(left, top, left + view.getMeasuredWidth(), top + view.getMeasuredHeight());
+      }
+    }
+
+    @Override
+    protected void onDraw(Canvas c) {
+      if (ui.resizing != null && ui.resizing.optInt("page") == boardPage) {
+        JSONObject x = ui.resizing;
+        paint.setStyle(Paint.Style.STROKE);
+        paint.setStrokeWidth(dp(2));
+        paint.setColor(accent);
+        RectF outline =
+            new RectF(
+                x.optInt("x") * cw() + dp(3),
+                x.optInt("y") * ch() + dp(3),
+                (x.optInt("x") + x.optInt("w", 1)) * cw() - dp(3),
+                (x.optInt("y") + x.optInt("h", 1)) * ch() - dp(3));
+        c.drawRoundRect(outline, dp(24), dp(24), paint);
+        paint.setStyle(Paint.Style.FILL);
+        c.drawCircle(outline.right, outline.bottom, dp(8), paint);
+      }
+      if (ui.dragging != null) {
+        paint.setColor(0x447f7f7f);
+        for (int y = 0; y < ui.rows(); y++)
+          for (int x = 0; x < cols(); x++)
+            c.drawCircle((x + .5f) * cw(), (y + .5f) * ch(), dp(2), paint);
+        if (hoverX >= 0) {
+          JSONObject moving = ui.dragging;
+          boolean fits =
+              WorkspaceModel.fits(
+                  items,
+                  ui.dragNew ? null : moving.optString("id"),
+                  boardPage,
+                  hoverX,
+                  hoverY,
+                  moving.optInt("w", 1),
+                  moving.optInt("h", 1),
+                  cols(),
+                  ui.rows());
+          paint.setColor(fits ? 0x557fba91 : 0x55da4a3d);
+          c.drawRoundRect(
+              new RectF(
+                  hoverX * cw() + dp(5),
+                  hoverY * ch() + dp(5),
+                  (hoverX + moving.optInt("w", 1)) * cw() - dp(5),
+                  (hoverY + moving.optInt("h", 1)) * ch() - dp(5)),
+              dp(22),
+              dp(22),
+              paint);
+        }
+      }
+    }
+
+    @Override
+    public boolean onDragEvent(DragEvent e) {
+      if (e.getAction() == DragEvent.ACTION_DRAG_STARTED)
+        return e.getLocalState() instanceof JSONObject;
+      if (ui.dragging == null) return false;
+      switch (e.getAction()) {
+        case DragEvent.ACTION_DRAG_LOCATION:
+          hoverX = Math.max(0, Math.min(cols() - 1, (int) e.getX() / cw()));
+          hoverY = Math.max(0, Math.min(ui.rows() - 1, (int) e.getY() / ch()));
+          invalidate();
+          long now = android.os.SystemClock.elapsedRealtime();
+          if (now - ui.edgeAt > 800) {
+            if (e.getX() > getWidth() - dp(24) && boardPage < ui.pages() - 1) {
+              ui.edgeAt = now;
+              ui.goPage(boardPage + 1, true);
+            } else if (e.getX() < dp(24) && boardPage > 0) {
+              ui.edgeAt = now;
+              ui.goPage(boardPage - 1, true);
+            }
+          }
+          return true;
+        case DragEvent.ACTION_DROP:
+          JSONObject target = null;
+          for (JSONObject x : visible)
+            if (e.getX() >= x.optInt("x") * cw()
+                && e.getX() < (x.optInt("x") + x.optInt("w", 1)) * cw()
+                && e.getY() >= x.optInt("y") * ch()
+                && e.getY() < (x.optInt("y") + x.optInt("h", 1)) * ch()) target = x;
+          return ui.drop(
+              boardPage,
+              Math.max(0, (int) e.getX() / cw()),
+              Math.max(0, (int) e.getY() / ch()),
+              target);
+        case DragEvent.ACTION_DRAG_EXITED:
+        case DragEvent.ACTION_DRAG_ENDED:
+          hoverX = -1;
+          invalidate();
+          return true;
+      }
+      return true;
+    }
+
+    @Override
+    public boolean onInterceptTouchEvent(MotionEvent e) {
+      return ui.resizing != null && ui.resizing.optInt("page") == boardPage;
+    }
+
+    @Override
+    public boolean onTouchEvent(MotionEvent e) {
+      if (ui.resizing != null && ui.resizing.optInt("page") == boardPage) {
+        JSONObject x = ui.resizing;
+        if (e.getAction() == MotionEvent.ACTION_DOWN)
+          resizeTouch =
+              Math.abs(e.getX() - (x.optInt("x") + x.optInt("w", 1)) * cw()) < dp(32)
+                  && Math.abs(e.getY() - (x.optInt("y") + x.optInt("h", 1)) * ch()) < dp(32);
+        if (!resizeTouch) return true;
+        resizeW =
+            Math.max(
+                1, Math.min(cols() - x.optInt("x"), Math.round(e.getX() / cw()) - x.optInt("x")));
+        resizeH =
+            Math.max(
+                1,
+                Math.min(ui.rows() - x.optInt("y"), Math.round(e.getY() / ch()) - x.optInt("y")));
+        if (e.getAction() == MotionEvent.ACTION_UP) {
+          if (WorkspaceModel.fits(
+              items,
+              x.optString("id"),
+              boardPage,
+              x.optInt("x"),
+              x.optInt("y"),
+              resizeW,
+              resizeH,
+              cols(),
+              ui.rows())) {
+            put(x, "w", resizeW);
+            put(x, "h", resizeH);
+            ui.resizing = null;
+            save();
+            render();
+          } else toast("No room for that size");
+        } else if (e.getAction() == MotionEvent.ACTION_CANCEL) ui.resizing = null;
+        invalidate();
+        return true;
+      }
+      switch (e.getAction()) {
+        case MotionEvent.ACTION_DOWN:
+          downX = e.getX();
+          downY = e.getY();
+          longPressed = false;
+          touchHandler.postDelayed(hold, ViewConfiguration.getLongPressTimeout());
+          return true;
+        case MotionEvent.ACTION_MOVE:
+          if (Math.abs(e.getX() - downX) > dp(12) || Math.abs(e.getY() - downY) > dp(12))
+            touchHandler.removeCallbacks(hold);
+          return true;
+        case MotionEvent.ACTION_UP:
+        case MotionEvent.ACTION_CANCEL:
+          touchHandler.removeCallbacks(hold);
+          return true;
+      }
+      return true;
+    }
   }
 
   int index(String id) {
@@ -519,12 +783,54 @@ public class HomeActivity extends Activity implements SensorEventListener {
         View image = ((LinearLayout) v).getChildAt(0);
         image.setLayoutParams(new LinearLayout.LayoutParams(dp(78), dp(78)));
       }
-    } else if(type.equals("folder")) {
-      LinearLayout box=new LinearLayout(this);box.setOrientation(1);box.setGravity(Gravity.CENTER);box.setBackground(shape(card,x.optInt("w",1)==1?100:28));String cover=x.optString("cover","");JSONArray children=x.optJSONArray("children");boolean large=x.optInt("w",1)>1;
-      if(!cover.isEmpty()){TextView symbol=text(cover,large?54:28,fg);symbol.setGravity(Gravity.CENTER);box.addView(symbol,new LinearLayout.LayoutParams(-1,0,1));click(symbol,()->folder(x));}
-      else if(large){GridLayout grid=new GridLayout(this);grid.setColumnCount(2);if(children!=null)for(int i=0;i<Math.min(4,children.length());i++){App app=app(children.optString(i));View child=app==null?text("○",22,fg):appView(app,false);if(child instanceof LinearLayout&&((LinearLayout)child).getChildAt(0)!=null)((LinearLayout)child).getChildAt(0).setLayoutParams(new LinearLayout.LayoutParams(dp(38),dp(38)));grid.addView(child,new ViewGroup.LayoutParams(dp(52),dp(52)));}box.addView(grid,new LinearLayout.LayoutParams(-2,0,1));}
-      else {GridLayout grid=new GridLayout(this);grid.setColumnCount(2);if(children!=null)for(int n=0;n<Math.min(4,children.length());n++){App app=app(children.optString(n));ImageView image=new ImageView(this);if(app!=null)image.setImageDrawable(icon(app));grid.addView(image,new ViewGroup.LayoutParams(dp(20),dp(20)));}box.addView(grid);click(grid,()->folder(x));}
-      TextView title=text(x.optString("name","Folder"),11,fg);title.setGravity(Gravity.CENTER);title.setSingleLine();box.addView(title,new LinearLayout.LayoutParams(-1,dp(24)));click(title,()->folder(x));box.setContentDescription(x.optString("name","Folder"));if(children==null||children.length()==0)click(box,()->folder(x));v=box;
+    } else if (type.equals("folder")) {
+      LinearLayout box = new LinearLayout(this);
+      box.setOrientation(1);
+      box.setGravity(Gravity.CENTER);
+      box.setBackground(shape(card, x.optInt("w", 1) == 1 ? 100 : 28));
+      String cover = x.optString("cover", "");
+      JSONArray children = x.optJSONArray("children");
+      boolean large = x.optInt("w", 1) > 1;
+      if (!cover.isEmpty()) {
+        TextView symbol = text(cover, large ? 54 : 28, fg);
+        symbol.setGravity(Gravity.CENTER);
+        box.addView(symbol, new LinearLayout.LayoutParams(-1, 0, 1));
+        click(symbol, () -> folder(x));
+      } else if (large) {
+        GridLayout grid = new GridLayout(this);
+        grid.setColumnCount(2);
+        if (children != null)
+          for (int i = 0; i < Math.min(4, children.length()); i++) {
+            App app = app(children.optString(i));
+            View child = app == null ? text("○", 22, fg) : appView(app, false);
+            if (child instanceof LinearLayout && ((LinearLayout) child).getChildAt(0) != null)
+              ((LinearLayout) child)
+                  .getChildAt(0)
+                  .setLayoutParams(new LinearLayout.LayoutParams(dp(38), dp(38)));
+            grid.addView(child, new ViewGroup.LayoutParams(dp(52), dp(52)));
+          }
+        box.addView(grid, new LinearLayout.LayoutParams(-2, 0, 1));
+      } else {
+        GridLayout grid = new GridLayout(this);
+        grid.setColumnCount(2);
+        if (children != null)
+          for (int n = 0; n < Math.min(4, children.length()); n++) {
+            App app = app(children.optString(n));
+            ImageView image = new ImageView(this);
+            if (app != null) image.setImageDrawable(icon(app));
+            grid.addView(image, new ViewGroup.LayoutParams(dp(20), dp(20)));
+          }
+        box.addView(grid);
+        click(grid, () -> folder(x));
+      }
+      TextView title = text(x.optString("name", "Folder"), 11, fg);
+      title.setGravity(Gravity.CENTER);
+      title.setSingleLine();
+      box.addView(title, new LinearLayout.LayoutParams(-1, dp(24)));
+      click(title, () -> folder(x));
+      box.setContentDescription(x.optString("name", "Folder"));
+      if (children == null || children.length() == 0) click(box, () -> folder(x));
+      v = box;
     } else if (type.equals("widget")) {
       int id = x.optInt("widgetId", -1);
       AppWidgetProviderInfo info = AppWidgetManager.getInstance(this).getAppWidgetInfo(id);
@@ -536,7 +842,7 @@ public class HomeActivity extends Activity implements SensorEventListener {
           hv.setAppWidget(id, info);
           hv.setOnLongClickListener(
               w -> {
-                ui.beginDrag(hv,x,false);
+                ui.beginDrag(hv, x, false);
                 return true;
               });
           hv.addOnLayoutChangeListener(
@@ -566,7 +872,7 @@ public class HomeActivity extends Activity implements SensorEventListener {
     if (!type.equals("widget"))
       v.setOnLongClickListener(
           w -> {
-            ui.beginDrag(w,x,false);
+            ui.beginDrag(w, x, false);
             return true;
           });
     return v;
@@ -575,8 +881,15 @@ public class HomeActivity extends Activity implements SensorEventListener {
   void fillTile(LinearLayout tile, JSONObject x) {
     tile.removeAllViews();
     String type = x.optString("type");
-    if(!type.equals("media")&&!type.equals("photo")){tile.setPadding(0,0,0,0);tile.setBackgroundColor(Color.TRANSPARENT);WidgetArtwork art=new WidgetArtwork(this,x,false);tile.addView(art,new LinearLayout.LayoutParams(-1,-1));click(tile,()->tileAction(x));return;}
-    tile.setPadding(dp(14),dp(12),dp(14),dp(12));
+    if (!type.equals("media") && !type.equals("photo")) {
+      tile.setPadding(0, 0, 0, 0);
+      tile.setBackgroundColor(Color.TRANSPARENT);
+      WidgetArtwork art = new WidgetArtwork(this, x, false);
+      tile.addView(art, new LinearLayout.LayoutParams(-1, -1));
+      click(tile, () -> tileAction(x));
+      return;
+    }
+    tile.setPadding(dp(14), dp(12), dp(14), dp(12));
     int ink = type.equals("battery") ? bg : fg;
     if (type.equals("clock")) {
       DotClock clock = new DotClock();
@@ -642,8 +955,12 @@ public class HomeActivity extends Activity implements SensorEventListener {
         if (!uri.isEmpty()) {
           ImageView im = new ImageView(this);
           im.setScaleType(ImageView.ScaleType.CENTER_CROP);
-        im.setBackground(shape(card,x.optInt("style")==1?1000:24));im.setClipToOutline(true);
-        if(x.optInt("crop",1)!=1){im.setScaleType(ImageView.ScaleType.FIT_START);if(x.optInt("crop")==2)im.setScaleType(ImageView.ScaleType.FIT_END);}
+          im.setBackground(shape(card, x.optInt("style") == 1 ? 1000 : 24));
+          im.setClipToOutline(true);
+          if (x.optInt("crop", 1) != 1) {
+            im.setScaleType(ImageView.ScaleType.FIT_START);
+            if (x.optInt("crop") == 2) im.setScaleType(ImageView.ScaleType.FIT_END);
+          }
           try {
             im.setImageDrawable(scaledImage(Uri.parse(uri)));
             tile.addView(im, new LinearLayout.LayoutParams(-1, -1));
@@ -666,7 +983,16 @@ public class HomeActivity extends Activity implements SensorEventListener {
     click(tile, () -> tileAction(x));
   }
 
-  void refreshTiles(){if(ui==null)return;for(Board b:ui.boards)for(int i=0;i<b.getChildCount();i++){View v=b.getChildAt(i);if(v instanceof LinearLayout&&v.getTag() instanceof JSONObject)fillTile((LinearLayout)v,(JSONObject)v.getTag());}}
+  void refreshTiles() {
+    if (ui == null) return;
+    for (Board b : ui.boards)
+      for (int i = 0; i < b.getChildCount(); i++) {
+        View v = b.getChildAt(i);
+        if (v instanceof LinearLayout && v.getTag() instanceof JSONObject)
+          fillTile((LinearLayout) v, (JSONObject) v.getTag());
+      }
+  }
+
   void tileAction(JSONObject x) {
     switch (x.optString("type")) {
       case "notes":
@@ -722,11 +1048,21 @@ public class HomeActivity extends Activity implements SensorEventListener {
                 Intent.ACTION_VIEW,
                 Uri.parse("content://com.android.calendar/time/" + System.currentTimeMillis())));
         break;
-      case "breathing": toast("Follow the circle: breathe slowly in and out");break;
-      case "torch": toggleTorch();break;
-      case "bluetooth":open(new Intent(Settings.ACTION_BLUETOOTH_SETTINGS));break;
-      case "sound":open(new Intent(Settings.ACTION_SOUND_SETTINGS));break;
-      case "dnd":open(new Intent("android.settings.ZEN_MODE_SETTINGS"));break;
+      case "breathing":
+        toast("Follow the circle: breathe slowly in and out");
+        break;
+      case "torch":
+        toggleTorch();
+        break;
+      case "bluetooth":
+        open(new Intent(Settings.ACTION_BLUETOOTH_SETTINGS));
+        break;
+      case "sound":
+        open(new Intent(Settings.ACTION_SOUND_SETTINGS));
+        break;
+      case "dnd":
+        open(new Intent("android.settings.ZEN_MODE_SETTINGS"));
+        break;
       case "battery":
         open(new Intent(Settings.ACTION_BATTERY_SAVER_SETTINGS));
         break;
@@ -735,8 +1071,21 @@ public class HomeActivity extends Activity implements SensorEventListener {
     }
   }
 
-  final java.util.HashMap<android.media.session.MediaController,android.media.session.MediaController.Callback> mediaCallbacks=new java.util.HashMap<>();
-  void clearMediaCallbacks(){for(java.util.Map.Entry<android.media.session.MediaController,android.media.session.MediaController.Callback> e:mediaCallbacks.entrySet())try{e.getKey().unregisterCallback(e.getValue());}catch(Exception ignored){}mediaCallbacks.clear();}
+  final java.util.HashMap<
+          android.media.session.MediaController, android.media.session.MediaController.Callback>
+      mediaCallbacks = new java.util.HashMap<>();
+
+  void clearMediaCallbacks() {
+    for (java.util.Map.Entry<
+            android.media.session.MediaController, android.media.session.MediaController.Callback>
+        e : mediaCallbacks.entrySet())
+      try {
+        e.getKey().unregisterCallback(e.getValue());
+      } catch (Exception ignored) {
+      }
+    mediaCallbacks.clear();
+  }
+
   void fillMedia(LinearLayout tile) {
     tile.addView(label("NOW PLAYING"));
     MediaController controller = null;
@@ -759,9 +1108,48 @@ public class HomeActivity extends Activity implements SensorEventListener {
       return;
     }
     final MediaController c = controller;
-    if(mediaCallbacks.size()<8&&!mediaCallbacks.containsKey(c)){MediaController.Callback callback=new MediaController.Callback(){@Override public void onPlaybackStateChanged(PlaybackState state){handler.post(()->refreshTiles());}@Override public void onMetadataChanged(MediaMetadata data){handler.post(()->refreshTiles());}};c.registerCallback(callback,handler);mediaCallbacks.put(c,callback);}
+    if (mediaCallbacks.size() < 8 && !mediaCallbacks.containsKey(c)) {
+      MediaController.Callback callback =
+          new MediaController.Callback() {
+            @Override
+            public void onPlaybackStateChanged(PlaybackState state) {
+              handler.post(() -> refreshTiles());
+            }
+
+            @Override
+            public void onMetadataChanged(MediaMetadata data) {
+              handler.post(() -> refreshTiles());
+            }
+          };
+      c.registerCallback(callback, handler);
+      mediaCallbacks.put(c, callback);
+    }
     MediaMetadata data = c.getMetadata();
-    if(data!=null){Bitmap art=data.getBitmap(MediaMetadata.METADATA_KEY_ALBUM_ART);if(art==null)art=data.getBitmap(MediaMetadata.METADATA_KEY_ART);LinearLayout row=new LinearLayout(this);row.setGravity(Gravity.CENTER_VERTICAL);ImageView image=new ImageView(this);image.setScaleType(ImageView.ScaleType.CENTER_CROP);image.setBackground(shape(bg,14));image.setClipToOutline(true);if(art!=null)image.setImageBitmap(art);else image.setImageResource(android.R.drawable.ic_media_play);row.addView(image,new LinearLayout.LayoutParams(dp(48),dp(48)));TextView artist=text(String.valueOf(data.getText(MediaMetadata.METADATA_KEY_ARTIST)==null?"Music":data.getText(MediaMetadata.METADATA_KEY_ARTIST)),12,muted);artist.setPadding(dp(12),0,0,0);artist.setMaxLines(2);row.addView(artist,new LinearLayout.LayoutParams(0,dp(48),1));tile.addView(row);}
+    if (data != null) {
+      Bitmap art = data.getBitmap(MediaMetadata.METADATA_KEY_ALBUM_ART);
+      if (art == null) art = data.getBitmap(MediaMetadata.METADATA_KEY_ART);
+      LinearLayout row = new LinearLayout(this);
+      row.setGravity(Gravity.CENTER_VERTICAL);
+      ImageView image = new ImageView(this);
+      image.setScaleType(ImageView.ScaleType.CENTER_CROP);
+      image.setBackground(shape(bg, 14));
+      image.setClipToOutline(true);
+      if (art != null) image.setImageBitmap(art);
+      else image.setImageResource(android.R.drawable.ic_media_play);
+      row.addView(image, new LinearLayout.LayoutParams(dp(48), dp(48)));
+      TextView artist =
+          text(
+              String.valueOf(
+                  data.getText(MediaMetadata.METADATA_KEY_ARTIST) == null
+                      ? "Music"
+                      : data.getText(MediaMetadata.METADATA_KEY_ARTIST)),
+              12,
+              muted);
+      artist.setPadding(dp(12), 0, 0, 0);
+      artist.setMaxLines(2);
+      row.addView(artist, new LinearLayout.LayoutParams(0, dp(48), 1));
+      tile.addView(row);
+    }
 
     String title =
         data == null ? "Media" : String.valueOf(data.getText(MediaMetadata.METADATA_KEY_TITLE));
@@ -769,7 +1157,13 @@ public class HomeActivity extends Activity implements SensorEventListener {
     name.setMaxLines(2);
     tile.addView(name, new LinearLayout.LayoutParams(-1, 0, 1));
     LinearLayout buttons = new LinearLayout(this);
-    String[] names = {"‹", c.getPlaybackState()!=null&&c.getPlaybackState().getState()==PlaybackState.STATE_PLAYING?"Ⅱ":"▶", "›"};
+    String[] names = {
+      "‹",
+      c.getPlaybackState() != null && c.getPlaybackState().getState() == PlaybackState.STATE_PLAYING
+          ? "Ⅱ"
+          : "▶",
+      "›"
+    };
     for (int n = 0; n < 3; n++) {
       final int action = n;
       TextView b = text(names[n], 22, fg);
@@ -890,13 +1284,33 @@ public class HomeActivity extends Activity implements SensorEventListener {
         .show();
   }
 
-  void addMenu(){ui.overview();}
-  void addTile(){ui.widgetPicker();}
-  void pickWidget(){ui.widgetPicker();}
-  void itemMenu(JSONObject x,View v){ui.itemActions(x,v);}
-  void folder(JSONObject x){ui.folder(x);}
-  void drawer(java.util.function.Consumer<App> pick){ui.drawer(pick);}
-  void settings(){ui.customise();}
+  void addMenu() {
+    ui.overview();
+  }
+
+  void addTile() {
+    ui.widgetPicker();
+  }
+
+  void pickWidget() {
+    ui.widgetPicker();
+  }
+
+  void itemMenu(JSONObject x, View v) {
+    ui.itemActions(x, v);
+  }
+
+  void folder(JSONObject x) {
+    ui.folder(x);
+  }
+
+  void drawer(java.util.function.Consumer<App> pick) {
+    ui.drawer(pick);
+  }
+
+  void settings() {
+    ui.customise();
+  }
 
   void appOptions(App a) {
     if (a == null) return;
@@ -1064,7 +1478,7 @@ public class HomeActivity extends Activity implements SensorEventListener {
                         java.nio.file.Files.readString(
                             new File(getFilesDir(), "before-import.json").toPath()));
                 validateBackup(recovery);
-                  OfflineMigration.apply(recovery);
+                OfflineMigration.apply(recovery);
                 items = recovery.getJSONArray("items");
                 settings = recovery.getJSONObject("settings");
                 dock = recovery.optJSONArray("dock");
@@ -1080,7 +1494,10 @@ public class HomeActivity extends Activity implements SensorEventListener {
               try {
                 String undo = prefs.getString("undo", "");
                 if (!undo.isEmpty()) {
-                  JSONObject legacy=new JSONObject();put(legacy,"items",new JSONArray(undo));OfflineMigration.apply(legacy);items=legacy.getJSONArray("items");
+                  JSONObject legacy = new JSONObject();
+                  put(legacy, "items", new JSONArray(undo));
+                  OfflineMigration.apply(legacy);
+                  items = legacy.getJSONArray("items");
                   save();
                   render();
                 } else toast("No layout edit to undo");
@@ -1092,7 +1509,8 @@ public class HomeActivity extends Activity implements SensorEventListener {
               new AlertDialog.Builder(this)
                   .setTitle("Dot Home " + BuildInfo.VERSION_NAME)
                   .setMessage(
-                      "Independent Nothing-inspired native launcher. Fully offline. No Internet permission, account, ads or analytics.\n\n"
+                      "Independent Nothing-inspired native launcher. Fully offline. No Internet"
+                          + " permission, account, ads or analytics.\n\n"
                           + "Layout reset affects Dot Home only.")
                   .setPositiveButton("Close", null)
                   .setNeutralButton(
@@ -1199,8 +1617,40 @@ public class HomeActivity extends Activity implements SensorEventListener {
     pickDocument(PHOTO, "image/*");
   }
 
-  void addProvider(AppWidgetProviderInfo info){if(pendingWidget>=0)cancelWidget();pendingWidget=host.allocateAppWidgetId();prefs.edit().putInt("pendingWidget",pendingWidget).apply();if(AppWidgetManager.getInstance(this).bindAppWidgetIdIfAllowed(pendingWidget,info.provider))configureWidget();else startActivityForResult(new Intent(AppWidgetManager.ACTION_APPWIDGET_BIND).putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID,pendingWidget).putExtra(AppWidgetManager.EXTRA_APPWIDGET_PROVIDER,info.provider),BIND);}
-  void toggleTorch(){if(checkSelfPermission(Manifest.permission.CAMERA)!=PackageManager.PERMISSION_GRANTED){requestPermissions(new String[]{Manifest.permission.CAMERA},22);return;}try{CameraManager cm=(CameraManager)getSystemService(CAMERA_SERVICE);for(String id:cm.getCameraIdList())if(Boolean.TRUE.equals(cm.getCameraCharacteristics(id).get(CameraCharacteristics.FLASH_INFO_AVAILABLE))){cm.setTorchMode(id,!torch);torch=!torch;refreshTiles();break;}}catch(Exception e){toast("Flashlight unavailable or camera in use");}}
+  void addProvider(AppWidgetProviderInfo info) {
+    if (pendingWidget >= 0) cancelWidget();
+    pendingWidget = host.allocateAppWidgetId();
+    prefs.edit().putInt("pendingWidget", pendingWidget).apply();
+    if (AppWidgetManager.getInstance(this).bindAppWidgetIdIfAllowed(pendingWidget, info.provider))
+      configureWidget();
+    else
+      startActivityForResult(
+          new Intent(AppWidgetManager.ACTION_APPWIDGET_BIND)
+              .putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, pendingWidget)
+              .putExtra(AppWidgetManager.EXTRA_APPWIDGET_PROVIDER, info.provider),
+          BIND);
+  }
+
+  void toggleTorch() {
+    if (checkSelfPermission(Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
+      requestPermissions(new String[] {Manifest.permission.CAMERA}, 22);
+      return;
+    }
+    try {
+      CameraManager cm = (CameraManager) getSystemService(CAMERA_SERVICE);
+      for (String id : cm.getCameraIdList())
+        if (Boolean.TRUE.equals(
+            cm.getCameraCharacteristics(id).get(CameraCharacteristics.FLASH_INFO_AVAILABLE))) {
+          cm.setTorchMode(id, !torch);
+          torch = !torch;
+          refreshTiles();
+          break;
+        }
+    } catch (Exception e) {
+      toast("Flashlight unavailable or camera in use");
+    }
+  }
+
   void configureWidget() {
     AppWidgetProviderInfo info = AppWidgetManager.getInstance(this).getAppWidgetInfo(pendingWidget);
     if (info == null) {
