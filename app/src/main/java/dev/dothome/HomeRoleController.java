@@ -17,9 +17,15 @@ final class HomeRoleController {
 
   boolean isDefault() {
     RoleManager roles = activity.getSystemService(RoleManager.class);
-    return roles != null
-        && roles.isRoleAvailable(RoleManager.ROLE_HOME)
-        && roles.isRoleHeld(RoleManager.ROLE_HOME);
+    if (roles != null && roles.isRoleAvailable(RoleManager.ROLE_HOME))
+      return roles.isRoleHeld(RoleManager.ROLE_HOME);
+    Intent home = new Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_HOME);
+    android.content.pm.ResolveInfo resolved =
+        activity.getPackageManager().resolveActivity(home, PackageManager.MATCH_DEFAULT_ONLY);
+    return resolved != null
+        && resolved.activityInfo != null
+        && resolved.activityInfo.packageName.equals(activity.getPackageName())
+        && resolved.activityInfo.name.equals(HomeActivity.class.getName());
   }
 
   void refresh() {

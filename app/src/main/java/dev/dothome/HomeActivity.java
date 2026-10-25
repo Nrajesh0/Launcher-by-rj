@@ -571,10 +571,13 @@ public class HomeActivity extends Activity implements SensorEventListener {
           Bitmap bitmap = Bitmap.createBitmap(dp(64), dp(64), Bitmap.Config.ARGB_8888);
           Canvas canvas = new Canvas(bitmap);
           Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
-          paint.setColor(fg);
+          paint.setColor(LauncherTheme.widgetSurface(this));
           canvas.drawCircle(dp(32), dp(32), dp(30), paint);
           mono = mono.mutate();
-          mono.setTint(bg);
+          mono.setTint(
+              settings.optString("material", "classic").equals("translucent")
+                  ? LauncherTheme.mix(fg, accent, .2f)
+                  : fg);
           mono.setBounds(dp(10), dp(10), dp(54), dp(54));
           mono.draw(canvas);
           return new android.graphics.drawable.BitmapDrawable(getResources(), bitmap);
@@ -586,7 +589,7 @@ public class HomeActivity extends Activity implements SensorEventListener {
       Bitmap bitmap = Bitmap.createBitmap(dp(64), dp(64), Bitmap.Config.ARGB_8888);
       Canvas canvas = new Canvas(bitmap);
       Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
-      paint.setColor(fg);
+      paint.setColor(LauncherTheme.widgetSurface(this));
       canvas.drawCircle(dp(32), dp(32), dp(30), paint);
       d.setBounds(dp(14), dp(14), dp(50), dp(50));
       d.draw(canvas);
