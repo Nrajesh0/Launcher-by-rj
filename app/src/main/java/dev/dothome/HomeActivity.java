@@ -658,9 +658,10 @@ public class HomeActivity extends Activity implements SensorEventListener {
                     : dp(settings.optInt("iconSize", 46));
             iconSize =
                 Math.max(1, Math.min(iconSize, Math.min(itemWidth, itemHeight - labelHeight)));
-            iconBox
-                .getChildAt(0)
-                .setLayoutParams(new LinearLayout.LayoutParams(iconSize, iconSize));
+            View iconFrame = iconBox.getChildAt(0);
+            ViewGroup.LayoutParams old = iconFrame.getLayoutParams();
+            if (old.width != iconSize || old.height != iconSize)
+              iconFrame.setLayoutParams(new LinearLayout.LayoutParams(iconSize, iconSize));
           }
         }
         getChildAt(i)
@@ -1210,7 +1211,14 @@ public class HomeActivity extends Activity implements SensorEventListener {
       return;
     }
     final MediaController c = controller;
-    if (mediaCallbacks.size() < 8 && !mediaCallbacks.containsKey(c)) {
+    boolean observed = false;
+    for (MediaController registered : mediaCallbacks.keySet())
+      if (registered.controlsSameSession(c)) {
+        observed = true;
+        break;
+      }
+    if (!observed) {
+      if (mediaCallbacks.size() >= 8) clearMediaCallbacks();
       MediaController.Callback callback =
           new MediaController.Callback() {
             @Override
