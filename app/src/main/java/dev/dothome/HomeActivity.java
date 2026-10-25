@@ -128,7 +128,7 @@ public class HomeActivity extends Activity implements SensorEventListener {
     int bars =
         WindowInsetsController.APPEARANCE_LIGHT_STATUS_BARS
             | WindowInsetsController.APPEARANCE_LIGHT_NAVIGATION_BARS;
-    WindowInsetsController controller = getWindow().getInsetsController();
+    WindowInsetsController controller = getWindow().getDecorView().getWindowInsetsController();
     if (controller != null) controller.setSystemBarsAppearance(dark() ? 0 : bars, bars);
     getWindow().setNavigationBarContrastEnforced(false);
   }
