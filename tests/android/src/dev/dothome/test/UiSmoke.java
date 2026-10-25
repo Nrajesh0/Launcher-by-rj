@@ -162,6 +162,39 @@ public class UiSmoke extends Instrumentation {
               throw new AssertionError("Workspace not laid out");
           });
       screenshot("home");
+      // Only the emulator fixture changes native navigation mode for clean design captures.
+      shell(
+          "cmd overlay enable-exclusive --category com.android.internal.systemui.navbar.gestural");
+      SystemClock.sleep(800);
+      onUi(
+          () -> {
+            try {
+              JSONObject settings = (JSONObject) field(home, "settings");
+              settings.put("dark", true);
+              settings.put("wallpaperPreset", "ocean");
+              call(ui, "refresh", new Class[] {});
+            } catch (Exception e) {
+              throw new RuntimeException(e);
+            }
+          });
+      screenshot("home-dark");
+      onUi(
+          () -> {
+            try {
+              JSONObject settings = (JSONObject) field(home, "settings");
+              settings.put("dark", false);
+              settings.put("wallpaperPreset", "mist");
+              call(ui, "refresh", new Class[] {});
+            } catch (Exception e) {
+              throw new RuntimeException(e);
+            }
+          });
+      screenshot("home-light");
+      shell(
+          "cmd overlay enable-exclusive --category"
+              + " com.android.internal.systemui.navbar.threebutton");
+      SystemClock.sleep(800);
+
       onUi(
           () ->
               call(
@@ -295,30 +328,6 @@ public class UiSmoke extends Instrumentation {
           "cmd overlay enable-exclusive --category com.android.internal.systemui.navbar.gestural");
       SystemClock.sleep(800);
       screenshot("home-gesture-mode");
-      onUi(
-          () -> {
-            try {
-              JSONObject settings = (JSONObject) field(home, "settings");
-              settings.put("dark", true);
-              settings.put("wallpaperPreset", "ocean");
-              call(ui, "refresh", new Class[] {});
-            } catch (Exception e) {
-              throw new RuntimeException(e);
-            }
-          });
-      screenshot("home-dark");
-      onUi(
-          () -> {
-            try {
-              JSONObject settings = (JSONObject) field(home, "settings");
-              settings.put("dark", false);
-              settings.put("wallpaperPreset", "mist");
-              call(ui, "refresh", new Class[] {});
-            } catch (Exception e) {
-              throw new RuntimeException(e);
-            }
-          });
-      screenshot("home-light");
       result.putString(
           "stream",
           "PASS: home, integrated drawer, visual picker, style gallery, customisation, overview,"

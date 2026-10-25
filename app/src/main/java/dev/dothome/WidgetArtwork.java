@@ -325,7 +325,7 @@ final class WidgetArtwork extends View {
         p.setColor(ink);
         p.setStyle(Paint.Style.STROKE);
         p.setStrokeWidth(a.dp(.8f));
-        float radius = u * (.27f + progress * .07f);
+        float radius = u * (.33f + progress * .07f);
         for (int n = 0; n < 9; n++) {
           float factor = .15f + n * .1f;
           r.set(
