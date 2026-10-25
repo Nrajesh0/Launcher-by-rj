@@ -58,11 +58,32 @@ public class UiSmoke extends Instrumentation {
             getUiAutomation(UiAutomation.FLAG_DONT_SUPPRESS_ACCESSIBILITY_SERVICES)
                 .getRootInActiveWindow(),
             text);
-    for (int n = 0; node != null && n < 6; n++, node = node.getParent())
-      if (node.isClickable()
-          && node.performAction(android.view.accessibility.AccessibilityNodeInfo.ACTION_CLICK))
-        return true;
-    return false;
+    if (node == null || !node.isVisibleToUser() || !node.isEnabled()) return false;
+    // PermissionController's radio labels are not always accessibility-clickable.
+    // Touch the visible label just as a user would, rather than granting the role
+    // from a shell command, so this still exercises the real confirmation flow.
+    android.graphics.Rect bounds = new android.graphics.Rect();
+    node.getBoundsInScreen(bounds);
+    if (bounds.isEmpty()) return false;
+    long down = SystemClock.uptimeMillis();
+    UiAutomation automation =
+        getUiAutomation(UiAutomation.FLAG_DONT_SUPPRESS_ACCESSIBILITY_SERVICES);
+    boolean accepted = true;
+    for (int action : new int[] {MotionEvent.ACTION_DOWN, MotionEvent.ACTION_UP}) {
+      MotionEvent event =
+          MotionEvent.obtain(
+              down,
+              SystemClock.uptimeMillis(),
+              action,
+              bounds.exactCenterX(),
+              bounds.exactCenterY(),
+              0);
+      event.setSource(InputDevice.SOURCE_TOUCHSCREEN);
+      accepted &= automation.injectInputEvent(event, true);
+      event.recycle();
+      SystemClock.sleep(80);
+    }
+    return accepted;
   }
 
   void chooseDefaultHome() throws Exception {
@@ -83,13 +104,19 @@ public class UiSmoke extends Instrumentation {
     }
     if (!displayed) throw new AssertionError("Automatic default-launcher chooser did not open");
     screenshot("default-launcher-prompt");
-    clickSystemText("Dot Home");
-    SystemClock.sleep(250);
-    boolean confirmed =
-        clickSystemText("Set as default")
-            || clickSystemText("Set default")
-            || clickSystemText("Always")
-            || clickSystemText("Use app");
+    if (!clickSystemText("Dot Home"))
+      throw new AssertionError("Could not tap the visible Dot Home option");
+    SystemClock.sleep(750);
+    screenshot("default-launcher-selected");
+    boolean confirmed = false;
+    for (int n = 0; n < 30 && !confirmed; n++) {
+      confirmed =
+          clickSystemText("Set as default")
+              || clickSystemText("Set default")
+              || clickSystemText("Always")
+              || clickSystemText("Use app");
+      if (!confirmed) SystemClock.sleep(100);
+    }
     for (int n = 0; n < 50 && !roles.isRoleHeld(android.app.role.RoleManager.ROLE_HOME); n++)
       SystemClock.sleep(100);
     if (!roles.isRoleHeld(android.app.role.RoleManager.ROLE_HOME))
