@@ -44,34 +44,25 @@ final class WallpaperArtwork extends Drawable {
       glow(c, w * .95f, h * .68f, w * .8f, 0x883e7273, w, h);
       glow(c, w * .4f, h * .9f, w * .7f, 0x99243c4d, w, h);
     }
-    Path curve = new Path();
-    curve.moveTo(w * 1.2f, h * .08f);
-    curve.cubicTo(-w * .5f, h * .22f, w * 1.8f, h * .55f, -w * .2f, h * .83f);
-    p.setShader(
-        new LinearGradient(
-            0,
-            0,
-            w,
-            h,
-            new int[] {0x00ffffff, light ? 0x33ffffff : 0x163cabb2, 0x00ffffff},
-            null,
-            Shader.TileMode.CLAMP));
-    p.setStyle(Paint.Style.STROKE);
-    p.setStrokeWidth(w * .25f);
-    c.drawPath(curve, p);
-    p.setStrokeWidth(w * .02f);
-    p.setShader(
-        new LinearGradient(
-            0,
-            0,
-            w,
-            h,
-            new int[] {0x00ffffff, light ? 0x44ffffff : 0x225ca7af, 0x00ffffff},
-            null,
-            Shader.TileMode.CLAMP));
-    c.drawPath(curve, p);
+    // Fine optical rings and soft colour fields, rather than solid ribbon bands.
     p.setShader(null);
+    p.setStyle(Paint.Style.STROKE);
+    p.setStrokeWidth(Math.max(.5f, w / 1300f));
+    p.setColor(light ? 0x15ffffff : 0x1248bec3);
+    for (int n = 0; n < 11; n++) {
+      float radius = w * (.36f + n * .075f);
+      c.drawCircle(w * 1.03f, h * .58f, radius, p);
+    }
     p.setStyle(Paint.Style.FILL);
+    p.setColor(light ? 0x0affffff : 0x08d7ffff);
+    float[] grain = new float[2048];
+    int noise = 19473;
+    for (int n = 0; n < grain.length; n++) {
+      noise = noise * 1664525 + 1013904223;
+      grain[n] = ((noise >>> 8) & 65535) / 65535f * (n % 2 == 0 ? w : h);
+    }
+    p.setStrokeWidth(Math.max(.5f, w / 900f));
+    c.drawPoints(grain, p);
     c.restore();
   }
 

@@ -3,6 +3,7 @@ on:
   push:
     branches: [main, rebuild-v3]
     tags: ['v*']
+    paths-ignore: ['release-assets/**']
   workflow_dispatch:
 permissions:
   contents: read

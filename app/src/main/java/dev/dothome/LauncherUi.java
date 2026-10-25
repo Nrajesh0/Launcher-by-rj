@@ -275,7 +275,20 @@ final class LauncherUi {
     for (int n = 0; n < 4; n++) {
       final int slot = n;
       HomeActivity.App app = a.app(a.dock.optString(n, ""));
-      View v = app == null ? button("＋", () -> selectDock(slot)) : a.appView(app, false);
+      View v;
+      if (app == null) {
+        FrameLayout empty = new FrameLayout(a);
+        TextView plus = button("＋", () -> selectDock(slot));
+        plus.setPadding(0, 0, 0, 0);
+        plus.setBackground(a.shape(a.card, 100));
+        empty.addView(
+            plus,
+            new FrameLayout.LayoutParams(
+                d(a.settings.optInt("iconSize", 46)),
+                d(a.settings.optInt("iconSize", 46)),
+                Gravity.CENTER));
+        v = empty;
+      } else v = a.appView(app, false);
       v.setOnLongClickListener(
           w -> {
             selectDock(slot);
@@ -286,7 +299,6 @@ final class LauncherUi {
           new FrameLayout.LayoutParams(d(68), d(68), Gravity.CENTER);
       slotView.addView(v, iconSize);
       if (app == null) {
-        v.setBackground(a.shape(a.card, 100));
         v.setAlpha(.65f);
       }
       hotseat.addView(slotView, new LinearLayout.LayoutParams(0, -1, 1));
@@ -1024,94 +1036,7 @@ final class LauncherUi {
   };
 
   void widgetPicker() {
-    LinearLayout body = surface("Widgets", true);
-    changeState("picker");
-    EditText search = new EditText(a);
-    search.setSingleLine();
-    search.setTextColor(a.fg);
-    search.setHintTextColor(a.muted);
-    search.setHint("Search widgets");
-    search.setBackground(a.shape(a.card, 24));
-    search.setPadding(d(16), 0, d(16), 0);
-    body.addView(search, new LinearLayout.LayoutParams(-1, d(48)));
-    ScrollView scroll = new ScrollView(a);
-    LinearLayout list = vertical();
-    scroll.addView(list);
-    body.addView(scroll, new LinearLayout.LayoutParams(-1, 0, 1));
-    Runnable populate =
-        () -> {
-          list.removeAllViews();
-          String q = search.getText().toString().toLowerCase(Locale.ROOT);
-          for (int n = 0; n < types.length; n++) {
-            final String type = types[n];
-            if (!names[n].toLowerCase(Locale.ROOT).contains(q)) continue;
-            LinearLayout row = vertical();
-            TextView heading = title(names[n], 20);
-            row.addView(heading, new LinearLayout.LayoutParams(-1, d(46)));
-            JSONObject preview = sample(type, 0);
-            WidgetArtwork art = new WidgetArtwork(a, preview, true);
-            row.addView(art, new LinearLayout.LayoutParams(-1, d(142)));
-            TextView sizes = a.label("STYLES & SIZES  →");
-            row.addView(sizes, new LinearLayout.LayoutParams(-1, d(32)));
-            a.click(row, () -> stylePicker(type, null));
-            a.click(art, () -> stylePicker(type, null));
-            art.setOnLongClickListener(
-                v -> {
-                  beginDrag(v, sample(type, 0), true);
-                  return true;
-                });
-            LinearLayout.LayoutParams rowSpace = new LinearLayout.LayoutParams(-1, -2);
-            rowSpace.bottomMargin = d(12);
-            list.addView(row, rowSpace);
-          }
-          List<AppWidgetProviderInfo> providers =
-              AppWidgetManager.getInstance(a).getInstalledProviders();
-          providers.sort(
-              (x, y) ->
-                  x.loadLabel(a.getPackageManager())
-                      .compareToIgnoreCase(y.loadLabel(a.getPackageManager())));
-          for (AppWidgetProviderInfo info : providers) {
-            String name = info.loadLabel(a.getPackageManager());
-            if (!name.toLowerCase(Locale.ROOT).contains(q)) continue;
-            LinearLayout row = new LinearLayout(a);
-            row.setGravity(Gravity.CENTER_VERTICAL);
-            row.setPadding(d(8), d(12), d(8), d(12));
-            ImageView image = new ImageView(a);
-            try {
-              Drawable preview =
-                  info.loadPreviewImage(a, a.getResources().getDisplayMetrics().densityDpi);
-              if (preview == null)
-                preview = info.loadIcon(a, a.getResources().getDisplayMetrics().densityDpi);
-              image.setImageDrawable(preview);
-            } catch (Exception ignored) {
-            }
-            image.setScaleType(ImageView.ScaleType.FIT_CENTER);
-            row.addView(image, new LinearLayout.LayoutParams(d(110), d(90)));
-            LinearLayout texts = vertical();
-            texts.addView(title(name, 17));
-            texts.addView(a.label("ANDROID WIDGET"));
-            row.addView(texts, new LinearLayout.LayoutParams(0, -2, 1));
-            a.click(
-                row,
-                () -> {
-                  close();
-                  a.addProvider(info);
-                });
-            list.addView(row);
-          }
-          list.addView(a.label("PREVIEWS USE SAMPLE DATA · ALL BUILT-INS WORK OFFLINE"));
-        };
-    search.addTextChangedListener(
-        new android.text.TextWatcher() {
-          public void beforeTextChanged(CharSequence s, int st, int c, int f) {}
-
-          public void onTextChanged(CharSequence s, int st, int before, int count) {
-            populate.run();
-          }
-
-          public void afterTextChanged(android.text.Editable e) {}
-        });
-    populate.run();
+    new WidgetPickerController(this).mount();
   }
 
   JSONObject sample(String type, int style) {
@@ -1775,6 +1700,13 @@ final class LauncherUi {
 
   class Pager extends HorizontalScrollView {
     VelocityTracker velocity;
+    float gestureStartX;
+
+    @Override
+    public boolean onInterceptTouchEvent(MotionEvent event) {
+      if (event.getActionMasked() == MotionEvent.ACTION_DOWN) gestureStartX = event.getRawX();
+      return super.onInterceptTouchEvent(event);
+    }
 
     Pager() {
       super(a);
@@ -1793,9 +1725,11 @@ final class LauncherUi {
           || e.getActionMasked() == MotionEvent.ACTION_CANCEL) {
         velocity.computeCurrentVelocity(1000);
         int target = Math.round(getScrollX() / (float) Math.max(1, getWidth()));
+        float travel = e.getRawX() - gestureStartX;
         if (e.getActionMasked() == MotionEvent.ACTION_UP
-            && Math.abs(velocity.getXVelocity()) > d(600))
-          target = a.page + (velocity.getXVelocity() < 0 ? 1 : -1);
+            && Math.abs(travel) > ViewConfiguration.get(a).getScaledTouchSlop() * 2
+            && (Math.abs(travel) > getWidth() * .22f || Math.abs(velocity.getXVelocity()) > d(600)))
+          target = a.page + (travel < 0 ? 1 : -1);
         goPage(target, true);
         velocity.recycle();
         velocity = null;

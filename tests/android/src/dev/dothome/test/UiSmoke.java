@@ -141,11 +141,19 @@ public class UiSmoke extends Instrumentation {
   }
 
   void onUi(Runnable work) {
+    java.util.concurrent.atomic.AtomicReference<Throwable> failure =
+        new java.util.concurrent.atomic.AtomicReference<>();
     runOnMainSync(
         () -> {
-          syncActivity();
-          work.run();
+          try {
+            syncActivity();
+            work.run();
+          } catch (Throwable error) {
+            failure.set(error);
+          }
         });
+    if (failure.get() != null)
+      throw new AssertionError("UI-thread assertion failed", failure.get());
     waitForIdleSync();
     SystemClock.sleep(450);
   }
@@ -292,6 +300,70 @@ public class UiSmoke extends Instrumentation {
           if (field(ui, "overlay") != null || !field(ui, "state").equals("home"))
             throw new AssertionError("Unexpected Home overlay after a cancelled/short swipe");
         });
+  }
+
+  void configureFixture(boolean apply) throws Exception {
+    for (int n = 0; n < 80; n++) {
+      if (clickSystemText(apply ? "Apply test widget" : "Cancel test widget")) {
+        SystemClock.sleep(750);
+        return;
+      }
+      // Exercise the actual system widget-consent UI when Home was not auto-granted binding.
+      clickSystemText("Allow");
+      clickSystemText("Create");
+      SystemClock.sleep(100);
+    }
+    throw new AssertionError("Widget configuration did not open");
+  }
+
+  void checkProviderWidget() throws Exception {
+    android.appwidget.AppWidgetManager manager =
+        android.appwidget.AppWidgetManager.getInstance(home);
+    android.appwidget.AppWidgetProviderInfo provider = null;
+    for (android.appwidget.AppWidgetProviderInfo candidate : manager.getInstalledProviders())
+      if (candidate.provider.getClassName().equals("dev.dothome.test.WidgetProvider"))
+        provider = candidate;
+    if (provider == null) throw new AssertionError("Test widget provider is not discoverable");
+    final android.appwidget.AppWidgetProviderInfo chosen = provider;
+    int before = ((JSONArray) field(home, "items")).length();
+    onUi(
+        () ->
+            call(
+                home,
+                "addProvider",
+                new Class[] {android.appwidget.AppWidgetProviderInfo.class},
+                chosen));
+    configureFixture(true);
+    onUi(() -> {});
+    JSONArray items = (JSONArray) field(home, "items");
+    JSONObject widget = null;
+    for (int n = 0; n < items.length(); n++)
+      if (items.getJSONObject(n).optString("provider").contains("WidgetProvider"))
+        widget = items.getJSONObject(n);
+    if (widget == null || items.length() != before + 1)
+      throw new AssertionError("Configured provider was not placed");
+    int id = widget.getInt("widgetId");
+    if (manager.getAppWidgetInfo(id) == null)
+      throw new AssertionError("Placed widget is not bound");
+    assertText("Provider widget configured");
+    screenshot("provider-widget");
+    final JSONObject installed = widget;
+    onUi(
+        () ->
+            call(
+                home,
+                "addProvider",
+                new Class[] {android.appwidget.AppWidgetProviderInfo.class},
+                chosen));
+    configureFixture(false);
+    onUi(() -> {});
+    if (((JSONArray) field(home, "items")).length() != before + 1
+        || ((Number) field(home, "pendingWidget")).intValue() != -1)
+      throw new AssertionError("Cancelled widget changed layout or leaked pending binding");
+    onUi(() -> call(ui, "remove", new Class[] {JSONObject.class}, installed));
+    if (manager.getAppWidgetInfo(id) != null
+        || ((JSONArray) field(home, "items")).length() != before)
+      throw new AssertionError("Widget removal did not release host binding");
   }
 
   @Override
@@ -464,6 +536,7 @@ public class UiSmoke extends Instrumentation {
       assertText("Test folder");
       screenshot("folder");
       onUi(() -> call(ui, "close", new Class[] {}));
+      checkProviderWidget();
       onUi(() -> call(ui, "navigation", new Class[] {}));
       assertText("System navigation");
       assertText("Android handles navigation");
