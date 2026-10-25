@@ -39,8 +39,12 @@ public class HomeActivity extends Activity implements SensorEventListener {
   final HashMap<String, String> packMap = new HashMap<>();
   String loadedPack = "";
   final HashMap<String, Drawable> icons = new HashMap<>();
+  final android.util.LruCache<String, Drawable.ConstantState> styledIcons =
+      new android.util.LruCache<>(192);
+  int iconGeneration;
   LinearLayout root, top, bottom;
   LauncherUi ui;
+  HomeRoleController homeRole;
   Board board;
   ScrollView scroll;
   Dialog drawer;
@@ -139,6 +143,7 @@ public class HomeActivity extends Activity implements SensorEventListener {
     super.onCreate(state);
     activeHome = this;
     prefs = getSharedPreferences("runtime", 0);
+    homeRole = new HomeRoleController(this);
     android.content.SharedPreferences.Editor cleanup = prefs.edit();
     for (String key : prefs.getAll().keySet()) if (key.startsWith("weather")) cleanup.remove(key);
     cleanup.apply();
@@ -194,7 +199,8 @@ public class HomeActivity extends Activity implements SensorEventListener {
     }
     if (rotation != null) sensors.registerListener(this, rotation, SensorManager.SENSOR_DELAY_UI);
     colors();
-    render();
+    if (ui == null) render();
+    homeRole.refresh();
     handler.removeCallbacks(ticker);
     handler.post(ticker);
     if (ui != null && ui.state.equals("navigation")) ui.navigation();
@@ -211,6 +217,7 @@ public class HomeActivity extends Activity implements SensorEventListener {
       host.stopListening();
     } catch (Exception e) {
     }
+    if (ui != null && ui.appearanceRollback != null) ui.close();
     save();
   }
 
@@ -226,6 +233,7 @@ public class HomeActivity extends Activity implements SensorEventListener {
   @Override
   public void onNewIntent(Intent i) {
     super.onNewIntent(i);
+    setIntent(i);
     if (ui != null) ui.close();
     if (drawer != null) drawer.dismiss();
     page = 0;
@@ -309,30 +317,13 @@ public class HomeActivity extends Activity implements SensorEventListener {
   }
 
   void askDefaultHomeOnce() {
-    android.app.role.RoleManager roles = getSystemService(android.app.role.RoleManager.class);
-    if (prefs.getBoolean("homeRoleAsked2", false)
-        || roles == null
-        || !roles.isRoleAvailable(android.app.role.RoleManager.ROLE_HOME)
-        || roles.isRoleHeld(android.app.role.RoleManager.ROLE_HOME)) return;
-    prefs.edit().putBoolean("homeRoleAsked2", true).apply();
-    requestHomeRole();
+    homeRole.refresh();
+    if (homeRole.isDefault() || prefs.getBoolean("homePromptShown", false)) return;
+    homeRole.request();
   }
 
   void requestHomeRole() {
-    android.app.role.RoleManager roles = getSystemService(android.app.role.RoleManager.class);
-    if (roles != null && roles.isRoleAvailable(android.app.role.RoleManager.ROLE_HOME)) {
-      if (roles.isRoleHeld(android.app.role.RoleManager.ROLE_HOME)) {
-        toast("Dot Home is already your default launcher");
-        return;
-      }
-      try {
-        startActivityForResult(
-            roles.createRequestRoleIntent(android.app.role.RoleManager.ROLE_HOME), 100);
-        return;
-      } catch (Exception ignored) {
-      }
-    }
-    open(new Intent(Settings.ACTION_HOME_SETTINGS));
+    homeRole.request();
   }
 
   void defaults() {
@@ -426,6 +417,8 @@ public class HomeActivity extends Activity implements SensorEventListener {
           }
           runOnUiThread(
               () -> {
+                iconGeneration++;
+                styledIcons.evictAll();
                 apps.clear();
                 apps.addAll(result);
                 icons.clear();
@@ -512,6 +505,26 @@ public class HomeActivity extends Activity implements SensorEventListener {
   }
 
   Drawable icon(App a) {
+    String key =
+        a.key
+            + ":"
+            + iconGeneration
+            + ":"
+            + dark()
+            + ":"
+            + accent
+            + ":"
+            + settings.optBoolean("mono", true)
+            + ":"
+            + settings.optString("iconPack", "");
+    Drawable.ConstantState cached = styledIcons.get(key);
+    if (cached != null) return cached.newDrawable(getResources()).mutate();
+    Drawable result = renderIcon(a);
+    if (result.getConstantState() != null) styledIcons.put(key, result.getConstantState());
+    return result;
+  }
+
+  Drawable renderIcon(App a) {
     Drawable d = icons.get(a.key);
     if (d == null) {
       try {
@@ -552,9 +565,6 @@ public class HomeActivity extends Activity implements SensorEventListener {
       icons.put(a.key, d);
     }
     if (settings.optBoolean("mono", true)) {
-      String basic = AppIconArtwork.kind(a.component.getPackageName());
-      if (basic != null && settings.optString("iconPack", "").isEmpty())
-        return new AppIconArtwork(basic, dark());
       if (d instanceof AdaptiveIconDrawable) {
         Drawable mono = ((AdaptiveIconDrawable) d).getMonochrome();
         if (mono != null) {
@@ -1990,6 +2000,10 @@ public class HomeActivity extends Activity implements SensorEventListener {
   @Override
   public void onActivityResult(int request, int result, Intent data) {
     super.onActivityResult(request, result, data);
+    if (request == HomeRoleController.REQUEST) {
+      homeRole.result();
+      return;
+    }
     try {
       if (request == BIND) {
         if (result == RESULT_OK) configureWidget();

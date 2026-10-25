@@ -22,11 +22,12 @@ final class LauncherUi {
   FrameLayout screen, workspace, overlay;
   LinearLayout pageStrip, dots, hotseat;
   Pager pager;
-  TextView dragBar, searchHint;
+  TextView dragBar, searchHint, homeStatus;
   View searchLens;
   String state = "home";
   LinearLayout activePanel;
   Rect folderOrigin;
+  String paletteKey = "";
   float sheetDownY;
   JSONObject dragging, resizing;
   String sourceFolder = null, sourceKey = null;
@@ -107,6 +108,22 @@ final class LauncherUi {
         screen.setBackground(a.scaledImage(android.net.Uri.parse(wall)));
       } catch (Exception ignored) {
       }
+    String nextPalette =
+        a.dark()
+            + ":"
+            + a.settings.optString("material", "classic")
+            + ":"
+            + a.settings.optString("wallpaperPreset", "solid")
+            + ":"
+            + wall;
+    if (!nextPalette.equals(paletteKey)) {
+      paletteKey = nextPalette;
+      a.accent =
+          a.settings.optString("material", "classic").equals("translucent")
+              ? LauncherTheme.wallpaperAccent(screen.getBackground())
+              : Color.rgb(218, 74, 61);
+      a.icons.clear();
+    }
     if (searchHint != null) {
       searchHint.setTextColor(a.fg);
       searchHint.setBackground(a.shape(a.dark() ? 0xcc202120 : 0xaaf0f2eb, 100));
@@ -170,6 +187,11 @@ final class LauncherUi {
     LinearLayout.LayoutParams sp = new LinearLayout.LayoutParams(-1, d(50));
     sp.setMargins(d(4), d(6), d(4), d(12));
     a.root.addView(search, sp);
+    homeStatus = button("Choose Dot Home as default Home", () -> a.requestHomeRole());
+    FrameLayout.LayoutParams statusPosition = new FrameLayout.LayoutParams(-1, d(52), Gravity.TOP);
+    statusPosition.setMargins(d(16), d(8), d(16), 0);
+    screen.addView(homeStatus, statusPosition);
+    updateHomeStatus();
     dragBar = button("Remove from Home", () -> {});
     dragBar.setTextColor(a.accent);
     FrameLayout.LayoutParams trash = new FrameLayout.LayoutParams(-1, d(54), Gravity.TOP);
@@ -193,6 +215,14 @@ final class LauncherUi {
           }
           return true;
         });
+  }
+
+  void updateHomeStatus() {
+    if (homeStatus == null || a.homeRole == null) return;
+    homeStatus.setVisibility(
+        !a.homeRole.isDefault() && a.prefs.getBoolean("homeConfirmed", false)
+            ? View.VISIBLE
+            : View.GONE);
   }
 
   void renderPages() {
@@ -296,6 +326,11 @@ final class LauncherUi {
   }
 
   void close() {
+    if (appearanceRollback != null) {
+      Runnable restore = appearanceRollback;
+      appearanceRollback = null;
+      restore.run();
+    }
     if (overlay == null) return;
     FrameLayout old = overlay;
     boolean closingFolder = state.equals("folder");
@@ -888,7 +923,7 @@ final class LauncherUi {
           String q = search.getText().toString().toLowerCase(Locale.ROOT).trim();
           for (HomeActivity.App app : a.apps)
             if (app.label.toLowerCase(Locale.ROOT).contains(q)
-                && (!a.hidden(app.key) || !q.isEmpty())
+                && !a.hidden(app.key)
                 && (group[0] < 0 || a.categoryOf(app) == group[0])) matched.add(app);
           int width = (a.getResources().getDisplayMetrics().widthPixels - d(44)) / a.cols();
           for (HomeActivity.App app : matched) {
@@ -1283,6 +1318,79 @@ final class LauncherUi {
     }
   }
 
+  void appearance() {
+    LinearLayout body = surface("Appearance", true);
+    boolean previousDark = a.dark();
+    String previousMaterial = a.settings.optString("material", "classic");
+    changeState("appearance");
+    View preview =
+        new View(a) {
+          @Override
+          protected void onDraw(Canvas canvas) {
+            if (a.root.getWidth() == 0 || a.root.getHeight() == 0) return;
+            float scale =
+                Math.min(
+                    getWidth() / (float) a.root.getWidth(),
+                    getHeight() / (float) a.root.getHeight());
+            canvas.save();
+            canvas.translate((getWidth() - a.root.getWidth() * scale) / 2, 0);
+            canvas.scale(scale, scale);
+            android.graphics.drawable.Drawable background = screen.getBackground();
+            Rect old = new Rect(background.getBounds());
+            background.setBounds(0, 0, a.root.getWidth(), a.root.getHeight());
+            background.draw(canvas);
+            background.setBounds(old);
+            a.root.draw(canvas);
+            canvas.restore();
+          }
+        };
+    body.addView(preview, new LinearLayout.LayoutParams(-1, 0, 1));
+    LinearLayout modes = new LinearLayout(a);
+    for (boolean dark : new boolean[] {false, true}) {
+      TextView choice =
+          button(
+              dark ? "Dark" : "Light",
+              () -> {
+                HomeActivity.put(a.settings, "dark", dark);
+                refresh();
+                preview.invalidate();
+              });
+      modes.addView(choice, new LinearLayout.LayoutParams(0, d(48), 1));
+    }
+    body.addView(modes);
+    LinearLayout materials = new LinearLayout(a);
+    for (String material : new String[] {"classic", "translucent"})
+      materials.addView(
+          button(
+              material.equals("classic") ? "Classic" : "Translucent",
+              () -> {
+                HomeActivity.put(a.settings, "material", material);
+                refresh();
+                preview.invalidate();
+              }),
+          new LinearLayout.LayoutParams(0, d(48), 1));
+    body.addView(materials);
+    Runnable restore =
+        () -> {
+          HomeActivity.put(a.settings, "dark", previousDark);
+          HomeActivity.put(a.settings, "material", previousMaterial);
+          refresh();
+        };
+    appearanceRollback = restore;
+    body.addView(
+        button(
+            "Apply",
+            () -> {
+              appearanceRollback = null;
+              a.save();
+              close();
+            }),
+        new LinearLayout.LayoutParams(-1, d(52)));
+    body.addView(button("Cancel", () -> close()), new LinearLayout.LayoutParams(-1, d(48)));
+  }
+
+  Runnable appearanceRollback;
+
   void customise() {
     LinearLayout body = surface("Customisation", true);
     ScrollView scroll = new ScrollView(a);
@@ -1295,16 +1403,8 @@ final class LauncherUi {
     option(
         list,
         "Appearance",
-        a.dark() ? "Dark" : "Light",
-        () -> {
-          HomeActivity.put(a.settings, "dark", !a.dark());
-          if (a.settings.optString("wallpaper", "").isEmpty()
-              && !a.settings.optString("wallpaperPreset", "solid").equals("solid"))
-            HomeActivity.put(a.settings, "wallpaperPreset", a.dark() ? "ocean" : "mist");
-          a.save();
-          refresh();
-          customise();
-        });
+        (a.dark() ? "Dark" : "Light") + " · " + a.settings.optString("material", "classic"),
+        () -> appearance());
     option(list, "App grid", a.cols() + " columns · " + rows() + " rows", () -> gridPicker());
     option(
         list,
@@ -1472,7 +1572,9 @@ final class LauncherUi {
     option(
         list,
         "Choose default Home",
-        "Use Android’s launcher selection dialog",
+        a.homeRole.isDefault()
+            ? "Confirmed by Android"
+            : "Not selected · choose in Android settings",
         () -> a.requestHomeRole());
     option(
         list,

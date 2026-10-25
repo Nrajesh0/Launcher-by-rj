@@ -50,7 +50,7 @@ final class WidgetArtwork extends View {
     int style = item.optInt("style");
     String type = item.optString("type");
     boolean inverted = style == 1 && !type.equals("clock") && !type.equals("battery");
-    paper = a.dark() ? 0xff202120 : 0xfff0f2eb;
+    paper = LauncherTheme.widgetSurface(a);
     ink = a.dark() ? 0xfff0f0e9 : 0xff151813;
     secondary = a.dark() ? 0xffb8bbb0 : 0xff66705f;
     if (inverted) {

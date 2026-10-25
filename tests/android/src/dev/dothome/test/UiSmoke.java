@@ -312,7 +312,11 @@ public class UiSmoke extends Instrumentation {
       ui = field(home, "ui");
       onUi(() -> {});
       chooseDefaultHome();
+      // A Home intent may legitimately close setup after the role is granted.
+      // Assert ownership above, then open setup explicitly to check its contents.
+      onUi(() -> call(ui, "setup", new Class[] {}));
       assertText("Welcome to Dot Home");
+      assertText("Confirmed by Android");
       screenshot("setup");
       onUi(
           () -> {
@@ -406,6 +410,19 @@ public class UiSmoke extends Instrumentation {
       assertText("Customisation");
       assertText("Appearance");
       screenshot("customisation");
+      boolean oldDark = ((JSONObject) field(home, "settings")).optBoolean("dark");
+      onUi(() -> call(ui, "appearance", new Class[] {}));
+      assertText("Classic");
+      assertText("Translucent");
+      if (!clickSystemText("Dark")) throw new AssertionError("Dark theme choice missing");
+      SystemClock.sleep(500);
+      if (!((JSONObject) field(home, "settings")).optBoolean("dark"))
+        throw new AssertionError("Theme preview did not update Home");
+      shell("input keyevent KEYCODE_BACK");
+      SystemClock.sleep(500);
+      if (((JSONObject) field(home, "settings")).optBoolean("dark") != oldDark)
+        throw new AssertionError("Cancelling appearance changed the saved theme");
+      onUi(() -> call(ui, "customise", new Class[] {}));
       onUi(() -> call(ui, "close", new Class[] {}));
       onUi(() -> call(ui, "overview", new Class[] {}));
       assertText("Home screen");
