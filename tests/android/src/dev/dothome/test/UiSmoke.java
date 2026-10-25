@@ -258,19 +258,19 @@ public class UiSmoke extends Instrumentation {
       shell("am start -a android.settings.SETTINGS");
       SystemClock.sleep(700);
       bottomSwipe(connected, false);
+      screenshot("gesture-home");
       onUi(
           () -> {
             if (!home.hasWindowFocus())
               throw new AssertionError("Home swipe did not return to launcher");
           });
-      screenshot("gesture-home");
       bottomSwipe(connected, true);
+      screenshot("gesture-recents");
       onUi(
           () -> {
             if (home.hasWindowFocus())
               throw new AssertionError("Hold gesture did not open Recents");
           });
-      screenshot("gesture-recents");
       bottomSwipe(connected, false);
       shell("settings put secure enabled_accessibility_services null");
       shell("settings put secure accessibility_enabled 0");

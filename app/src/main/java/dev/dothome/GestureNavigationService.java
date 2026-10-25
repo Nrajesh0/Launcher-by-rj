@@ -83,6 +83,31 @@ public final class GestureNavigationService extends AccessibilityService {
                 | WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN,
             PixelFormat.TRANSLUCENT);
     lp.gravity = gravity;
+    lp.setFitInsetsTypes(0);
+    if (kind == 0) {
+      lp.y =
+          windows
+              .getCurrentWindowMetrics()
+              .getWindowInsets()
+              .getInsets(WindowInsets.Type.navigationBars())
+              .bottom;
+      edge.setOnApplyWindowInsetsListener(
+          (view, insets) -> {
+            int bottom = insets.getInsets(WindowInsets.Type.navigationBars()).bottom;
+            if (lp.y != bottom) {
+              lp.y = bottom;
+              view.post(
+                  () -> {
+                    if (view.isAttachedToWindow())
+                      try {
+                        windows.updateViewLayout(view, lp);
+                      } catch (Exception ignored) {
+                      }
+                  });
+            }
+            return insets;
+          });
+    }
     lp.setTitle("Dot Home edge gestures");
     try {
       windows.addView(edge, lp);

@@ -200,7 +200,7 @@ final class WidgetArtwork extends View {
             Math.min(w * .19f, h * .3f),
             ink,
             false);
-        if (w > a.dp(130))
+        if (w > a.dp(130) && h > a.dp(120))
           text(
               c,
               a.charging ? "CHARGING" : "BATTERY",
