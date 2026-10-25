@@ -349,7 +349,7 @@ final class WidgetArtwork extends View {
         String longest =
             preview
                 ? "3h 19m"
-                : stats.available ? AwayTimeStats.duration(stats.longest) : "Connect usage";
+                : stats.available ? AwayTimeStats.duration(stats.longest) : "No history";
         text(c, longest, pad, h * .47f, Math.min(w * .18f, h * .23f), ink, false);
         text(
             c,
@@ -462,93 +462,19 @@ final class WidgetArtwork extends View {
               secondary,
               false);
     }
-    if (!preview && a.foreground && isShown())
-      postInvalidateDelayed(
+    if (!preview
+        && a.foreground
+        && isShown()
+        && item.optInt("page", a.page) == a.page
+        && getGlobalVisibleRect(new Rect())) {
+      int delay =
           type.equals("breathing") && !a.settings.optBoolean("reduceMotion", false)
               ? 40
-              : type.equals("compass") ? 120 : 1000);
-  }
-
-  void car(Canvas c) {
-    c.save();
-    float scale = Math.min(w / 220f, h / 145f);
-    c.translate((w - 220 * scale) / 2, (h - 145 * scale) / 2);
-    c.scale(scale, scale);
-    Paint q = new Paint(3);
-    Path car = new Path();
-    car.moveTo(17, 82);
-    car.lineTo(24, 52);
-    car.quadTo(27, 41, 42, 39);
-    car.lineTo(119, 39);
-    car.quadTo(131, 39, 142, 58);
-    car.lineTo(178, 63);
-    car.quadTo(191, 66, 196, 85);
-    car.lineTo(205, 87);
-    car.lineTo(202, 105);
-    car.lineTo(18, 105);
-    car.close();
-    q.setColor(0xfff5f5ed);
-    q.setStyle(Paint.Style.STROKE);
-    q.setStrokeWidth(8);
-    q.setStrokeJoin(Paint.Join.ROUND);
-    c.drawPath(car, q);
-    c.drawCircle(57, 104, 25, q);
-    c.drawCircle(165, 104, 25, q);
-    q.setStyle(Paint.Style.FILL);
-    q.setColor(0xff566d48);
-    c.drawPath(car, q);
-    q.setShader(
-        new LinearGradient(
-            0,
-            39,
-            0,
-            107,
-            new int[] {0xffb5ca92, 0xff7c9761, 0xff4b6240},
-            null,
-            Shader.TileMode.CLAMP));
-    c.drawPath(car, q);
-    q.setShader(null);
-    q.setColor(0xff1d2c23);
-    Path windows = new Path();
-    windows.moveTo(40, 48);
-    windows.lineTo(117, 48);
-    windows.quadTo(124, 50, 131, 64);
-    windows.lineTo(35, 64);
-    windows.close();
-    c.drawPath(windows, q);
-    q.setColor(0xff53634e);
-    c.drawRect(67, 48, 72, 65, q);
-    c.drawRect(96, 48, 101, 65, q);
-    q.setColor(0xffbbccaa);
-    c.drawRect(37, 68, 178, 70, q);
-    q.setColor(0xff3c5038);
-    q.setStrokeWidth(1.3f);
-    c.drawLine(73, 66, 73, 99, q);
-    c.drawLine(130, 66, 130, 99, q);
-    c.drawLine(31, 91, 188, 91, q);
-    q.setColor(0xff1a211b);
-    c.drawRect(115, 73, 122, 76, q);
-    c.drawRect(61, 73, 68, 76, q);
-    q.setColor(0xffd6ddc2);
-    c.drawRoundRect(new RectF(185, 76, 197, 84), 2, 2, q);
-    q.setColor(0xffb35944);
-    c.drawRect(23, 77, 28, 88, q);
-    q.setColor(0xff36422f);
-    c.drawRect(18, 97, 203, 103, q);
-    for (float wheel : new float[] {57, 165}) {
-      q.setColor(0xff252a23);
-      c.drawCircle(wheel, 104, 22, q);
-      q.setColor(0xff718564);
-      c.drawCircle(wheel, 104, 14, q);
-      q.setColor(0xffa7b297);
-      c.drawCircle(wheel, 104, 6, q);
-      q.setColor(0xff394331);
-      q.setStyle(Paint.Style.STROKE);
-      q.setStrokeWidth(2);
-      c.drawCircle(wheel, 104, 18, q);
-      q.setStyle(Paint.Style.FILL);
+              : type.equals("clock") || (type.equals("timer") && item.optLong("timerStart") > 0)
+                  ? 1000
+                  : type.equals("compass") ? 120 : 0;
+      if (delay > 0) postInvalidateDelayed(delay);
     }
-    c.restore();
   }
 
   void serif(Canvas c, String value, float x, float y, float size, int color) {

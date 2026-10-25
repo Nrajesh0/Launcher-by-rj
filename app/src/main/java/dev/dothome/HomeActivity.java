@@ -127,6 +127,7 @@ public class HomeActivity extends Activity implements SensorEventListener {
   }
 
   void colors() {
+    setTheme(dark() ? R.style.AppTheme : R.style.AppThemeLight);
     bg = Color.parseColor(dark() ? "#101010" : "#EAE7E0");
     fg = Color.parseColor(dark() ? "#F1EEE8" : "#191919");
     card = Color.parseColor(dark() ? "#252525" : "#DCD8D0");
@@ -141,6 +142,10 @@ public class HomeActivity extends Activity implements SensorEventListener {
 
   @Override
   public void onCreate(Bundle state) {
+    setTheme(
+        getSharedPreferences("runtime", 0).getBoolean("lastDark", false)
+            ? R.style.AppTheme
+            : R.style.AppThemeLight);
     super.onCreate(state);
     activeHome = this;
     prefs = getSharedPreferences("runtime", 0);
@@ -372,6 +377,7 @@ public class HomeActivity extends Activity implements SensorEventListener {
 
   void save() {
     try {
+      prefs.edit().putBoolean("lastDark", dark()).apply();
       String current = items.toString();
       if (!lastSavedLayout.isEmpty() && !lastSavedLayout.equals(current)) {
         prefs.edit().putString("undo", lastSavedLayout).apply();
@@ -517,6 +523,8 @@ public class HomeActivity extends Activity implements SensorEventListener {
             + dark()
             + ":"
             + accent
+            + ":"
+            + settings.optString("material", "classic")
             + ":"
             + settings.optBoolean("mono", true)
             + ":"
@@ -723,7 +731,9 @@ public class HomeActivity extends Activity implements SensorEventListener {
       setWillNotDraw(false);
       for (int i = 0; i < items.length(); i++) {
         JSONObject x = items.optJSONObject(i);
-        if (x != null && x.optInt("page") == page) {
+        if (x != null
+            && x.optInt("page") == page
+            && !(x.optString("type").equals("app") && hidden(x.optString("key")))) {
           visible.add(x);
           addView(itemView(x));
         }
@@ -991,6 +1001,7 @@ public class HomeActivity extends Activity implements SensorEventListener {
         if (children != null)
           for (int i = 0; i < Math.min(4, children.length()); i++) {
             App app = app(children.optString(i));
+            if (app != null && hidden(app.key)) continue;
             View child = app == null ? text("○", 22, fg) : appView(app, false);
             if (child instanceof LinearLayout && ((LinearLayout) child).getChildAt(0) != null)
               ((LinearLayout) child)
@@ -1006,6 +1017,7 @@ public class HomeActivity extends Activity implements SensorEventListener {
           for (int n = 0; n < Math.min(4, children.length()); n++) {
             App app = app(children.optString(n));
             ImageView image = new ImageView(this);
+            if (app != null && hidden(app.key)) continue;
             if (app != null) image.setImageDrawable(icon(app));
             grid.addView(image, new ViewGroup.LayoutParams(dp(20), dp(20)));
           }
@@ -1067,144 +1079,24 @@ public class HomeActivity extends Activity implements SensorEventListener {
     return v;
   }
 
-  void fillTile(LinearLayout tile, JSONObject x) {
+  void fillTile(LinearLayout tile, JSONObject item) {
     tile.removeAllViews();
-    String type = x.optString("type");
-    if (type.equals("photo") && !x.optString("uri").isEmpty()) {
-      tile.setPadding(0, 0, 0, 0);
-      tile.setBackgroundColor(Color.TRANSPARENT);
-      tile.addView(new PhotoView(this, x, false), new LinearLayout.LayoutParams(-1, -1));
-      click(tile, () -> ui.photoEditor(x));
+    String type = item.optString("type");
+    if (type.equals("media")) {
+      tile.setPadding(dp(14), dp(12), dp(14), dp(12));
+      tile.setBackground(shape(LauncherTheme.widgetSurface(this), 20));
+      fillMedia(tile);
       return;
     }
-    if ((!type.equals("media") && !type.equals("photo"))
-        || (type.equals("photo") && x.optString("uri").isEmpty())) {
-      tile.setPadding(0, 0, 0, 0);
-      tile.setBackgroundColor(Color.TRANSPARENT);
-      WidgetArtwork art = new WidgetArtwork(this, x, false);
-      tile.addView(art, new LinearLayout.LayoutParams(-1, -1));
-      click(tile, () -> tileAction(x));
-      return;
+    tile.setPadding(0, 0, 0, 0);
+    tile.setBackgroundColor(Color.TRANSPARENT);
+    if (type.equals("photo") && !item.optString("uri").isEmpty()) {
+      tile.addView(new PhotoView(this, item, false), new LinearLayout.LayoutParams(-1, -1));
+      click(tile, () -> ui.photoEditor(item));
+    } else {
+      tile.addView(new WidgetArtwork(this, item, false), new LinearLayout.LayoutParams(-1, -1));
+      click(tile, () -> tileAction(item));
     }
-    tile.setPadding(dp(14), dp(12), dp(14), dp(12));
-    int ink = type.equals("battery") ? bg : fg;
-    if (type.equals("clock")) {
-      DotClock clock = new DotClock();
-      tile.addView(clock, new LinearLayout.LayoutParams(-1, 0, 1));
-      TextView date =
-          label(
-              new SimpleDateFormat("EEEE, dd MMMM", Locale.getDefault())
-                  .format(new Date())
-                  .toUpperCase());
-      tile.addView(date);
-      click(tile, () -> open(new Intent(AlarmClock.ACTION_SHOW_ALARMS)));
-      return;
-    }
-    String title = type.toUpperCase(Locale.ROOT), value = "";
-    switch (type) {
-      case "date":
-        title = new SimpleDateFormat("EEEE", Locale.getDefault()).format(new Date()).toUpperCase();
-        value = new SimpleDateFormat("dd MMM", Locale.getDefault()).format(new Date());
-        break;
-      case "battery":
-        title = charging ? "CHARGING" : "BATTERY";
-        value = battery + "%";
-        break;
-      case "notes":
-        title = "NOTE";
-        value = x.optString("text", "Tap to write a note");
-        break;
-      case "agenda":
-        title = "UP NEXT";
-        value = agenda;
-        break;
-      case "countdown":
-        title = x.optString("name", "COUNTDOWN");
-        long delta = x.optLong("deadline") - System.currentTimeMillis();
-        value =
-            x.optLong("deadline") == 0
-                ? "Set a date"
-                : delta <= 0 ? "Today" : ((delta + 86399999) / 86400000) + " days";
-        break;
-      case "compass":
-        title = "COMPASS";
-        value =
-            rotation == null
-                ? "Sensor unavailable"
-                : Math.round(heading)
-                    + "°  "
-                    + new String[] {"N", "NE", "E", "SE", "S", "SW", "W", "NW"}
-                        [(Math.round(heading / 45)) % 8];
-        break;
-      case "usage":
-        title = "SCREEN TIME";
-        value = usage;
-        break;
-      case "controls":
-        title = "QUICK CONTROLS";
-        value = "Bluetooth · Torch · Sound";
-        break;
-      case "media":
-        fillMedia(tile);
-        return;
-      case "photo":
-        String uri = x.optString("uri");
-        if (!uri.isEmpty()) {
-          ImageView im =
-              new ImageView(this) {
-                @Override
-                protected void onSizeChanged(int w, int h, int oldW, int oldH) {
-                  super.onSizeChanged(w, h, oldW, oldH);
-                  if (x.optInt("style") == 2) return;
-                  Drawable image = getDrawable();
-                  if (image == null
-                      || image.getIntrinsicWidth() <= 0
-                      || image.getIntrinsicHeight() <= 0) return;
-                  float scale =
-                      Math.max(
-                          w / (float) image.getIntrinsicWidth(),
-                          h / (float) image.getIntrinsicHeight());
-                  Matrix matrix = new Matrix();
-                  matrix.setScale(scale, scale);
-                  matrix.postTranslate(
-                      (w - image.getIntrinsicWidth() * scale) / 2f,
-                      (h - image.getIntrinsicHeight() * scale)
-                          * Math.max(0, Math.min(2, x.optInt("crop", 1)))
-                          / 2f);
-                  setImageMatrix(matrix);
-                }
-              };
-          im.setScaleType(
-              x.optInt("style") == 2 ? ImageView.ScaleType.FIT_CENTER : ImageView.ScaleType.MATRIX);
-          im.setBackground(
-              shape(
-                  x.optInt("style") == 2 ? Color.TRANSPARENT : card,
-                  x.optInt("style") == 1 ? 1000 : 24));
-          if (x.optInt("style") == 2) {
-            tile.setPadding(0, 0, 0, 0);
-            tile.setBackgroundColor(Color.TRANSPARENT);
-          }
-          im.setClipToOutline(true);
-          try {
-            im.setImageDrawable(scaledImage(Uri.parse(uri)));
-            tile.addView(im, new LinearLayout.LayoutParams(-1, -1));
-            click(tile, () -> pickPhoto(x));
-            return;
-          } catch (Exception e) {
-          }
-        }
-        title = "PHOTO";
-        value = "Choose a photo";
-        break;
-    }
-    TextView small = label(title);
-    small.setTextColor(type.equals("battery") ? bg : muted);
-    tile.addView(small);
-    TextView large = text(value, type.equals("date") || type.equals("battery") ? 27 : 15, ink);
-    large.setMaxLines(3);
-    large.setEllipsize(android.text.TextUtils.TruncateAt.END);
-    tile.addView(large, new LinearLayout.LayoutParams(-1, 0, 1));
-    click(tile, () -> tileAction(x));
   }
 
   void refreshTiles() {

@@ -9,6 +9,7 @@ import android.widget.*;
 public class WidgetConfiguration extends Activity {
   @Override
   public void onCreate(Bundle state) {
+    setTheme(android.R.style.Theme_Material_Light_NoActionBar);
     super.onCreate(state);
     setResult(RESULT_CANCELED);
     int id =
@@ -17,6 +18,14 @@ public class WidgetConfiguration extends Activity {
                 AppWidgetManager.EXTRA_APPWIDGET_ID, AppWidgetManager.INVALID_APPWIDGET_ID);
     LinearLayout body = new LinearLayout(this);
     body.setOrientation(1);
+    body.setOnApplyWindowInsetsListener(
+        (view, insets) -> {
+          android.graphics.Insets bars =
+              insets.getInsets(android.view.WindowInsets.Type.systemBars());
+          int pad = Math.round(24 * getResources().getDisplayMetrics().density);
+          body.setPadding(pad, bars.top + pad, pad, bars.bottom + pad);
+          return insets;
+        });
     Button apply = new Button(this);
     apply.setText("Apply test widget");
     apply.setOnClickListener(

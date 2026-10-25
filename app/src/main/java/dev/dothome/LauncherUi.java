@@ -263,6 +263,12 @@ final class LauncherUi {
     if (!boards.isEmpty()) a.board = boards.get(page);
     if (animate && duration() > 0) pager.smoothScrollTo(page * pager.getWidth(), 0);
     else pager.scrollTo(page * pager.getWidth(), 0);
+    final int visiblePage = page;
+    handler.postDelayed(
+        () -> {
+          if (a.page == visiblePage && a.board != null) invalidateWidgetTree(a.board);
+        },
+        animate && duration() > 0 ? 320 : 0);
     for (int p = 0; p < dots.getChildCount(); p++) {
       TextView dot = (TextView) dots.getChildAt(p);
       dot.setText(p == page ? "●" : "·");
@@ -270,11 +276,19 @@ final class LauncherUi {
     }
   }
 
+  void invalidateWidgetTree(View view) {
+    if (view instanceof WidgetArtwork) view.invalidate();
+    else if (view instanceof ViewGroup)
+      for (int n = 0; n < ((ViewGroup) view).getChildCount(); n++)
+        invalidateWidgetTree(((ViewGroup) view).getChildAt(n));
+  }
+
   void renderDock() {
     hotseat.removeAllViews();
     for (int n = 0; n < 4; n++) {
       final int slot = n;
       HomeActivity.App app = a.app(a.dock.optString(n, ""));
+      if (app != null && a.hidden(app.key)) app = null;
       View v;
       if (app == null) {
         FrameLayout empty = new FrameLayout(a);
@@ -926,7 +940,7 @@ final class LauncherUi {
     for (int n = 0; n < keys.length(); n++) {
       final String key = keys.optString(n);
       HomeActivity.App app = a.app(key);
-      if (app == null) continue;
+      if (app == null || a.hidden(app.key)) continue;
       View icon = a.appView(app, true);
       grid.addView(
           icon,
@@ -988,6 +1002,7 @@ final class LauncherUi {
                 }
                 HomeActivity.put(hidden, app.key, !a.hidden(app.key));
                 a.save();
+                refresh();
                 hiddenApps();
               });
       list.addView(v, new LinearLayout.LayoutParams(-1, d(54)));
@@ -1143,30 +1158,51 @@ final class LauncherUi {
 
   void wallpaperPresets() {
     LinearLayout body = surface("Wallpaper & colour", true);
-    for (String preset : new String[] {"ocean", "mist", "solid"}) {
-      FrameLayout preview = new FrameLayout(a);
-      preview.setBackground(
-          preset.equals("solid")
-              ? new android.graphics.drawable.ColorDrawable(a.bg)
-              : new WallpaperArtwork(preset));
-      TextView label =
+    String oldPreset = a.settings.optString("wallpaperPreset", "solid");
+    String oldPhoto = a.settings.optString("wallpaper", "");
+    HomePreview preview = new HomePreview(this);
+    body.addView(preview, new LinearLayout.LayoutParams(-1, 0, 1));
+    LinearLayout presets = new LinearLayout(a);
+    String[] values = {"mist", "ocean", "solid"}, labels = {"Soft mist", "Ocean", "Solid"};
+    for (int n = 0; n < values.length; n++) {
+      final String preset = values[n];
+      presets.addView(
           button(
-              preset.equals("ocean")
-                  ? "Ocean"
-                  : preset.equals("mist") ? "Soft mist" : "Solid background",
+              labels[n],
               () -> {
                 HomeActivity.put(a.settings, "wallpaperPreset", preset);
                 a.settings.remove("wallpaper");
-                a.save();
                 refresh();
-                close();
-              });
-      FrameLayout.LayoutParams lp = new FrameLayout.LayoutParams(-1, d(50), Gravity.BOTTOM);
-      preview.addView(label, lp);
-      LinearLayout.LayoutParams card = new LinearLayout.LayoutParams(-1, d(155));
-      card.bottomMargin = d(12);
-      body.addView(preview, card);
+                preview.invalidate();
+              }),
+          new LinearLayout.LayoutParams(0, d(48), 1));
     }
+    body.addView(presets);
+    appearanceRollback =
+        () -> {
+          HomeActivity.put(a.settings, "wallpaperPreset", oldPreset);
+          if (oldPhoto.isEmpty()) a.settings.remove("wallpaper");
+          else HomeActivity.put(a.settings, "wallpaper", oldPhoto);
+          refresh();
+        };
+    body.addView(
+        button(
+            "Apply wallpaper",
+            () -> {
+              appearanceRollback = null;
+              a.save();
+              close();
+            }),
+        new LinearLayout.LayoutParams(-1, d(50)));
+    body.addView(
+        button(
+            "Choose a local image",
+            () -> {
+              close();
+              a.pickDocument(HomeActivity.WALL, "image/*");
+            }),
+        new LinearLayout.LayoutParams(-1, d(48)));
+    body.addView(button("Cancel", () -> close()), new LinearLayout.LayoutParams(-1, d(48)));
   }
 
   void appearance() {

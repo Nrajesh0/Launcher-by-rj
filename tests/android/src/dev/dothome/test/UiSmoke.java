@@ -13,6 +13,24 @@ import org.json.*;
 public class UiSmoke extends Instrumentation {
   Activity home;
   Object ui;
+  final java.util.List<Long> frameTimes =
+      java.util.Collections.synchronizedList(new java.util.ArrayList<>());
+
+  String frameReport() {
+    java.util.List<Long> copy;
+    synchronized (frameTimes) {
+      copy = new java.util.ArrayList<>(frameTimes);
+    }
+    if (copy.isEmpty()) return "FRAME_METRICS: unavailable on this emulator\n";
+    java.util.Collections.sort(copy);
+    return "FRAME_METRICS: frames="
+        + copy.size()
+        + " p95_ms="
+        + copy.get(Math.min(copy.size() - 1, (int) (copy.size() * .95))) / 1000000.0
+        + " max_ms="
+        + copy.get(copy.size() - 1) / 1000000.0
+        + " (emulator; not physical-device performance)\n";
+  }
 
   @Override
   public void onCreate(Bundle args) {
@@ -305,7 +323,9 @@ public class UiSmoke extends Instrumentation {
   void configureFixture(boolean apply) throws Exception {
     for (int n = 0; n < 80; n++) {
       if (clickSystemText(apply ? "Apply test widget" : "Cancel test widget")) {
-        SystemClock.sleep(750);
+        if (!awaitFocus(true))
+          throw new AssertionError("Widget configuration button did not return to Home");
+        SystemClock.sleep(300);
         return;
       }
       // Exercise the actual system widget-consent UI when Home was not auto-granted binding.
@@ -382,7 +402,14 @@ public class UiSmoke extends Instrumentation {
       waitForIdleSync();
       SystemClock.sleep(1800);
       ui = field(home, "ui");
-      onUi(() -> {});
+      onUi(
+          () ->
+              home.getWindow()
+                  .addOnFrameMetricsAvailableListener(
+                      (window, metrics, dropped) ->
+                          frameTimes.add(
+                              metrics.getMetric(android.view.FrameMetrics.TOTAL_DURATION)),
+                      new Handler(Looper.getMainLooper())));
       chooseDefaultHome();
       // A Home intent may legitimately close setup after the role is granted.
       // Assert ownership above, then open setup explicitly to check its contents.
@@ -585,6 +612,7 @@ public class UiSmoke extends Instrumentation {
               + " integrated drawer, visual picker, styles, customisation, overview, folder, normal"
               + " Android Back/Home/Recents, no Accessibility service or global overlay"
               + " permissions, and offline permission.\n");
+      result.putString("stream", result.getString("stream", "") + frameReport());
       finish(Activity.RESULT_OK, result);
     } catch (Throwable error) {
       String diagnostics = "";

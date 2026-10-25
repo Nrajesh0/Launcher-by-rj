@@ -50,11 +50,8 @@ final class BatchEditor {
         ui.button(
             "0 selected",
             () -> {
-              for (int n = 0; n < a.items.length(); n++) {
-                JSONObject item = a.items.optJSONObject(n);
-                if (item != null && item.optInt("page") == a.page)
-                  selected.add(item.optString("id"));
-              }
+              if (a.board != null)
+                for (JSONObject item : a.board.visible) selected.add(item.optString("id"));
               update();
             });
     bar.addView(count, new LinearLayout.LayoutParams(0, -1, 1));
