@@ -39,6 +39,7 @@ public class HomeActivity extends Activity implements SensorEventListener {
   String loadedPack = "";
   final HashMap<String, Drawable> icons = new HashMap<>();
   LinearLayout root, top, bottom;
+  LauncherUi ui;
   Board board;
   ScrollView scroll;
   Dialog drawer;
@@ -74,6 +75,7 @@ public class HomeActivity extends Activity implements SensorEventListener {
         }
       };
 
+  final BroadcastReceiver notificationChanges=new BroadcastReceiver(){public void onReceive(Context c,Intent i){if(ui!=null){ui.refreshBadges();refreshTiles();}}};
   static class App {
     String label, key;
     ComponentName component;
@@ -139,6 +141,7 @@ public class HomeActivity extends Activity implements SensorEventListener {
     f.addAction(Intent.ACTION_PACKAGE_CHANGED);
     f.addDataScheme("package");
     registerReceiver(packages, f, Context.RECEIVER_EXPORTED);
+    registerReceiver(notificationChanges,new IntentFilter("dev.dothome.NOTIFICATION_CHANGED"),Context.RECEIVER_NOT_EXPORTED);
     getOnBackInvokedDispatcher()
         .registerOnBackInvokedCallback(
             android.window.OnBackInvokedDispatcher.PRIORITY_DEFAULT, () -> onBackPressed());
@@ -172,6 +175,7 @@ public class HomeActivity extends Activity implements SensorEventListener {
   public void onPause() {
     super.onPause();
     foreground = false;
+    clearMediaCallbacks();
     handler.removeCallbacks(ticker);
     sensors.unregisterListener(this);
     try {
@@ -184,6 +188,7 @@ public class HomeActivity extends Activity implements SensorEventListener {
   @Override
   public void onDestroy() {
     unregisterReceiver(packages);
+    unregisterReceiver(notificationChanges);
     worker.shutdownNow();
     super.onDestroy();
   }
@@ -191,6 +196,7 @@ public class HomeActivity extends Activity implements SensorEventListener {
   @Override
   public void onNewIntent(Intent i) {
     super.onNewIntent(i);
+    if(ui!=null)ui.close();
     if (drawer != null) drawer.dismiss();
     page = 0;
     render();
@@ -204,6 +210,7 @@ public class HomeActivity extends Activity implements SensorEventListener {
 
   @Override
   public void onBackPressed() {
+    if(ui!=null&&ui.back())return;
     if (drawer != null && drawer.isShowing()) drawer.dismiss();
     else if (movingId != null) {
       movingId = null;
@@ -292,7 +299,7 @@ public class HomeActivity extends Activity implements SensorEventListener {
         lastSavedLayout = current;
       }
       JSONObject x = new JSONObject();
-      put(x, "schema", 1);
+      put(x, "schema", 2);
       put(x, "items", items);
       put(x, "settings", settings);
       put(x, "dock", dock);
@@ -403,6 +410,7 @@ public class HomeActivity extends Activity implements SensorEventListener {
       icons.put(a.key, d);
     }
     if (settings.optBoolean("mono", true)) {
+      if(d instanceof AdaptiveIconDrawable){Drawable mono=((AdaptiveIconDrawable)d).getMonochrome();if(mono!=null){Bitmap bitmap=Bitmap.createBitmap(dp(64),dp(64),Bitmap.Config.ARGB_8888);Canvas canvas=new Canvas(bitmap);Paint paint=new Paint(Paint.ANTI_ALIAS_FLAG);paint.setColor(fg);canvas.drawCircle(dp(32),dp(32),dp(30),paint);mono=mono.mutate();mono.setTint(bg);mono.setBounds(dp(10),dp(10),dp(54),dp(54));mono.draw(canvas);return new android.graphics.drawable.BitmapDrawable(getResources(),bitmap);}}
       ColorMatrix cm = new ColorMatrix();
       cm.setSaturation(0);
       d.setColorFilter(new ColorMatrixColorFilter(cm));
@@ -435,6 +443,7 @@ public class HomeActivity extends Activity implements SensorEventListener {
   }
 
   void click(View v, Runnable action) {
+    v.setOnTouchListener((view,event)->{if(ui==null||ui.duration()==0)return false;switch(event.getAction()){case MotionEvent.ACTION_DOWN:view.animate().scaleX(.96f).scaleY(.96f).setDuration(90).start();break;case MotionEvent.ACTION_UP:case MotionEvent.ACTION_CANCEL:view.animate().scaleX(1).scaleY(1).setDuration(140).start();break;}return false;});
     v.setOnClickListener(
         w -> {
           w.performHapticFeedback(HapticFeedbackConstants.CONTEXT_CLICK);
@@ -454,107 +463,7 @@ public class HomeActivity extends Activity implements SensorEventListener {
     }
   }
 
-  void render() {
-    if (isFinishing()) return;
-    colors();
-    root = new LinearLayout(this);
-    root.setOrientation(1);
-    root.setBackgroundColor(bg);
-    root.setPadding(dp(20), 0, dp(20), 0);
-    setContentView(root);
-    root.setOnApplyWindowInsetsListener(
-        (v, in) -> {
-          android.graphics.Insets sys =
-              in.getInsets(
-                  WindowInsets.Type.systemBars()
-                      | WindowInsets.Type.displayCutout()
-                      | WindowInsets.Type.ime());
-          root.setPadding(dp(20), sys.top, dp(20), sys.bottom);
-          return in;
-        });
-    final View surface = root;
-    surface.post(
-        () -> {
-          WindowInsetsController controller = surface.getWindowInsetsController();
-          if (controller != null)
-            controller.setSystemBarsAppearance(
-                dark() ? 0 : WindowInsetsController.APPEARANCE_LIGHT_STATUS_BARS,
-                WindowInsetsController.APPEARANCE_LIGHT_STATUS_BARS);
-        });
-    String wall = settings.optString("wallpaper", "");
-    if (!wall.isEmpty())
-      try {
-        Drawable d = scaledImage(Uri.parse(wall));
-        root.setBackground(d);
-      } catch (Exception ignored) {
-      }
-    top = new LinearLayout(this);
-    top.setGravity(Gravity.CENTER_VERTICAL);
-    TextView brand = label("DOT / HOME");
-    top.addView(brand, new LinearLayout.LayoutParams(0, dp(50), 1));
-    TextView edit = text("＋", 28, fg);
-    edit.setContentDescription("Add apps or widgets");
-    top.addView(edit, new LinearLayout.LayoutParams(dp(44), dp(50)));
-    click(edit, () -> addMenu());
-    TextView options = text("···", 24, fg);
-    options.setContentDescription("Home settings");
-    top.addView(options, new LinearLayout.LayoutParams(dp(38), dp(50)));
-    click(options, () -> settings());
-    root.addView(top);
-    scroll = new ScrollView(this);
-    scroll.setFillViewport(true);
-    scroll.setClipToPadding(false);
-    scroll.setVerticalScrollBarEnabled(false);
-    board = new Board();
-    scroll.addView(board, new ScrollView.LayoutParams(-1, -1));
-    root.addView(scroll, new LinearLayout.LayoutParams(-1, 0, 1));
-    bottom = new LinearLayout(this);
-    bottom.setOrientation(1);
-    LinearLayout pages = new LinearLayout(this);
-    pages.setGravity(Gravity.CENTER);
-    for (int p = 0; p < 3; p++) {
-      final int n = p;
-      TextView dot = text(p == page ? "●" : "○", 14, p == page ? accent : muted);
-      dot.setGravity(Gravity.CENTER);
-      pages.addView(dot, new LinearLayout.LayoutParams(dp(36), dp(30)));
-      click(
-          dot,
-          () -> {
-            page = n;
-            render();
-          });
-    }
-    bottom.addView(pages);
-    LinearLayout dockRow = new LinearLayout(this);
-    dockRow.setGravity(Gravity.CENTER);
-    for (int p = 0; p < 4; p++) {
-      String key = dock.optString(p, "");
-      App a = app(key);
-      View v = a == null ? text("＋", 26, muted) : appView(a, false);
-      if (a == null) click(v, () -> chooseDock());
-      v.setOnLongClickListener(
-          w -> {
-            chooseDock();
-            return true;
-          });
-      dockRow.addView(v, new LinearLayout.LayoutParams(0, dp(66), 1));
-    }
-    bottom.addView(dockRow);
-    TextView bar = text("⌕   Search apps", 15, fg);
-    bar.setPadding(dp(22), 0, dp(22), 0);
-    bar.setBackground(shape(card, 32));
-    bar.setContentDescription("Open app drawer and search");
-    click(bar, () -> drawer(null));
-    bottom.addView(bar, new LinearLayout.LayoutParams(-1, dp(48)));
-    bottom.setPadding(0, 0, 0, dp(10));
-    root.addView(bottom);
-    root.setOnLongClickListener(
-        v -> {
-          addMenu();
-          return true;
-        });
-  }
-
+  void render() { if(isFinishing())return;if(ui==null)ui=new LauncherUi(this);ui.refresh(); }
   View appView(App a, boolean withLabel) {
     LinearLayout box = new LinearLayout(this);
     box.setOrientation(1);
@@ -562,7 +471,7 @@ public class HomeActivity extends Activity implements SensorEventListener {
     ImageView im = new ImageView(this);
     im.setImageDrawable(icon(a));
     int size = dp(settings.optInt("iconSize", 46));
-    box.addView(im, new LinearLayout.LayoutParams(size, size));
+    FrameLayout iconFrame=new FrameLayout(this);im.setScaleType(ImageView.ScaleType.FIT_CENTER);iconFrame.addView(im,new FrameLayout.LayoutParams(-1,-1));View badge=new View(this);badge.setTag("badge:"+a.component.getPackageName());badge.setBackground(shape(accent,100));FrameLayout.LayoutParams badgePosition=new FrameLayout.LayoutParams(dp(8),dp(8),Gravity.TOP|Gravity.END);iconFrame.addView(badge,badgePosition);badge.setVisibility(settings.optBoolean("notificationDots",true)&&prefs.getStringSet("badgePackages",java.util.Collections.emptySet()).contains(a.component.getPackageName())?View.VISIBLE:View.GONE);box.addView(iconFrame,new LinearLayout.LayoutParams(size,size));
     if (withLabel) {
       TextView title = text(a.label, 11, fg);
       title.setGravity(Gravity.CENTER);
@@ -576,124 +485,16 @@ public class HomeActivity extends Activity implements SensorEventListener {
   }
 
   class Board extends ViewGroup {
-    ArrayList<JSONObject> visible = new ArrayList<>();
-    List<int[]> positions;
-    float startX, startY;
-
-    Board() {
-      super(HomeActivity.this);
-      ArrayList<int[]> sizes = new ArrayList<>();
-      for (int i = 0; i < items.length(); i++) {
-        JSONObject x = items.optJSONObject(i);
-        if (x != null && x.optInt("page") == page) {
-          visible.add(x);
-          sizes.add(new int[] {x.optInt("w", 1), x.optInt("h", 1)});
-          addView(itemView(x));
-        }
-      }
-      positions = GridPlanner.place(sizes, cols());
-      setOnDragListener(
-          (v, event) -> {
-            if (event.getAction() == DragEvent.ACTION_DROP
-                && event.getLocalState() instanceof JSONObject) {
-              JSONObject moving = (JSONObject) event.getLocalState();
-              int target = -1;
-              for (int n = 0; n < getChildCount(); n++) {
-                View child = getChildAt(n);
-                if (event.getY() >= child.getTop()
-                    && event.getY() <= child.getBottom()
-                    && event.getX() >= child.getLeft()
-                    && event.getX() <= child.getRight()) {
-                  target = index(visible.get(n).optString("id"));
-                  break;
-                }
-              }
-              int from = index(moving.optString("id"));
-              if (from >= 0 && target >= 0 && from != target) {
-                JSONArray next = new JSONArray();
-                for (int n = 0; n < items.length(); n++)
-                  next.put(items.optJSONObject(n == from ? target : n == target ? from : n));
-                items = next;
-                save();
-                post(() -> render());
-              }
-              return true;
-            }
-            return true;
-          });
-    }
-
-    @Override
-    protected void onMeasure(int ws, int hs) {
-      int width = MeasureSpec.getSize(ws), cell = (width) / cols(), row = dp(91);
-      int rows = 1;
-      for (int i = 0; i < getChildCount(); i++) {
-        int[] p = positions.get(i);
-        getChildAt(i)
-            .measure(
-                MeasureSpec.makeMeasureSpec(p[2] * cell - dp(10), MeasureSpec.EXACTLY),
-                MeasureSpec.makeMeasureSpec(p[3] * row - dp(10), MeasureSpec.EXACTLY));
-        rows = Math.max(rows, p[1] + p[3]);
-      }
-      setMeasuredDimension(width, Math.max(MeasureSpec.getSize(hs), rows * row + dp(12)));
-    }
-
-    @Override
-    protected void onLayout(boolean c, int l, int t, int r, int b) {
-      int cell = getWidth() / cols(), row = dp(91);
-      for (int i = 0; i < getChildCount(); i++) {
-        int[] p = positions.get(i);
-        View v = getChildAt(i);
-        int x = p[0] * cell + dp(5), y = p[1] * row + dp(5);
-        v.layout(x, y, x + v.getMeasuredWidth(), y + v.getMeasuredHeight());
-      }
-    }
-
-    @Override
-    public boolean onInterceptTouchEvent(android.view.MotionEvent e) {
-      if (e.getAction() == MotionEvent.ACTION_DOWN) {
-        startX = e.getX();
-        startY = e.getY();
-      }
-      if (movingId != null) return true;
-      if (e.getAction() == MotionEvent.ACTION_MOVE
-          && Math.abs(e.getX() - startX) > dp(70)
-          && Math.abs(e.getY() - startY) < dp(45)) return true;
-      return false;
-    }
-
-    @Override
-    public boolean onTouchEvent(MotionEvent e) {
-      if (e.getAction() == MotionEvent.ACTION_UP) {
-        if (movingId != null) {
-          int from = index(movingId), target = -1;
-          for (int n = 0; n < getChildCount(); n++) {
-            View child = getChildAt(n);
-            if (e.getY() >= child.getTop()
-                && e.getY() <= child.getBottom()
-                && e.getX() >= child.getLeft()
-                && e.getX() <= child.getRight()) target = index(visible.get(n).optString("id"));
-          }
-          movingId = null;
-          if (from >= 0 && target >= 0 && from != target) {
-            JSONArray next = new JSONArray();
-            for (int n = 0; n < items.length(); n++)
-              next.put(items.optJSONObject(n == from ? target : n == target ? from : n));
-            items = next;
-            save();
-            render();
-          }
-          return true;
-        }
-        float dx = e.getX() - startX, dy = e.getY() - startY;
-        if (Math.abs(dx) > dp(70)) {
-          page = Math.max(0, Math.min(2, page + (dx < 0 ? 1 : -1)));
-          render();
-        } else if (dy < -dp(70)) drawer(null);
-        else if (Math.abs(dy) < dp(10)) addMenu();
-      }
-      return true;
-    }
+    final int boardPage; ArrayList<JSONObject> visible=new ArrayList<>(); int hoverX=-1,hoverY=-1,resizeW=1,resizeH=1; float downX,downY; final Paint paint=new Paint(Paint.ANTI_ALIAS_FLAG); final Handler touchHandler=new Handler(Looper.getMainLooper()); boolean longPressed,resizeTouch;
+    final Runnable hold=()->{longPressed=true;ui.overview();};
+    Board(int page){super(HomeActivity.this);boardPage=page;setWillNotDraw(false);for(int i=0;i<items.length();i++){JSONObject x=items.optJSONObject(i);if(x!=null&&x.optInt("page")==page){visible.add(x);addView(itemView(x));}}}
+    int cw(){return Math.max(1,getWidth()/cols());} int ch(){return Math.max(1,getHeight()/ui.rows());}
+    @Override protected void onMeasure(int ws,int hs){int width=MeasureSpec.getSize(ws),height=MeasureSpec.getSize(hs);setMeasuredDimension(width,height);for(int i=0;i<getChildCount();i++){JSONObject x=visible.get(i);getChildAt(i).measure(MeasureSpec.makeMeasureSpec(Math.max(1,x.optInt("w",1)*width/cols()-dp(10)),MeasureSpec.EXACTLY),MeasureSpec.makeMeasureSpec(Math.max(1,x.optInt("h",1)*height/ui.rows()-dp(10)),MeasureSpec.EXACTLY));}}
+    @Override protected void onLayout(boolean c,int l,int t,int r,int b){for(int i=0;i<getChildCount();i++){JSONObject x=visible.get(i);View view=getChildAt(i);int left=x.optInt("x")*cw()+dp(5),top=x.optInt("y")*ch()+dp(5);view.layout(left,top,left+view.getMeasuredWidth(),top+view.getMeasuredHeight());}}
+    @Override protected void onDraw(Canvas c){if(ui.resizing!=null&&ui.resizing.optInt("page")==boardPage){JSONObject x=ui.resizing;paint.setStyle(Paint.Style.STROKE);paint.setStrokeWidth(dp(2));paint.setColor(accent);RectF outline=new RectF(x.optInt("x")*cw()+dp(3),x.optInt("y")*ch()+dp(3),(x.optInt("x")+x.optInt("w",1))*cw()-dp(3),(x.optInt("y")+x.optInt("h",1))*ch()-dp(3));c.drawRoundRect(outline,dp(24),dp(24),paint);paint.setStyle(Paint.Style.FILL);c.drawCircle(outline.right,outline.bottom,dp(8),paint);}if(ui.dragging!=null){paint.setColor(0x447f7f7f);for(int y=0;y<ui.rows();y++)for(int x=0;x<cols();x++)c.drawCircle((x+.5f)*cw(),(y+.5f)*ch(),dp(2),paint);if(hoverX>=0){JSONObject moving=ui.dragging;boolean fits=WorkspaceModel.fits(items,ui.dragNew?null:moving.optString("id"),boardPage,hoverX,hoverY,moving.optInt("w",1),moving.optInt("h",1),cols(),ui.rows());paint.setColor(fits?0x557fba91:0x55da4a3d);c.drawRoundRect(new RectF(hoverX*cw()+dp(5),hoverY*ch()+dp(5),(hoverX+moving.optInt("w",1))*cw()-dp(5),(hoverY+moving.optInt("h",1))*ch()-dp(5)),dp(22),dp(22),paint);}}}
+    @Override public boolean onDragEvent(DragEvent e){if(e.getAction()==DragEvent.ACTION_DRAG_STARTED)return e.getLocalState() instanceof JSONObject; if(ui.dragging==null)return false;switch(e.getAction()){case DragEvent.ACTION_DRAG_LOCATION:hoverX=Math.max(0,Math.min(cols()-1,(int)e.getX()/cw()));hoverY=Math.max(0,Math.min(ui.rows()-1,(int)e.getY()/ch()));invalidate();long now=android.os.SystemClock.elapsedRealtime();if(now-ui.edgeAt>800){if(e.getX()>getWidth()-dp(24)&&boardPage<ui.pages()-1){ui.edgeAt=now;ui.goPage(boardPage+1,true);}else if(e.getX()<dp(24)&&boardPage>0){ui.edgeAt=now;ui.goPage(boardPage-1,true);}}return true;case DragEvent.ACTION_DROP:JSONObject target=null;for(JSONObject x:visible)if(e.getX()>=x.optInt("x")*cw()&&e.getX()<(x.optInt("x")+x.optInt("w",1))*cw()&&e.getY()>=x.optInt("y")*ch()&&e.getY()<(x.optInt("y")+x.optInt("h",1))*ch())target=x;return ui.drop(boardPage,Math.max(0,(int)e.getX()/cw()),Math.max(0,(int)e.getY()/ch()),target);case DragEvent.ACTION_DRAG_EXITED:case DragEvent.ACTION_DRAG_ENDED:hoverX=-1;invalidate();return true;}return true;}
+    @Override public boolean onInterceptTouchEvent(MotionEvent e){return ui.resizing!=null&&ui.resizing.optInt("page")==boardPage;}
+    @Override public boolean onTouchEvent(MotionEvent e){if(ui.resizing!=null&&ui.resizing.optInt("page")==boardPage){JSONObject x=ui.resizing;if(e.getAction()==MotionEvent.ACTION_DOWN)resizeTouch=Math.abs(e.getX()-(x.optInt("x")+x.optInt("w",1))*cw())<dp(32)&&Math.abs(e.getY()-(x.optInt("y")+x.optInt("h",1))*ch())<dp(32);if(!resizeTouch)return true;resizeW=Math.max(1,Math.min(cols()-x.optInt("x"),Math.round(e.getX()/cw())-x.optInt("x")));resizeH=Math.max(1,Math.min(ui.rows()-x.optInt("y"),Math.round(e.getY()/ch())-x.optInt("y")));if(e.getAction()==MotionEvent.ACTION_UP){if(WorkspaceModel.fits(items,x.optString("id"),boardPage,x.optInt("x"),x.optInt("y"),resizeW,resizeH,cols(),ui.rows())){put(x,"w",resizeW);put(x,"h",resizeH);ui.resizing=null;save();render();}else toast("No room for that size");}else if(e.getAction()==MotionEvent.ACTION_CANCEL)ui.resizing=null;invalidate();return true;}switch(e.getAction()){case MotionEvent.ACTION_DOWN:downX=e.getX();downY=e.getY();longPressed=false;touchHandler.postDelayed(hold,ViewConfiguration.getLongPressTimeout());return true;case MotionEvent.ACTION_MOVE:if(Math.abs(e.getX()-downX)>dp(12)||Math.abs(e.getY()-downY)>dp(12))touchHandler.removeCallbacks(hold);return true;case MotionEvent.ACTION_UP:case MotionEvent.ACTION_CANCEL:touchHandler.removeCallbacks(hold);return true;}return true;}
   }
 
   int index(String id) {
@@ -718,27 +519,12 @@ public class HomeActivity extends Activity implements SensorEventListener {
         View image = ((LinearLayout) v).getChildAt(0);
         image.setLayoutParams(new LinearLayout.LayoutParams(dp(78), dp(78)));
       }
-    } else if (type.equals("folder")) {
-      LinearLayout box = new LinearLayout(this);
-      box.setOrientation(1);
-      box.setGravity(Gravity.CENTER);
-      box.setBackground(shape(card, 26));
-      JSONArray children = x.optJSONArray("children");
-      GridLayout grid = new GridLayout(this);
-      grid.setColumnCount(2);
-      if (children != null)
-        for (int i = 0; i < Math.min(4, children.length()); i++) {
-          App a = app(children.optString(i));
-          View child = a == null ? text("○", 24, fg) : appView(a, false);
-          grid.addView(child, new ViewGroup.LayoutParams(dp(54), dp(54)));
-        }
-      box.addView(grid);
-      TextView title = text(x.optString("name", "Folder"), 12, fg);
-      title.setGravity(Gravity.CENTER);
-      box.addView(title);
-      click(title, () -> folder(x));
-      if (children == null || children.length() == 0) click(box, () -> folder(x));
-      v = box;
+    } else if(type.equals("folder")) {
+      LinearLayout box=new LinearLayout(this);box.setOrientation(1);box.setGravity(Gravity.CENTER);box.setBackground(shape(card,x.optInt("w",1)==1?100:28));String cover=x.optString("cover","");JSONArray children=x.optJSONArray("children");boolean large=x.optInt("w",1)>1;
+      if(!cover.isEmpty()){TextView symbol=text(cover,large?54:28,fg);symbol.setGravity(Gravity.CENTER);box.addView(symbol,new LinearLayout.LayoutParams(-1,0,1));click(symbol,()->folder(x));}
+      else if(large){GridLayout grid=new GridLayout(this);grid.setColumnCount(2);if(children!=null)for(int i=0;i<Math.min(4,children.length());i++){App app=app(children.optString(i));View child=app==null?text("○",22,fg):appView(app,false);if(child instanceof LinearLayout&&((LinearLayout)child).getChildAt(0)!=null)((LinearLayout)child).getChildAt(0).setLayoutParams(new LinearLayout.LayoutParams(dp(38),dp(38)));grid.addView(child,new ViewGroup.LayoutParams(dp(52),dp(52)));}box.addView(grid,new LinearLayout.LayoutParams(-2,0,1));}
+      else {GridLayout grid=new GridLayout(this);grid.setColumnCount(2);if(children!=null)for(int n=0;n<Math.min(4,children.length());n++){App app=app(children.optString(n));ImageView image=new ImageView(this);if(app!=null)image.setImageDrawable(icon(app));grid.addView(image,new ViewGroup.LayoutParams(dp(20),dp(20)));}box.addView(grid);click(grid,()->folder(x));}
+      TextView title=text(x.optString("name","Folder"),11,fg);title.setGravity(Gravity.CENTER);title.setSingleLine();box.addView(title,new LinearLayout.LayoutParams(-1,dp(24)));click(title,()->folder(x));box.setContentDescription(x.optString("name","Folder"));if(children==null||children.length()==0)click(box,()->folder(x));v=box;
     } else if (type.equals("widget")) {
       int id = x.optInt("widgetId", -1);
       AppWidgetProviderInfo info = AppWidgetManager.getInstance(this).getAppWidgetInfo(id);
@@ -750,7 +536,7 @@ public class HomeActivity extends Activity implements SensorEventListener {
           hv.setAppWidget(id, info);
           hv.setOnLongClickListener(
               w -> {
-                itemMenu(x, hv);
+                ui.beginDrag(hv,x,false);
                 return true;
               });
           hv.addOnLayoutChangeListener(
@@ -780,7 +566,7 @@ public class HomeActivity extends Activity implements SensorEventListener {
     if (!type.equals("widget"))
       v.setOnLongClickListener(
           w -> {
-            itemMenu(x, w);
+            ui.beginDrag(w,x,false);
             return true;
           });
     return v;
@@ -789,6 +575,8 @@ public class HomeActivity extends Activity implements SensorEventListener {
   void fillTile(LinearLayout tile, JSONObject x) {
     tile.removeAllViews();
     String type = x.optString("type");
+    if(!type.equals("media")&&!type.equals("photo")){tile.setPadding(0,0,0,0);tile.setBackgroundColor(Color.TRANSPARENT);WidgetArtwork art=new WidgetArtwork(this,x,false);tile.addView(art,new LinearLayout.LayoutParams(-1,-1));click(tile,()->tileAction(x));return;}
+    tile.setPadding(dp(14),dp(12),dp(14),dp(12));
     int ink = type.equals("battery") ? bg : fg;
     if (type.equals("clock")) {
       DotClock clock = new DotClock();
@@ -854,6 +642,8 @@ public class HomeActivity extends Activity implements SensorEventListener {
         if (!uri.isEmpty()) {
           ImageView im = new ImageView(this);
           im.setScaleType(ImageView.ScaleType.CENTER_CROP);
+        im.setBackground(shape(card,x.optInt("style")==1?1000:24));im.setClipToOutline(true);
+        if(x.optInt("crop",1)!=1){im.setScaleType(ImageView.ScaleType.FIT_START);if(x.optInt("crop")==2)im.setScaleType(ImageView.ScaleType.FIT_END);}
           try {
             im.setImageDrawable(scaledImage(Uri.parse(uri)));
             tile.addView(im, new LinearLayout.LayoutParams(-1, -1));
@@ -876,15 +666,7 @@ public class HomeActivity extends Activity implements SensorEventListener {
     click(tile, () -> tileAction(x));
   }
 
-  void refreshTiles() {
-    if (board == null) return;
-    for (int i = 0; i < board.getChildCount(); i++) {
-      View v = board.getChildAt(i);
-      if (v instanceof LinearLayout && v.getTag() instanceof JSONObject)
-        fillTile((LinearLayout) v, (JSONObject) v.getTag());
-    }
-  }
-
+  void refreshTiles(){if(ui==null)return;for(Board b:ui.boards)for(int i=0;i<b.getChildCount();i++){View v=b.getChildAt(i);if(v instanceof LinearLayout&&v.getTag() instanceof JSONObject)fillTile((LinearLayout)v,(JSONObject)v.getTag());}}
   void tileAction(JSONObject x) {
     switch (x.optString("type")) {
       case "notes":
@@ -940,6 +722,11 @@ public class HomeActivity extends Activity implements SensorEventListener {
                 Intent.ACTION_VIEW,
                 Uri.parse("content://com.android.calendar/time/" + System.currentTimeMillis())));
         break;
+      case "breathing": toast("Follow the circle: breathe slowly in and out");break;
+      case "torch": toggleTorch();break;
+      case "bluetooth":open(new Intent(Settings.ACTION_BLUETOOTH_SETTINGS));break;
+      case "sound":open(new Intent(Settings.ACTION_SOUND_SETTINGS));break;
+      case "dnd":open(new Intent("android.settings.ZEN_MODE_SETTINGS"));break;
       case "battery":
         open(new Intent(Settings.ACTION_BATTERY_SAVER_SETTINGS));
         break;
@@ -948,6 +735,8 @@ public class HomeActivity extends Activity implements SensorEventListener {
     }
   }
 
+  final java.util.HashMap<android.media.session.MediaController,android.media.session.MediaController.Callback> mediaCallbacks=new java.util.HashMap<>();
+  void clearMediaCallbacks(){for(java.util.Map.Entry<android.media.session.MediaController,android.media.session.MediaController.Callback> e:mediaCallbacks.entrySet())try{e.getKey().unregisterCallback(e.getValue());}catch(Exception ignored){}mediaCallbacks.clear();}
   void fillMedia(LinearLayout tile) {
     tile.addView(label("NOW PLAYING"));
     MediaController controller = null;
@@ -970,14 +759,17 @@ public class HomeActivity extends Activity implements SensorEventListener {
       return;
     }
     final MediaController c = controller;
+    if(mediaCallbacks.size()<8&&!mediaCallbacks.containsKey(c)){MediaController.Callback callback=new MediaController.Callback(){@Override public void onPlaybackStateChanged(PlaybackState state){handler.post(()->refreshTiles());}@Override public void onMetadataChanged(MediaMetadata data){handler.post(()->refreshTiles());}};c.registerCallback(callback,handler);mediaCallbacks.put(c,callback);}
     MediaMetadata data = c.getMetadata();
+    if(data!=null){Bitmap art=data.getBitmap(MediaMetadata.METADATA_KEY_ALBUM_ART);if(art==null)art=data.getBitmap(MediaMetadata.METADATA_KEY_ART);LinearLayout row=new LinearLayout(this);row.setGravity(Gravity.CENTER_VERTICAL);ImageView image=new ImageView(this);image.setScaleType(ImageView.ScaleType.CENTER_CROP);image.setBackground(shape(bg,14));image.setClipToOutline(true);if(art!=null)image.setImageBitmap(art);else image.setImageResource(android.R.drawable.ic_media_play);row.addView(image,new LinearLayout.LayoutParams(dp(48),dp(48)));TextView artist=text(String.valueOf(data.getText(MediaMetadata.METADATA_KEY_ARTIST)==null?"Music":data.getText(MediaMetadata.METADATA_KEY_ARTIST)),12,muted);artist.setPadding(dp(12),0,0,0);artist.setMaxLines(2);row.addView(artist,new LinearLayout.LayoutParams(0,dp(48),1));tile.addView(row);}
+
     String title =
         data == null ? "Media" : String.valueOf(data.getText(MediaMetadata.METADATA_KEY_TITLE));
     TextView name = text(title, 16, fg);
     name.setMaxLines(2);
     tile.addView(name, new LinearLayout.LayoutParams(-1, 0, 1));
     LinearLayout buttons = new LinearLayout(this);
-    String[] names = {"‹", "▶ / Ⅱ", "›"};
+    String[] names = {"‹", c.getPlaybackState()!=null&&c.getPlaybackState().getState()==PlaybackState.STATE_PLAYING?"Ⅱ":"▶", "›"};
     for (int n = 0; n < 3; n++) {
       final int action = n;
       TextView b = text(names[n], 22, fg);
@@ -1098,155 +890,13 @@ public class HomeActivity extends Activity implements SensorEventListener {
         .show();
   }
 
-  void addMenu() {
-    if (settings.optBoolean("locked", false)) {
-      toast("Unlock layout in Home settings");
-      return;
-    }
-    menu(
-        "Make it yours",
-        new String[] {
-          "Add an app",
-          "Add a built-in widget",
-          "Add an Android widget",
-          "Create a folder",
-          "Home settings"
-        },
-        n -> {
-          if (n == 0)
-            drawer(
-                a -> {
-                  JSONObject x = obj("app");
-                  put(x, "key", a.key);
-                  put(x, "label", a.label);
-                  items.put(x);
-                  save();
-                  render();
-                });
-          if (n == 1) addTile();
-          if (n == 2) pickWidget();
-          if (n == 3) {
-            JSONObject x = obj("folder");
-            put(x, "w", 2);
-            put(x, "h", 2);
-            put(x, "children", new JSONArray());
-            input(
-                "Folder name",
-                "Essentials",
-                s -> {
-                  put(x, "name", s);
-                  items.put(x);
-                  save();
-                  render();
-                  folder(x);
-                });
-          }
-          if (n == 4) settings();
-        });
-  }
-
-  void addTile() {
-    String[] types = {
-      "clock",
-      "date",
-      "battery",
-      "media",
-      "agenda",
-      "photo",
-      "notes",
-      "countdown",
-      "compass",
-      "usage",
-      "controls"
-    };
-    String[] names = {
-      "Dot clock",
-      "Date",
-      "Battery",
-      "Media player",
-      "Upcoming events",
-      "Photo",
-      "Note",
-      "Countdown",
-      "Compass",
-      "App usage",
-      "Quick controls"
-    };
-    menu(
-        "Built-in widgets",
-        names,
-        n -> {
-          JSONObject x = obj(types[n]);
-          put(x, "w", types[n].equals("clock") || types[n].equals("controls") ? cols() : 2);
-          put(
-              x,
-              "h",
-              types[n].equals("clock") || types[n].equals("media") || types[n].equals("photo")
-                  ? 2
-                  : 1);
-          items.put(x);
-          save();
-          render();
-        });
-  }
-
-  void itemMenu(JSONObject x, View v) {
-    if (settings.optBoolean("locked", false)) {
-      toast("Layout is locked");
-      return;
-    }
-    String type = x.optString("type");
-    menu(
-        type.equals("app") ? x.optString("label", "App") : type.toUpperCase(),
-        new String[] {
-          "Move · tap another item",
-          "Resize",
-          "Move to next page",
-          "Edit / open",
-          "Remove from Home",
-          "App info / shortcuts"
-        },
-        n -> {
-          switch (n) {
-            case 0:
-              movingId = x.optString("id");
-              toast("Tap another Home item to swap positions");
-              break;
-            case 1:
-              menu(
-                  "Size",
-                  new String[] {"1 × 1", "2 × 1", "2 × 2", "Full width × 2", "Full width × 3"},
-                  s -> {
-                    int[][] sizes = {{1, 1}, {2, 1}, {2, 2}, {cols(), 2}, {cols(), 3}};
-                    put(x, "w", sizes[s][0]);
-                    put(x, "h", sizes[s][1]);
-                    save();
-                    render();
-                  });
-              break;
-            case 2:
-              put(x, "page", (page + 1) % 3);
-              save();
-              render();
-              break;
-            case 3:
-              if (type.equals("folder")) folder(x);
-              else if (type.equals("app")) launch(x.optString("key"));
-              else if (type.equals("widget")) configureExisting(x);
-              else tileAction(x);
-              break;
-            case 4:
-              if (type.equals("widget")) host.deleteAppWidgetId(x.optInt("widgetId"));
-              items.remove(index(x.optString("id")));
-              save();
-              render();
-              break;
-            case 5:
-              if (type.equals("app")) appOptions(app(x.optString("key")));
-              break;
-          }
-        });
-  }
+  void addMenu(){ui.overview();}
+  void addTile(){ui.widgetPicker();}
+  void pickWidget(){ui.widgetPicker();}
+  void itemMenu(JSONObject x,View v){ui.itemActions(x,v);}
+  void folder(JSONObject x){ui.folder(x);}
+  void drawer(java.util.function.Consumer<App> pick){ui.drawer(pick);}
+  void settings(){ui.customise();}
 
   void appOptions(App a) {
     if (a == null) return;
@@ -1284,241 +934,11 @@ public class HomeActivity extends Activity implements SensorEventListener {
         });
   }
 
-  void folder(JSONObject x) {
-    JSONArray children = x.optJSONArray("children");
-    if (children == null) {
-      children = new JSONArray();
-      put(x, "children", children);
-    }
-    final JSONArray keys = children;
-    LinearLayout panel = new LinearLayout(this);
-    panel.setOrientation(1);
-    panel.setPadding(dp(20), dp(12), dp(20), dp(12));
-    GridLayout grid = new GridLayout(this);
-    grid.setColumnCount(3);
-    for (int i = 0; i < keys.length(); i++) {
-      final int at = i;
-      App a = app(keys.optString(i));
-      if (a == null) continue;
-      View v = appView(a, true);
-      grid.addView(v, new ViewGroup.LayoutParams(dp(85), dp(85)));
-      v.setOnLongClickListener(
-          w -> {
-            keys.remove(at);
-            save();
-            render();
-            toast("Removed from folder");
-            return true;
-          });
-    }
-    panel.addView(grid);
-    AlertDialog d =
-        new AlertDialog.Builder(this)
-            .setTitle(x.optString("name", "Folder"))
-            .setView(panel)
-            .setPositiveButton(
-                "Add app",
-                (q, n) ->
-                    drawer(
-                        a -> {
-                          keys.put(a.key);
-                          save();
-                          render();
-                          folder(x);
-                        }))
-            .setNeutralButton(
-                "Rename",
-                (q, n) ->
-                    input(
-                        "Folder name",
-                        x.optString("name"),
-                        s -> {
-                          put(x, "name", s);
-                          save();
-                          render();
-                        }))
-            .setNegativeButton("Close", null)
-            .create();
-    d.show();
-  }
-
   int categoryOf(App a) {
     JSONObject overrides = settings.optJSONObject("categories");
     return overrides != null && overrides.has(a.key)
         ? overrides.optInt(a.key, -1)
         : a.info.getApplicationInfo().category;
-  }
-
-  void drawer(java.util.function.Consumer<App> pick) {
-    drawer = new Dialog(this, android.R.style.Theme_Material_NoActionBar);
-    LinearLayout panel = new LinearLayout(this);
-    panel.setOrientation(1);
-    panel.setPadding(dp(22), dp(28), dp(22), dp(20));
-    panel.setBackgroundColor(bg);
-    LinearLayout header = new LinearLayout(this);
-    TextView title = text(pick == null ? "All apps" : "Choose an app", 29, fg);
-    header.addView(title, new LinearLayout.LayoutParams(0, dp(60), 1));
-    TextView close = text("×", 30, fg);
-    header.addView(close, new LinearLayout.LayoutParams(dp(44), dp(60)));
-    click(close, () -> drawer.dismiss());
-    panel.addView(header);
-    TextView hint = label("LONG PRESS AN APP FOR ACTIONS");
-    panel.addView(hint);
-    ScrollView sv = new ScrollView(this);
-    GridLayout grid = new GridLayout(this);
-    grid.setColumnCount(4);
-    sv.addView(grid);
-    panel.addView(sv, new LinearLayout.LayoutParams(-1, 0, 1));
-    search = new EditText(this);
-    search.setSingleLine();
-    search.setTextColor(fg);
-    search.setHintTextColor(muted);
-    search.setHint("Search apps");
-    search.setBackground(shape(card, 28));
-    search.setPadding(dp(18), 0, dp(18), 0);
-    search.setImeOptions(android.view.inputmethod.EditorInfo.IME_ACTION_GO);
-    panel.addView(search, new LinearLayout.LayoutParams(-1, dp(52)));
-    final int[] category = {-1};
-    TextView categoryChip = text("All categories ▾", 14, fg);
-    panel.addView(categoryChip, 2, new LinearLayout.LayoutParams(-1, dp(42)));
-    Runnable filter =
-        () -> {
-          grid.removeAllViews();
-          String query = search.getText().toString().toLowerCase(Locale.ROOT).trim();
-          ArrayList<App> matches = new ArrayList<>();
-          for (App a : apps)
-            if (a.label.toLowerCase(Locale.ROOT).contains(query)
-                && (!hidden(a.key) || !query.isEmpty())
-                && (category[0] < 0 || categoryOf(a) == category[0])) matches.add(a);
-          int width = (getResources().getDisplayMetrics().widthPixels - dp(44)) / 4;
-          for (App a : matches) {
-            View v = appView(a, true);
-            grid.addView(v, new ViewGroup.LayoutParams(width, dp(93)));
-            click(
-                v,
-                () -> {
-                  drawer.dismiss();
-                  if (pick == null) launch(a.key);
-                  else pick.accept(a);
-                });
-            v.setOnLongClickListener(
-                w -> {
-                  if (pick != null) return false;
-                  menu(
-                      a.label,
-                      new String[] {
-                        "Add to Home",
-                        "App info / shortcuts",
-                        "Hide / show in drawer",
-                        "Set category"
-                      },
-                      n -> {
-                        if (n == 0) {
-                          JSONObject x = obj("app");
-                          put(x, "key", a.key);
-                          put(x, "label", a.label);
-                          items.put(x);
-                          save();
-                          drawer.dismiss();
-                          render();
-                        } else if (n == 1) appOptions(a);
-                        else if (n == 3) {
-                          String[] groups = {
-                            "Games",
-                            "Audio",
-                            "Video",
-                            "Images",
-                            "Social",
-                            "News",
-                            "Maps",
-                            "Productivity",
-                            "Accessibility"
-                          };
-                          menu(
-                              "App category",
-                              groups,
-                              c -> {
-                                JSONObject categories = settings.optJSONObject("categories");
-                                if (categories == null) {
-                                  categories = new JSONObject();
-                                  put(settings, "categories", categories);
-                                }
-                                put(categories, a.key, c);
-                                save();
-                              });
-                        } else {
-                          JSONObject h = settings.optJSONObject("hidden");
-                          if (h == null) {
-                            h = new JSONObject();
-                            put(settings, "hidden", h);
-                          }
-                          put(h, a.key, !hidden(a.key));
-                          save();
-                          toast("Hidden apps remain searchable");
-                        }
-                      });
-                  return true;
-                });
-          }
-          if (matches.isEmpty()) {
-            TextView empty = text("No matching apps", 16, muted);
-            grid.addView(empty, new ViewGroup.LayoutParams(-1, dp(100)));
-          }
-        };
-    click(
-        categoryChip,
-        () -> {
-          String[] groups = {
-            "All categories",
-            "Games",
-            "Audio",
-            "Video",
-            "Images",
-            "Social",
-            "News",
-            "Maps",
-            "Productivity",
-            "Accessibility"
-          };
-          menu(
-              "Categories",
-              groups,
-              n -> {
-                category[0] = n - 1;
-                categoryChip.setText(groups[n] + " ▾");
-                filter.run();
-              });
-        });
-    search.addTextChangedListener(
-        new android.text.TextWatcher() {
-          public void beforeTextChanged(CharSequence s, int a, int c, int f) {}
-
-          public void onTextChanged(CharSequence s, int start, int before, int count) {
-            filter.run();
-          }
-
-          public void afterTextChanged(android.text.Editable e) {}
-        });
-    search.setOnEditorActionListener(
-        (v, action, event) -> {
-          String q = search.getText().toString().toLowerCase(Locale.ROOT);
-          for (App a : apps)
-            if (a.label.toLowerCase(Locale.ROOT).contains(q)) {
-              drawer.dismiss();
-              if (pick == null) launch(a.key);
-              else pick.accept(a);
-              return true;
-            }
-          return false;
-        });
-    drawer.setContentView(panel);
-    drawer
-        .getWindow()
-        .setSoftInputMode(
-            WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE
-                | WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_HIDDEN);
-    drawer.show();
-    filter.run();
   }
 
   boolean hidden(String key) {
@@ -1548,7 +968,7 @@ public class HomeActivity extends Activity implements SensorEventListener {
         });
   }
 
-  void settings() {
+  void legacySettings() {
     String[] choices = {
       "Set as default Home",
       "Theme: " + (dark() ? "Dark" : "Light"),
@@ -1561,7 +981,7 @@ public class HomeActivity extends Activity implements SensorEventListener {
       "Export layout",
       "Import layout",
       "Manage Android widgets",
-      "Navigation & compatibility",
+      "Gesture navigation & compatibility",
       "About / restore default layout",
       "Undo last layout change",
       "Restore pre-import recovery copy",
@@ -1779,35 +1199,8 @@ public class HomeActivity extends Activity implements SensorEventListener {
     pickDocument(PHOTO, "image/*");
   }
 
-  void pickWidget() {
-    if (settings.optBoolean("locked", false)) return;
-    List<AppWidgetProviderInfo> providers =
-        AppWidgetManager.getInstance(this).getInstalledProviders();
-    providers.sort(
-        (a, b) ->
-            a.loadLabel(getPackageManager()).compareToIgnoreCase(b.loadLabel(getPackageManager())));
-    String[] names = new String[providers.size()];
-    for (int i = 0; i < names.length; i++)
-      names[i] = providers.get(i).loadLabel(getPackageManager());
-    menu(
-        "Android widgets",
-        names,
-        n -> {
-          AppWidgetProviderInfo info = providers.get(n);
-          if (pendingWidget >= 0) cancelWidget();
-          pendingWidget = host.allocateAppWidgetId();
-          prefs.edit().putInt("pendingWidget", pendingWidget).apply();
-          if (AppWidgetManager.getInstance(this)
-              .bindAppWidgetIdIfAllowed(pendingWidget, info.provider)) configureWidget();
-          else
-            startActivityForResult(
-                new Intent(AppWidgetManager.ACTION_APPWIDGET_BIND)
-                    .putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, pendingWidget)
-                    .putExtra(AppWidgetManager.EXTRA_APPWIDGET_PROVIDER, info.provider),
-                BIND);
-        });
-  }
-
+  void addProvider(AppWidgetProviderInfo info){if(pendingWidget>=0)cancelWidget();pendingWidget=host.allocateAppWidgetId();prefs.edit().putInt("pendingWidget",pendingWidget).apply();if(AppWidgetManager.getInstance(this).bindAppWidgetIdIfAllowed(pendingWidget,info.provider))configureWidget();else startActivityForResult(new Intent(AppWidgetManager.ACTION_APPWIDGET_BIND).putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID,pendingWidget).putExtra(AppWidgetManager.EXTRA_APPWIDGET_PROVIDER,info.provider),BIND);}
+  void toggleTorch(){if(checkSelfPermission(Manifest.permission.CAMERA)!=PackageManager.PERMISSION_GRANTED){requestPermissions(new String[]{Manifest.permission.CAMERA},22);return;}try{CameraManager cm=(CameraManager)getSystemService(CAMERA_SERVICE);for(String id:cm.getCameraIdList())if(Boolean.TRUE.equals(cm.getCameraCharacteristics(id).get(CameraCharacteristics.FLASH_INFO_AVAILABLE))){cm.setTorchMode(id,!torch);torch=!torch;refreshTiles();break;}}catch(Exception e){toast("Flashlight unavailable or camera in use");}}
   void configureWidget() {
     AppWidgetProviderInfo info = AppWidgetManager.getInstance(this).getAppWidgetInfo(pendingWidget);
     if (info == null) {
@@ -1898,7 +1291,7 @@ public class HomeActivity extends Activity implements SensorEventListener {
       }
       if (request == EXPORT) {
         JSONObject backup = new JSONObject();
-        put(backup, "schema", 1);
+        put(backup, "schema", 2);
         put(backup, "settings", settings);
         JSONArray copy = new JSONArray(items.toString());
         for (int i = 0; i < copy.length(); i++) {
