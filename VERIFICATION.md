@@ -52,3 +52,21 @@ User review rejected the early v2 visual screenshots. Publication was paused; a 
 ## 2.0.1 navigation and drawer correction — 25 October 2026
 
 Removes the Accessibility navigation service, global edge windows and recovery tile. Normal Android Home-role, Back-callback and system Recents integration remain. The Home root recognizes vertical pulls before the workspace pager or clickable tile/dock children consume them, while preserving system navigation insets, horizontal paging and hosted-widget vertical interaction. Real touchscreen regression checks replace reflection-only app-drawer opening; they verify a visible settled panel, short/cancelled pulls, workspace/tile/dock origin and normal Android key-event navigation without granting an app Accessibility service. Local Java/resource/dex compilation, instrumentation compilation, model/migration/offline checks pass. Final GitHub Actions and physical-phone results are reported separately; this entry does not claim unrun device checks passed.
+
+
+## 3.0.0 launcher rebuild — 25 October 2026
+
+The old Accessibility-navigation entries above are historical. The current APK removes that service, its recovery tile and global edge overlays. Standard Android navigation is used without Accessibility or protected-settings permissions.
+
+Local release compilation uses the pinned Gradle wrapper/AGP with Android 36 and build tools 36.0.0, including release lint. The instrumentation APK compiles separately. Model checks cover 400 random layouts, 100 mixed explicit placements, validation/migration and atomic multi-item moves with collision/bounds/stale-selection rollback. Source and APK checks enforce the offline contract.
+
+Source `ceeb46bcc62032f8a2b4126095f5b9ce30b170ce` passed the complete [Android 16 workflow 40199168310](https://github.com/Nrajesh0/Launcher-by-rj/actions/runs/40199168310). Real touchscreen injection verifies drawer opening from blank Home, tiles and dock, short/cancelled pulls, horizontal paging and the native default-Home chooser. The suite also verifies appearance-preview cancellation, batch selection, folder/picker/style/customisation views, an actual test provider's binding/configuration/cancellation/removal, system Home and Recents, absence of Accessibility/overlay permissions and no AndroidRuntime fatal exception. The test provider is a separate test-only APK.
+
+Screenshots of actual light/dark Home, drawer, widget picker, Customisation, selection, configured provider and system navigation are retained as Actions artifacts. Home, picker and Customisation captures were visually inspected without system-error dialogs. Their geometry/artwork is an independent reference-inspired implementation, not measured pixel parity. The captured emulator uses three-button system navigation; those buttons are Android System UI, not an app navigation bar.
+
+The first frame-metric capture attached to an early Activity window retained only six frames; its p95/max is not a representative performance measurement. No missed-frame rate, 120 Hz, battery or physical-phone claim follows from that sample. Final-source evidence and publication provenance are recorded with the release.
+
+Physical POCO/HyperOS acceptance, real third-party provider differences, large-text/TalkBack/RTL/landscape trials, clone/work-profile behaviour, battery/performance comparisons, repeated process-death/reboot stress and a daily-use trial remain pending. Follow [the phone checklist](docs/device-acceptance.md). These are release-readiness boundaries of this preview, not passing test results.
+
+
+Final source `65cf2587a9b0ac7196877816c1d92667eb6b3be2` passed the complete [workflow 40199817088](https://github.com/Nrajesh0/Launcher-by-rj/actions/runs/40199817088), including the additional reversible-wallpaper and rendered inverted-media checks. The release APK is the unsigned artifact from this run, signed locally with the established certificate, with every original ZIP entry compared byte for byte. APK version 3.0.0 / code 5; SHA-256 `eed9cb699426c5842e2a9dd04fee492c187c10cdf12623564954282c09dc35be`. The source was advanced to main after this complete passing result.
