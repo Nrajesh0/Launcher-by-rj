@@ -75,7 +75,7 @@ public class UiSmoke extends Instrumentation {
           getUiAutomation(UiAutomation.FLAG_DONT_SUPPRESS_ACCESSIBILITY_SERVICES)
               .getRootInActiveWindow();
       String pkg = root == null ? "" : String.valueOf(root.getPackageName());
-      if (pkg.contains("permissioncontroller") && findSystemText(root, "Dot Home") != null) {
+      if (pkg.contains("permissioncontroller")) {
         displayed = true;
         break;
       }
@@ -87,6 +87,7 @@ public class UiSmoke extends Instrumentation {
     SystemClock.sleep(250);
     boolean confirmed =
         clickSystemText("Set as default")
+            || clickSystemText("Set default")
             || clickSystemText("Always")
             || clickSystemText("Use app");
     for (int n = 0; n < 50 && !roles.isRoleHeld(android.app.role.RoleManager.ROLE_HOME); n++)
