@@ -48,7 +48,13 @@ with tempfile.TemporaryDirectory() as tmp:
     candidates = list(Path(tmp).glob("*-unsigned.apk"))
     assert len(candidates) == 1, "Expected one unsigned CI APK"
     with zipfile.ZipFile(candidates[0]) as original, zipfile.ZipFile(apk) as signed:
-        assert set(original.namelist()) == set(signed.namelist()), "APK contents differ from CI artifact"
+        original_names = set(original.namelist())
+        signed_names = set(signed.namelist())
+        assert original_names <= signed_names, "APK entry removed from CI artifact"
+        # apksigner adds these v1 certificate entries; v2/v3 signatures live
+        # outside ZIP entries. No other additions, removals or edits are allowed.
+        signature_entries = {"META-INF/MANIFEST.MF", "META-INF/DOTHOME.SF", "META-INF/DOTHOME.RSA"}
+        assert signed_names - original_names <= signature_entries, "Unexpected APK entries added"
         for name in original.namelist():
             assert original.read(name) == signed.read(name), f"APK entry differs from CI: {name}"
 print(f"Verified preview {version}: CI build payload, signature, checksum and offline contract. Full UI verification is pending.")
