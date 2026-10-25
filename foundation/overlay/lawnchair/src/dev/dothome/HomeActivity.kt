@@ -69,11 +69,9 @@ class HomeActivity : LawnchairLauncher() {
 
     private fun updateMaterial() {
         val style = getSharedPreferences("dot-style", 0)
-        rootView?.background = if(style.getBoolean("wallpaperApplied", false)) null else object: Drawable() {
-            override fun draw(canvas: Canvas) { DotWallpaper.paint(canvas, bounds.width(), bounds.height(), style.getString("wallpaper", "glass")!!) }
-            override fun setAlpha(alpha: Int) {}
-            override fun setColorFilter(filter: ColorFilter?) {}
-            @Deprecated("Opacity") override fun getOpacity(): Int = PixelFormat.OPAQUE
-        }
+        val root=rootView ?: return
+        val key=style.getString("wallpaper","glass")!!
+        if(style.getBoolean("wallpaperApplied",false)) root.background=null
+        else if((root.background as? dev.dothome.ui.DotWallpaperDrawable)?.key!=key) root.background=dev.dothome.ui.DotWallpaperDrawable(key)
     }
 }

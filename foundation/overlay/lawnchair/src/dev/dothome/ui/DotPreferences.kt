@@ -14,6 +14,7 @@ import android.widget.*
 import app.lawnchair.LawnchairLauncher
 import app.lawnchair.preferences.PreferenceManager
 import app.lawnchair.preferences2.PreferenceManager2
+import app.lawnchair.preferences2.firstBlocking as idpValue
 import app.lawnchair.theme.color.ColorOption
 import com.android.launcher3.InvariantDeviceProfile
 import com.android.launcher3.R
@@ -82,7 +83,7 @@ open class DotPreferences : Activity() {
         header.addView(back, FrameLayout.LayoutParams(d(44), -1, Gravity.START))
         val title = text(when(next) {
             "appearance" -> "Theme & Style"; "wallpaper" -> "Wallpapers"; "grid" -> "Home screen layout"
-            "icons" -> "Icon pack"; "home" -> "Home settings"; "access" -> "Optional access"; "licenses" -> "Open-source licences"
+            "icons" -> "Icon pack"; "drawer" -> "Apps"; "home" -> "Home settings"; "access" -> "Optional access"; "licenses" -> "Open-source licences"
             else -> "Customisation"
         }, 17f).apply { gravity = Gravity.CENTER; setAccessibilityHeading(true) }
         header.addView(title, FrameLayout.LayoutParams(-1, -1).apply { leftMargin = d(48); rightMargin = d(48) })
@@ -95,7 +96,7 @@ open class DotPreferences : Activity() {
             if (dark) 0 else WindowInsetsController.APPEARANCE_LIGHT_STATUS_BARS or WindowInsetsController.APPEARANCE_LIGHT_NAVIGATION_BARS,
             WindowInsetsController.APPEARANCE_LIGHT_STATUS_BARS or WindowInsetsController.APPEARANCE_LIGHT_NAVIGATION_BARS)
         when(next) {
-            "appearance" -> appearance(); "wallpaper" -> wallpapers(); "grid" -> grid(); "icons" -> icons()
+            "appearance" -> appearance(); "drawer" -> drawer(); "wallpaper" -> wallpapers(); "grid" -> grid(); "icons" -> icons()
             "home" -> home(); "access" -> access(); "licenses" -> licences(); else -> customisation()
         }
     }
@@ -118,13 +119,15 @@ open class DotPreferences : Activity() {
 
     private fun toggle(title: String, checked: Boolean, change: (Boolean) -> Unit) {
         val row = row(title)
-        row.addView(Switch(this).apply {
+        val control=Switch(this).apply {
             isChecked = checked; contentDescription = title
             val states=arrayOf(intArrayOf(android.R.attr.state_checked),intArrayOf())
             thumbTintList=android.content.res.ColorStateList(states,intArrayOf(if(dark)0xff222321.toInt() else Color.WHITE,if(dark)0xffbfc3bd.toInt() else Color.WHITE))
             trackTintList=android.content.res.ColorStateList(states,intArrayOf(if(dark)0xffeeeeea.toInt() else 0xff222321.toInt(),if(dark)0xff444743.toInt() else 0xffd5d7d0.toInt()))
             setOnCheckedChangeListener { _, value -> change(value) }
-        }, LinearLayout.LayoutParams(-2, -2))
+        }
+        row.addView(control, LinearLayout.LayoutParams(-2,-2))
+        row.setOnClickListener {control.toggle()}
     }
 
     private fun preview(height: Int) {
@@ -154,7 +157,11 @@ open class DotPreferences : Activity() {
             }, LinearLayout.LayoutParams(0, d(42), 1f))
         }
         body.addView(choices); gap(18)
-        toggle("Dark theme", dark) { style.edit().putBoolean("dark", it).apply(); p.launcherTheme.set(if(it) "dark" else "light"); show("appearance", false) }
+        toggle("Dark theme", dark) {
+            val update=style.edit().putBoolean("dark",it)
+            if(!style.getBoolean("wallpaperApplied",false))update.putString("wallpaper",if(it)"optic" else "glass")
+            update.apply();p.launcherTheme.set(if(it)"dark" else "light");show("appearance",false)
+        }
         val colours = LinearLayout(this).apply { gravity = Gravity.CENTER; setPadding(d(8), d(12), d(8), d(12)); background = shape(card, 14) }
         intArrayOf(0xffbccbbf.toInt(),0xff56a5c7.toInt(),0xff99bd68.toInt(),0xffd7a28d.toInt(),0xffb3a2bf.toInt(),0xff8894ac.toInt()).forEach { color ->
             colours.addView(View(this).apply {
@@ -202,6 +209,17 @@ open class DotPreferences : Activity() {
         toggle("Labels in folders", p2.showIconLabelsOnHomeScreenFolder.firstBlocking()) { p2.showIconLabelsOnHomeScreenFolder.setBlocking(it) }
     }
 
+    private fun drawer() {
+        row("Alphabetical",if(p.drawerList.get()) "Selected" else "") {p.drawerList.set(true);show("drawer",false)}
+        row("Smart categories",if(!p.drawerList.get()) "Selected" else "") {p.drawerList.set(false);show("drawer",false)}
+        gap()
+        val defaultGrid=InvariantDeviceProfile.INSTANCE.get(this).closestProfile
+        for(columns in listOf(4,5)) row("$columns columns",if(p2.drawerColumns.idpValue(defaultGrid)==columns) "Selected" else "") {kotlinx.coroutines.runBlocking {p2.drawerColumns.set(columns,defaultGrid)};show("drawer",false)}
+        gap()
+        toggle("App labels",p2.showIconLabelsInDrawer.firstBlocking()) {p2.showIconLabelsInDrawer.setBlocking(it)}
+        row("Hidden icons") {startActivity(Intent(this,DotHidden::class.java))}
+    }
+
     private fun wallpapers() {
         val grid = GridLayout(this).apply { columnCount = 2 }
         listOf("glass" to "Glass", "optic" to "Optic", "mist" to "Atmosphere", "graphite" to "Graphite").forEachIndexed { index, (key, label) ->
@@ -241,6 +259,7 @@ open class DotPreferences : Activity() {
 
     private fun home() {
         row("Home screen layout") { show("grid") }
+        row("Apps", if(p.drawerList.get()) "Alphabetical" else "Smart categories") { show("drawer") }
         row("Theme & Style") { show("appearance") }
         gap()
         toggle("Freeze Home screen layout", p2.lockHomeScreen.firstBlocking()) { p2.lockHomeScreen.setBlocking(it) }
@@ -269,6 +288,10 @@ open class DotPreferences : Activity() {
     }
 
     private inner class CurrentHomePreview: View(this@DotPreferences) {
+        override fun onAttachedToWindow() {
+            super.onAttachedToWindow()
+            for(step in 1..8) postDelayed({if(isAttachedToWindow)invalidate()},step*120L)
+        }
         override fun onDraw(canvas: Canvas) {
             val home = LawnchairLauncher.instance?.rootView ?: return
             if(home.width == 0 || home.height == 0) return

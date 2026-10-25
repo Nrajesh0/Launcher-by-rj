@@ -10,7 +10,7 @@ object DotWallpaper {
     private val grain: Bitmap by lazy {
         val random = Random(28471)
         Bitmap.createBitmap(128,128,Bitmap.Config.ARGB_8888).apply {
-            val pixels = IntArray(128*128) { val gray=random.nextInt(256); Color.argb(18,gray,gray,gray) }
+            val pixels = IntArray(128*128) { val gray=random.nextInt(256); Color.argb(7,gray,gray,gray) }
             setPixels(pixels,0,128,0,0,128,128)
         }
     }

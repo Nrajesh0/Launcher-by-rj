@@ -19,7 +19,9 @@ open class DotTile(private val context: Context, val kind: String, val face: Int
         info.previewImage=if(kind=="clock") R.drawable.dot_preview_clock else R.drawable.dot_preview_widget
         info.icon=R.drawable.ic_launcher_home
         info.resizeMode=if(columns==1) AppWidgetProviderInfo.RESIZE_NONE else AppWidgetProviderInfo.RESIZE_BOTH
-        info.configure=null; info.targetCellWidth=columns; info.targetCellHeight=rows
+        info.configure=null; info.previewLayout=0; info.widgetFeatures=0; info.generatedPreviewCategories=0
+        info.widgetCategory=AppWidgetProviderInfo.WIDGET_CATEGORY_HOME_SCREEN; info.autoAdvanceViewId=View.NO_ID; info.updatePeriodMillis=0
+        info.targetCellWidth=columns; info.targetCellHeight=rows
         (info as CustomAppWidgetProviderInfo).apply { spanX=columns; spanY=rows; minSpanX=columns; minSpanY=rows; maxSpanX=4; maxSpanY=if(kind=="photo") 4 else rows }
     }
     override fun onViewCreated(parent: AppWidgetHostView) {

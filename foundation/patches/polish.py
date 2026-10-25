@@ -65,3 +65,11 @@ tree.write(file,encoding='unicode',xml_declaration=True)
 
 edit("lawnchair/src/app/lawnchair/ui/popup/LauncherOptionsPopup.kt", 'if (Utilities.existsStyleWallpapers(launcher)) R.string.styles_wallpaper_button_text else R.string.wallpapers', 'R.string.styles_wallpaper_button_text')
 edit("lawnchair/res/values/config.xml", '<bool name="config_default_edit_home_screen_on_popup">false</bool>', '<bool name="config_default_edit_home_screen_on_popup">true</bool>')
+
+# Bundled monochrome resources do not require a separately installed pack.
+file=root/'lawnchair/src/app/lawnchair/LawnchairLauncher.kt'
+text=file.read_text();start=text.index('        // Handle update from version 12 Alpha 4 to version 12 Alpha 5.')
+end=text.index('        colorScheme = themeProvider.colorScheme',start)
+file.write_text(text[:start]+text[end:])
+
+edit("lawnchair/src/app/lawnchair/LawnchairLauncher.kt", 'systemUiController.updateUiState(UI_STATE_BASE_WINDOW, isWorkspaceDarkText || darkStatusBar)', 'systemUiController.updateUiState(UI_STATE_BASE_WINDOW, dev.dothome.ui.DotWallpaperDrawable.darkSystemIcons(this, isWorkspaceDarkText || darkStatusBar))')

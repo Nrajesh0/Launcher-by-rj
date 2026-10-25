@@ -73,7 +73,7 @@ public final class FoundationSmoke extends UiSmoke {
     final View[] views=new View[2];
     for(int n=0;n<40;n++){onUi(()->{views[0]=nativeItem(ids[0]);views[1]=nativeItem(ids[1]);});if(views[0]!=null&&views[1]!=null)break;SystemClock.sleep(100);}
     if(views[0]==null||views[1]==null)throw new AssertionError("Native test apps were not bound");
-    longPressBlank();if(!clickSystemText("Arrange"))throw new AssertionError("Arrange entry did not respond");
+    longPressBlank();visible("Arrange");if(!clickSystemText("Arrange"))throw new AssertionError("Arrange entry did not respond");
     awaitState("EDIT_MODE");visible("Select apps");
     for(int n=0;n<2;n++) {
       final View item=views[n];int[] at=new int[2];onUi(()->item.getLocationOnScreen(at));
@@ -110,7 +110,12 @@ public final class FoundationSmoke extends UiSmoke {
       try(var db=android.database.sqlite.SQLiteDatabase.openDatabase(home.getDatabasePath(name).getPath(),null,android.database.sqlite.SQLiteDatabase.OPEN_READONLY);
           var rows=db.rawQuery("SELECT count(*) FROM favorites WHERE itemType IN (4,5)",null)) {if(rows.moveToFirst())widgetRows+=rows.getInt(0);}catch(Exception ignored){}
     }
-    return output+", stored widget rows="+widgetRows+"\n";
+    int active=-1;
+    try {
+      var db=(android.database.sqlite.SQLiteDatabase)invoke(invoke(invoke(home,"getModel"),"getModelDbController"),"getDb");
+      try(var rows=db.rawQuery("SELECT count(*) FROM favorites WHERE itemType IN (4,5)",null)) {if(rows.moveToFirst())active=rows.getInt(0);}
+    }catch(Exception ignored){}
+    return output+", stored widget rows="+widgetRows+", active widget rows="+active+"\n";
   }
   void homeKey() throws Exception { shell("input keyevent KEYCODE_HOME");SystemClock.sleep(700);onUi(()->{});awaitState("NORMAL"); }
   @Override public void onStart() {
@@ -135,11 +140,13 @@ public final class FoundationSmoke extends UiSmoke {
       if(!clickSystemText("Theme & Style"))throw new AssertionError("Theme entry did not respond");
       visible("Classic");visible("Dynamic");visible("Dark theme");visible("Icon pack");screenshot("foundation-theme-style");
       if(!clickSystemText("Dark theme"))throw new AssertionError("Dark theme row did not respond");
-      SystemClock.sleep(500);homeKey();screenshot("foundation-home-dark");
-      longPressBlank();if(!clickSystemText("Arrange"))throw new AssertionError("Arrange entry did not respond");
+      SystemClock.sleep(500);
+      if(!home.getSharedPreferences("dot-style",0).getBoolean("dark",false))throw new AssertionError("Dark theme label did not toggle the setting");
+      homeKey();screenshot("foundation-home-dark");
+      longPressBlank();visible("Arrange");if(!clickSystemText("Arrange"))throw new AssertionError("Arrange entry did not respond");
       visible("Select apps");visible("Done");screenshot("foundation-arrange");
       if(!clickSystemText("Done"))throw new AssertionError("Arrange did not finish");awaitState("NORMAL");
-      longPressBlank();if(!clickSystemText("Widgets"))throw new AssertionError("Widget entry did not respond");
+      longPressBlank();visible("Widgets");if(!clickSystemText("Widgets"))throw new AssertionError("Widget entry did not respond");
       visible("Dot Home");screenshot("foundation-widget-tray");
       homeKey();
       var info=home.getPackageManager().getPackageInfo("dev.dothome",android.content.pm.PackageManager.GET_SERVICES|android.content.pm.PackageManager.GET_PERMISSIONS);
