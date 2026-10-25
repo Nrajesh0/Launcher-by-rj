@@ -1,7 +1,7 @@
 """Verify a locally signed preview against its successful CI build artifact.
 
-Preview publication deliberately does not imply a passing UI suite. Stable release
-verification remains in verify_prebuilt.py and requires the entire CI run to pass.
+Both preview and stable publication require the complete source CI run to pass.
+Preview status describes product/device readiness, not skipped validation.
 """
 import hashlib
 import json
@@ -40,6 +40,7 @@ run_id = provenance["actions_run_id"]
 assert isinstance(run_id, int) and run_id > 0
 run = api(f"repos/{repo}/actions/runs/{run_id}")
 assert run["head_sha"] == provenance["source_commit"], "Source build mismatch"
+assert run["conclusion"] == "success", "Full source build and UI checks must pass"
 assert run["path"] == ".github/workflows/android.yml", "Unexpected build workflow"
 jobs = api(f"repos/{repo}/actions/runs/{run_id}/jobs?per_page=100")["jobs"]
 assert any(job["name"] == "build" and job["conclusion"] == "success" for job in jobs), "Compilation/model/offline build job must pass"
@@ -57,4 +58,4 @@ with tempfile.TemporaryDirectory() as tmp:
         assert signed_names - original_names <= signature_entries, "Unexpected APK entries added"
         for name in original.namelist():
             assert original.read(name) == signed.read(name), f"APK entry differs from CI: {name}"
-print(f"Verified preview {version}: CI build payload, signature, checksum and offline contract. Full UI verification is pending.")
+print(f"Verified preview {version}: CI build payload, signature, checksum and offline contract. Source build and UI checks passed.")

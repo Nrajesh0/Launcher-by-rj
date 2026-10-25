@@ -15,16 +15,13 @@ Install the versioned APK from [GitHub Releases](https://github.com/Nrajesh0/Lau
 - Tap or long press a dock slot to choose its app. Swipe horizontally or tap a page indicator to change pages; add pages from the overview.
 - Customisation includes live theme preview, visual grid choices, labels, icons, wallpaper, layout lock, notification dots, reduced motion and navigation setup. Advanced Home settings include backups, import, recovery and icon packs. Add a Styled page from Customisation for a sparse reference-inspired arrangement without replacing your layout. Original Ocean/Soft mist wallpaper presets are bundled offline. Appearance switches the coordinated light/dark palette without moving items; user-selected wallpapers remain unchanged. The built-in sticker preview uses an original decorative car drawing; tap it to choose your own local image. Built-in item actions include colour and background opacity; photos support rectangle, circle and transparent-source sticker styles.
 
-### Gestures on HyperOS
+### Navigation on Android
 
-A computer-assisted fallback is documented in [ADB navigation setup](docs/adb-navigation.md), including readback and restore commands. This does not add any network access or protected-settings permission to the app.
+Swipe up within Home—including over a tile or the dock—to open Apps. Short/cancelled swipes stay on Home, horizontal swipes change pages, and hosted Android widgets retain their own vertical interactions. These are in-app gestures and require no permission.
 
+Android handles system Home, Back and Recents with the gestures or buttons selected in your phone's settings. Dot Home registers as a normal default Home app, responds to the Android Back callback and respects system navigation insets. It has no Accessibility service, global gesture overlays, input injection, secure-settings grants or replacement navigation bar. Choose **Customisation → System navigation** to open the phone's navigation settings. No Accessibility grant, ADB or root is needed for normal launcher operation.
 
-**No ADB, computer or root is required for Dot Home's optional edge actions.** Open Customisation → Gesture navigation, enable **Dot Home edge gestures** in Android Accessibility settings, and add the recovery Quick Settings tile. Swipe inward at either side for Back, swipe up from the bottom for Home, or swipe up and hold for Recents.
-
-The service uses narrow touch overlays and Android global navigation actions. It cannot retrieve window contents and does not subscribe to screen events. Enable it only if you want these system-wide edge controls. For a sideloaded APK, Android may first require App info → ⋮ → Allow restricted settings. HyperOS may need autostart/battery settings adjusted to keep the service running.
-
-Hiding the three-button bar is a separate firmware setting. The setup opens the vendor navigation screen, but HyperOS can block gesture mode with third-party launchers. This has not been verified on a physical POCO X6 Pro. The app does not silently change protected settings, and does not reproduce Xiaomi's privileged Recents/transition engine. Restore system buttons before disabling the edge service; the recovery tile provides a direct route back to setup.
+Some manufacturers restrict native gesture navigation with third-party launchers. Being a Play Store launcher does not bypass this restriction; see the [primary-source comparison](docs/navigation-research.md). Keep the stock system launcher installed because Android may use it for Recents. If you previously hid the system buttons with ADB, [restore the original navigation setting](docs/adb-navigation.md) before relying on this version.
 
 ## Included widgets
 
@@ -32,7 +29,7 @@ Dot-matrix, minimal analogue, tick dial, serif and rounded digital clocks, date,
 
 **The app has no Internet permission, networking implementation, or online option.** Version 1.1.0 removes weather, city search and the Internet-settings shortcut. Existing weather tiles are removed from saved layouts, imported backups, recovery and undo. No analytics, advertising, telemetry, remote configuration or in-app update requests are included. Other installed apps and widget providers run under their own permissions.
 
-Calendar access is requested when its tile is used. Media controls require explicitly enabling Dot Home's notification listener in system settings; notification dots retain only package names, not notification text. Usage access is optional. Photos use the system document picker and persisted read grants. Flashlight access requests camera permission. Core launcher operation needs none of these optional grants. The optional edge-navigation service requires an explicit Accessibility grant; its recovery tile requires only the system add-tile confirmation.
+Calendar access is requested when its tile is used. Media controls require explicitly enabling Dot Home's notification listener in system settings; notification dots retain only package names, not notification text. Usage access is optional. Photos use the system document picker and persisted read grants. Flashlight access requests camera permission. Core launcher operation needs none of these optional grants. Version 2.0.1 removes the earlier Accessibility navigation service and recovery tile entirely; Android revokes the removed component on upgrade.
 
 Bluetooth, DND and sound controls open supported system settings. Ringing timers are delegated to Clock; the date-countdown widget is not a background alarm service. Compass uses an available rotation-vector sensor while the activity is resumed.
 
@@ -78,7 +75,7 @@ This repository retains its existing GPL-3.0 licence in `LICENSE`. Original Dot 
 
 ## GitHub Actions and releases
 
-`version.properties` is the single version source: versionName 2.0.0, versionCode 3. Both the manifest and About screen receive these values during build. Increase versionCode on every release; push a matching tag such as `v2.0.0` after updating the version name. CI rejects mismatching tags.
+`version.properties` is the single version source: versionName 2.0.1, versionCode 4. Both the manifest and About screen receive these values during build. Increase versionCode on every release; push a matching tag such as `v2.0.1` after updating the version name. CI rejects mismatching tags.
 
 Pushes to main, version tags, and manual workflow runs compile the app, run model/offline tests and Android 16 emulator UI checks, and upload versioned APK/checksum artifacts plus screenshots. Emulator testing uses an ephemeral runner-only signing identity; release signing retains the existing private identity locally. Without signing secrets, CI produces an explicitly unsigned artifact which cannot be installed directly. Tagged builds automatically publish installable APKs to GitHub Releases when signing secrets are configured. Locally signed releases may also be attached after CI passes. Build-time toolchain/test downloads do not give the installed APK Internet access.
 

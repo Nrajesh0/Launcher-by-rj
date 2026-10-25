@@ -238,49 +238,60 @@ public class UiSmoke extends Instrumentation {
     return false;
   }
 
-  String navigationDiagnostic(Object connected) {
-    return " action="
-        + field(connected, "lastGlobalAction")
-        + " result="
-        + field(connected, "lastActionSucceeded")
-        + " touches="
-        + java.util.Arrays.toString((int[]) field(connected, "edgeTouches"))
-        + " destroyed="
-        + home.isDestroyed();
-  }
-
-  void bottomSwipe(Object service, boolean hold) throws Exception {
-    final int[] location = new int[2];
-    final int[] size = new int[2];
+  void swipe(View origin, float fx, float fy, float dxDp, float dyDp, boolean cancel) {
+    int[] at = new int[2];
+    int[] size = new int[2];
     onUi(
         () -> {
-          View bottom = (View) ((java.util.List<?>) field(service, "edges")).get(0);
-          bottom.getLocationOnScreen(location);
-          size[0] = bottom.getWidth();
-          size[1] = bottom.getHeight();
+          origin.getLocationOnScreen(at);
+          size[0] = origin.getWidth();
+          size[1] = origin.getHeight();
         });
-    float x = location[0] + size[0] / 2f,
-        y = location[1] + size[1] - 4 * home.getResources().getDisplayMetrics().density;
+    float density = home.getResources().getDisplayMetrics().density;
     long down = SystemClock.uptimeMillis();
-    for (int n = 0; n <= 8; n++) {
-      if (n == 8 && hold) SystemClock.sleep(600);
-      MotionEvent e =
+    for (int n = 0; n <= 12; n++) {
+      int action =
+          n == 0
+              ? MotionEvent.ACTION_DOWN
+              : n == 12
+                  ? (cancel ? MotionEvent.ACTION_CANCEL : MotionEvent.ACTION_UP)
+                  : MotionEvent.ACTION_MOVE;
+      MotionEvent event =
           MotionEvent.obtain(
               down,
               SystemClock.uptimeMillis(),
-              n == 0
-                  ? MotionEvent.ACTION_DOWN
-                  : n == 8 ? MotionEvent.ACTION_UP : MotionEvent.ACTION_MOVE,
-              x,
-              y - n * 14 * home.getResources().getDisplayMetrics().density,
+              action,
+              at[0] + size[0] * fx + dxDp * density * n / 12f,
+              at[1] + size[1] * fy + dyDp * density * n / 12f,
               0);
-      getUiAutomation(UiAutomation.FLAG_DONT_SUPPRESS_ACCESSIBILITY_SERVICES)
-          .injectInputEvent(e, true);
-      e.recycle();
-      SystemClock.sleep(25);
+      event.setSource(InputDevice.SOURCE_TOUCHSCREEN);
+      if (!getUiAutomation(UiAutomation.FLAG_DONT_SUPPRESS_ACCESSIBILITY_SERVICES)
+          .injectInputEvent(event, true)) throw new AssertionError("Touch injection failed");
+      event.recycle();
+      SystemClock.sleep(16);
     }
     waitForIdleSync();
-    SystemClock.sleep(900);
+    SystemClock.sleep(500);
+  }
+
+  void assertDrawerVisible() {
+    assertText("Apps");
+    onUi(
+        () -> {
+          View panel = (View) field(ui, "activePanel");
+          if (!field(ui, "state").equals("drawer")
+              || panel.getTranslationY() > 1
+              || panel.getAlpha() < .95f)
+            throw new AssertionError("Swipe left the drawer hidden or off-screen");
+        });
+  }
+
+  void assertHome() {
+    onUi(
+        () -> {
+          if (field(ui, "overlay") != null || !field(ui, "state").equals("home"))
+            throw new AssertionError("Unexpected Home overlay after a cancelled/short swipe");
+        });
   }
 
   @Override
@@ -343,16 +354,42 @@ public class UiSmoke extends Instrumentation {
           });
       screenshot("home-light");
 
-      onUi(
-          () ->
-              call(
-                  ui,
-                  "drawer",
-                  new Class[] {java.util.function.Consumer.class},
-                  new Object[] {null}));
-      assertText("Apps");
+      // Exercise physical Home swipes; reflection-only drawer opening missed the regression.
+      View board = (View) field(home, "board");
+      swipe(board, .5f, .72f, 0, -120, false);
+      assertDrawerVisible();
       screenshot("drawer");
-      onUi(() -> call(ui, "close", new Class[] {}));
+      shell("input keyevent KEYCODE_BACK");
+      SystemClock.sleep(500);
+      assertHome();
+      swipe(board, .5f, .72f, 0, -40, false);
+      assertHome();
+      swipe(board, .5f, .72f, 0, -120, true);
+      assertHome();
+      // Swiping over an interactive Home tile must cancel its click and open Apps.
+      View tile = ((android.view.ViewGroup) board).getChildAt(0);
+      swipe(tile, .5f, .8f, 0, -100, false);
+      assertDrawerVisible();
+      shell("input keyevent KEYCODE_BACK");
+      SystemClock.sleep(500);
+      assertHome();
+      // The hotseat lies outside the workspace pager and must work too.
+      View dock = (View) field(ui, "hotseat");
+      swipe(dock, .125f, .5f, 0, -120, false);
+      assertDrawerVisible();
+      screenshot("drawer-from-dock");
+      shell("input keyevent KEYCODE_BACK");
+      SystemClock.sleep(500);
+      assertHome();
+      // Horizontal paging must remain a page gesture rather than opening Apps.
+      swipe(board, .8f, .5f, -160, 0, false);
+      assertHome();
+      onUi(
+          () -> {
+            if (((Number) field(home, "page")).intValue() != 1)
+              throw new AssertionError("Horizontal paging was intercepted by drawer recognition");
+            call(ui, "goPage", new Class[] {int.class, boolean.class}, 0, false);
+          });
       onUi(() -> call(ui, "widgetPicker", new Class[] {}));
       assertText("Widgets");
       assertText("Clock");
@@ -398,73 +435,33 @@ public class UiSmoke extends Instrumentation {
       screenshot("folder");
       onUi(() -> call(ui, "close", new Class[] {}));
       onUi(() -> call(ui, "navigation", new Class[] {}));
-      assertText("Gesture navigation");
+      assertText("System navigation");
+      assertText("Android handles navigation");
       screenshot("navigation");
-      // ADB is used only by automated tests on this disposable emulator, never by app setup.
-      shell(
-          "settings put secure enabled_accessibility_services"
-              + " dev.dothome/dev.dothome.GestureNavigationService");
-      shell("settings put secure accessibility_enabled 1");
-      Class<?> serviceClass =
-          Class.forName("dev.dothome.GestureNavigationService", true, home.getClassLoader());
-      Field activeField = serviceClass.getDeclaredField("active");
-      activeField.setAccessible(true);
-      Object service = null;
-      for (int n = 0; n < 50 && service == null; n++) {
-        SystemClock.sleep(100);
-        service = activeField.get(null);
-      }
-      if (service == null) throw new AssertionError("Gesture service did not connect");
-      Object connected = service;
-      onUi(
-          () -> {
-            java.util.List<?> edges = (java.util.List<?>) field(connected, "edges");
-            if (edges.size() != 3) throw new AssertionError("Missing gesture edge windows");
-          });
-      android.accessibilityservice.AccessibilityServiceInfo info =
-          ((android.accessibilityservice.AccessibilityService) service).getServiceInfo();
-      if ((info.getCapabilities()
-              & android.accessibilityservice.AccessibilityServiceInfo
-                  .CAPABILITY_CAN_RETRIEVE_WINDOW_CONTENT)
-          != 0) throw new AssertionError("Gesture service can read windows");
-      // Swipe on the real edge overlay and verify the global Back action closes the setup.
-      android.util.DisplayMetrics metrics = home.getResources().getDisplayMetrics();
-      float start = 2 * metrics.density, y = metrics.heightPixels * .5f;
-      long down = SystemClock.uptimeMillis();
-      for (int n = 0; n <= 8; n++) {
-        MotionEvent event =
-            MotionEvent.obtain(
-                down,
-                SystemClock.uptimeMillis(),
-                n == 0
-                    ? MotionEvent.ACTION_DOWN
-                    : n == 8 ? MotionEvent.ACTION_UP : MotionEvent.ACTION_MOVE,
-                start + n * 10 * metrics.density,
-                y,
-                0);
-        getUiAutomation(UiAutomation.FLAG_DONT_SUPPRESS_ACCESSIBILITY_SERVICES)
-            .injectInputEvent(event, true);
-        event.recycle();
-        SystemClock.sleep(25);
-      }
-      waitForIdleSync();
-      SystemClock.sleep(600);
-      final boolean[] closed = {false};
-      onUi(() -> closed[0] = field(ui, "overlay") == null);
-      if (!closed[0])
-        throw new AssertionError(
-            "Back gesture did not close setup" + navigationDiagnostic(connected));
-      onUi(() -> call(ui, "navigation", new Class[] {}));
-      assertText("Edge gestures are running");
-      screenshot("gestures-running");
+      android.content.pm.PackageInfo installed =
+          home.getPackageManager()
+              .getPackageInfo(
+                  "dev.dothome", PackageManager.GET_SERVICES | PackageManager.GET_PERMISSIONS);
+      for (android.content.pm.ServiceInfo service : installed.services)
+        if ("android.permission.BIND_ACCESSIBILITY_SERVICE".equals(service.permission))
+          throw new AssertionError("App still registers an Accessibility service");
+      for (String permission : installed.requestedPermissions)
+        if (permission.equals("android.permission.SYSTEM_ALERT_WINDOW")
+            || permission.equals("android.permission.WRITE_SECURE_SETTINGS"))
+          throw new AssertionError("App requests navigation override permission: " + permission);
+      // System key events verify the normal Android Home/Back/Recents contract;
+      // the app has no service, input injector or global navigation implementation.
+      shell("input keyevent KEYCODE_BACK");
+      SystemClock.sleep(500);
+      assertHome();
       shell("am start -a android.settings.SETTINGS");
-      SystemClock.sleep(700);
-      bottomSwipe(connected, false);
-      screenshot("gesture-home");
-      if (!awaitFocus(true))
-        throw new AssertionError(
-            "Home swipe did not return to launcher" + navigationDiagnostic(connected));
-      bottomSwipe(connected, true);
+      if (!awaitFocus(false)) throw new AssertionError("Settings did not take focus");
+      shell("input keyevent KEYCODE_HOME");
+      if (!awaitFocus(true)) throw new AssertionError("System Home did not return to Dot Home");
+      assertHome();
+      screenshot("system-home");
+      shell("input keyevent KEYCODE_APP_SWITCH");
+      SystemClock.sleep(900);
       assertNoSystemError();
       android.view.accessibility.AccessibilityNodeInfo recentRoot =
           getUiAutomation(UiAutomation.FLAG_DONT_SUPPRESS_ACCESSIBILITY_SERVICES)
@@ -472,22 +469,19 @@ public class UiSmoke extends Instrumentation {
       String recentPackage = recentRoot == null ? "" : String.valueOf(recentRoot.getPackageName());
       if (!recentPackage.equals("com.android.launcher3")
           && !recentPackage.equals("com.android.systemui"))
-        throw new AssertionError(
-            "Recents surface missing: " + recentPackage + navigationDiagnostic(connected));
-      screenshot("gesture-recents");
-      if (!awaitFocus(false))
-        throw new AssertionError(
-            "Hold gesture did not open Recents" + navigationDiagnostic(connected));
-      bottomSwipe(connected, false);
-      shell("settings put secure enabled_accessibility_services null");
-      shell("settings put secure accessibility_enabled 0");
-      screenshot("home-after-gestures");
+        throw new AssertionError("System Recents surface missing: " + recentPackage);
+      if (!awaitFocus(false)) throw new AssertionError("System Recents did not take focus");
+      screenshot("system-recents");
+      shell("input keyevent KEYCODE_HOME");
+      if (!awaitFocus(true)) throw new AssertionError("System Home did not leave Recents");
+      screenshot("home-after-navigation");
       result.putString(
           "stream",
-          "PASS: home, automatic system Home chooser, integrated drawer, visual picker, style"
-              + " gallery, customisation, overview, folder, navigation, live Accessibility edge"
-              + " windows, real Back/Home/Recents swipes, no screen-reading capability and offline"
-              + " permission.\n");
+          "PASS: home, automatic system Home chooser, real swipe-up drawer from"
+              + " workspace/tile/dock, short/cancelled swipe rollback, horizontal paging,"
+              + " integrated drawer, visual picker, styles, customisation, overview, folder, normal"
+              + " Android Back/Home/Recents, no Accessibility service or global overlay"
+              + " permissions, and offline permission.\n");
       finish(Activity.RESULT_OK, result);
     } catch (Throwable error) {
       String diagnostics = "";

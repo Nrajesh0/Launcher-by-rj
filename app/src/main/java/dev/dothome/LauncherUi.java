@@ -117,7 +117,7 @@ final class LauncherUi {
   }
 
   void mount() {
-    screen = new FrameLayout(a);
+    screen = new HomeSurface();
     a.root = vertical();
     a.root.setPadding(d(14), 0, d(14), 0);
     screen.addView(a.root, new FrameLayout.LayoutParams(-1, -1));
@@ -1388,7 +1388,7 @@ final class LauncherUi {
           a.save();
           customise();
         });
-    option(list, "Gesture navigation", "HyperOS setup and integration", () -> navigation());
+    option(list, "System navigation", "Use Android gestures or buttons", () -> navigation());
     option(list, "Backups, default Home & more", "Advanced settings", () -> a.legacySettings());
   }
 
@@ -1476,15 +1476,15 @@ final class LauncherUi {
         () -> a.requestHomeRole());
     option(
         list,
-        "Set up gesture navigation",
-        "Enable optional Accessibility edge actions",
+        "System navigation",
+        "Use your phone's gestures or buttons; no extra permission",
         () -> navigation());
     option(list, "Widget & media access", "Review optional permissions", () -> permissions());
     TextView note =
         a.text(
             "Android does not show an all-permissions prompt at launch. Core Home needs no runtime"
-                + " grants. Accessibility and notification access require separate system settings;"
-                + " widgets ask only when their features need access.",
+                + " grants. Notification access is optional; widgets ask only when their features"
+                + " need access. Home and drawer gestures need no Accessibility permission.",
             14,
             a.muted);
     note.setPadding(0, d(18), 0, d(18));
@@ -1506,11 +1506,6 @@ final class LauncherUi {
     LinearLayout list = vertical();
     sc.addView(list);
     body.addView(sc, new LinearLayout.LayoutParams(-1, 0, 1));
-    option(
-        list,
-        "Gesture navigation",
-        GestureNavigationService.active != null ? "Running" : "Accessibility access is off",
-        () -> navigation());
     option(
         list,
         "Calendar widgets",
@@ -1545,165 +1540,167 @@ final class LauncherUi {
   }
 
   void navigation() {
-    LinearLayout body = surface("Gesture navigation", true);
+    LinearLayout body = surface("System navigation", true);
     changeState("navigation");
     ScrollView scroll = new ScrollView(a);
     LinearLayout list = vertical();
     scroll.addView(list);
     body.addView(scroll, new LinearLayout.LayoutParams(-1, 0, 1));
-    int mode =
-        android.provider.Settings.Global.getInt(a.getContentResolver(), "force_fsg_nav_bar", 0);
-    boolean running = GestureNavigationService.active != null;
-    list.addView(title(running ? "Edge gestures are running" : "Set up edge gestures", 22));
+    list.addView(title("Android handles navigation", 22));
     TextView help =
         a.text(
-            "Swipe inward from either side for Back. Swipe up from the bottom for Home; swipe up"
-                + " and hold for Recents.\n\n"
-                + "No ADB, computer or root is needed for these edge actions.\n\n"
-                + "This optional Accessibility service uses narrow edge touch areas and does not"
-                + " read your screen or typing. It recreates navigation actions; native HyperOS"
-                + " transition animations remain controlled by the firmware.",
+            "Use your phone's system gestures or navigation buttons for Home, Back and Recent apps."
+                + " Dot Home uses Android's normal default Home integration and leaves the screen"
+                + " edges alone.\n\n"
+                + "Swipe up inside the home screen to open Apps. Swipe horizontally to change"
+                + " pages. These launcher gestures need no extra permission.",
             15,
             a.muted);
-    help.setPadding(0, d(16), 0, d(12));
+    help.setPadding(0, d(16), 0, d(16));
     list.addView(help);
     option(
         list,
-        "1 · Enable edge gestures",
-        running ? "Running" : "Open Accessibility settings",
-        () -> a.open(new Intent(android.provider.Settings.ACTION_ACCESSIBILITY_SETTINGS)));
-    option(
-        list,
-        "2 · Add recovery tile",
-        "Quick Settings entry back to this setup",
+        "Open system navigation settings",
+        "Choose gestures or buttons on your phone",
         () -> {
-          android.app.StatusBarManager manager =
-              (android.app.StatusBarManager) a.getSystemService(android.app.StatusBarManager.class);
-          manager.requestAddTileService(
-              new ComponentName(a, NavigationTileService.class),
-              "Dot Home navigation",
-              android.graphics.drawable.Icon.createWithResource(a, R.drawable.icon),
-              a.getMainExecutor(),
-              result ->
-                  a.toast(
-                      result == android.app.StatusBarManager.TILE_ADD_REQUEST_RESULT_TILE_ADDED
-                          ? "Recovery tile added"
-                          : "Use Quick Settings edit to add Dot Home navigation"));
-        });
-    option(
-        list,
-        "3 · Hide the three-button bar",
-        mode == 1 ? "System reports gesture mode" : "Open HyperOS navigation settings",
-        () -> {
-          if (GestureNavigationService.active == null) {
-            a.toast("Enable edge gestures and add the recovery tile first");
-            return;
+          try {
+            a.startActivity(new Intent("com.android.settings.NAVIGATION_MODE_SETTINGS"));
+          } catch (ActivityNotFoundException | SecurityException unavailable) {
+            a.open(new Intent(android.provider.Settings.ACTION_SETTINGS));
           }
-          a.open(new Intent("com.android.settings.NAVIGATION_MODE_SETTINGS"));
         });
+    option(
+        list, "Default Home app", "Choose Dot Home in Android settings", () -> a.requestHomeRole());
     TextView note =
         a.text(
-            "For a sideloaded APK, Android may first require App info → ⋮ → Allow restricted"
-                + " settings. HyperOS may also need autostart/battery settings adjusted to keep the"
-                + " service available. The vendor navigation screen can be unavailable or behave"
-                + " differently by firmware build. Keep POCO Launcher installed.",
-            13,
+            "Navigation options depend on your Android version and manufacturer. If your phone"
+                + " blocks gestures with third-party launchers, this app cannot override that"
+                + " system restriction. Dot Home does not request Accessibility access, draw global"
+                + " gesture overlays or change protected navigation settings.",
+            14,
             a.muted);
-    note.setPadding(0, d(14), 0, d(14));
+    note.setPadding(0, d(16), 0, d(16));
     list.addView(note);
-    option(
-        list,
-        "Restore system buttons",
-        "Open navigation settings before disabling edge gestures",
-        () -> a.open(new Intent("com.android.settings.NAVIGATION_MODE_SETTINGS")));
-    option(
-        list,
-        "Disable edge gestures",
-        "Restore system buttons first",
-        () -> {
-          if (android.provider.Settings.Global.getInt(
-                  a.getContentResolver(), "force_fsg_nav_bar", 0)
-              == 1) {
-            a.toast("Restore system buttons in navigation settings first");
-            a.open(new Intent("com.android.settings.NAVIGATION_MODE_SETTINGS"));
-            return;
+  }
+
+  /** Observes home touches before clickable children or the horizontal pager consume them. */
+  class HomeSurface extends FrameLayout {
+    float downX, downY;
+    long downTime;
+    boolean tracking, claimed;
+    int direction;
+
+    HomeSurface() {
+      super(a);
+    }
+
+    boolean verticalContentAt(View view, float x, float y) {
+      if (view instanceof AppWidgetHostView
+          || view.canScrollVertically(-1)
+          || view.canScrollVertically(1)) return true;
+      if (view instanceof ViewGroup) {
+        ViewGroup group = (ViewGroup) view;
+        for (int n = group.getChildCount() - 1; n >= 0; n--) {
+          View child = group.getChildAt(n);
+          float localX = x + view.getScrollX() - child.getX();
+          float localY = y + view.getScrollY() - child.getY();
+          if (child.getVisibility() == View.VISIBLE
+              && localX >= 0
+              && localY >= 0
+              && localX < child.getWidth()
+              && localY < child.getHeight()) return verticalContentAt(child, localX, localY);
+        }
+      }
+      return false;
+    }
+
+    @Override
+    public boolean dispatchTouchEvent(MotionEvent event) {
+      int action = event.getActionMasked();
+      if (action == MotionEvent.ACTION_DOWN) {
+        downX = event.getX();
+        downY = event.getY();
+        downTime = event.getEventTime();
+        claimed = false;
+        direction = 0;
+        WindowInsets insets = getRootWindowInsets();
+        int bottom =
+            insets == null
+                ? getPaddingBottom()
+                : insets.getInsets(
+                        WindowInsets.Type.systemBars()
+                            | WindowInsets.Type.mandatorySystemGestures())
+                    .bottom;
+        tracking =
+            overlay == null
+                && state.equals("home")
+                && dragging == null
+                && resizing == null
+                && downY >= getPaddingTop()
+                && downY < getHeight() - bottom
+                && !verticalContentAt(this, downX, downY);
+      }
+      if (event.getPointerCount() > 1
+          || dragging != null
+          || resizing != null
+          || (!claimed && overlay != null)) tracking = false;
+      float dx = event.getX() - downX, dy = event.getY() - downY;
+      if (tracking && !claimed && action == MotionEvent.ACTION_MOVE) {
+        if (Math.abs(dx) > d(24) && Math.abs(dx) > Math.abs(dy)) tracking = false;
+        else if (Math.abs(dy) > Math.max(d(24), ViewConfiguration.get(a).getScaledTouchSlop() * 2)
+            && Math.abs(dy) > Math.abs(dx) * 1.4f
+            && event.getEventTime() - downTime < ViewConfiguration.getLongPressTimeout()) {
+          MotionEvent cancel = MotionEvent.obtain(event);
+          cancel.setAction(MotionEvent.ACTION_CANCEL);
+          super.dispatchTouchEvent(cancel);
+          cancel.recycle();
+          claimed = true;
+          direction = dy < 0 ? -1 : 1;
+        }
+      }
+      if (claimed) {
+        if (action == MotionEvent.ACTION_UP || action == MotionEvent.ACTION_CANCEL) {
+          boolean complete =
+              tracking
+                  && action == MotionEvent.ACTION_UP
+                  && dy * direction > d(56)
+                  && Math.abs(dy) > Math.abs(dx) * 1.4f;
+          claimed = false;
+          tracking = false;
+          if (complete && overlay == null && dragging == null && resizing == null) {
+            if (direction < 0) drawer(null);
+            else overview();
           }
-          if (GestureNavigationService.active != null)
-            GestureNavigationService.active.disableSelf();
-          close();
-        });
+        }
+        return true;
+      }
+      if (action == MotionEvent.ACTION_UP || action == MotionEvent.ACTION_CANCEL) tracking = false;
+      return super.dispatchTouchEvent(event);
+    }
   }
 
   class Pager extends HorizontalScrollView {
-    float downX, downY;
     VelocityTracker velocity;
-    boolean vertical, drawerPull;
 
     Pager() {
       super(a);
     }
 
     @Override
-    public boolean onInterceptTouchEvent(MotionEvent e) {
-      if (dragging != null) return false;
-      if (e.getAction() == MotionEvent.ACTION_DOWN) {
-        downX = e.getX();
-        downY = e.getY();
-        vertical = false;
-      }
-      if (e.getAction() == MotionEvent.ACTION_MOVE
-          && Math.abs(e.getY() - downY) > d(36)
-          && Math.abs(e.getX() - downX) < d(30)) {
-        vertical = true;
-        return true;
-      }
-      return super.onInterceptTouchEvent(e);
-    }
-
-    @Override
     public boolean onTouchEvent(MotionEvent e) {
-      if (e.getAction() == MotionEvent.ACTION_DOWN) {
-        downX = e.getX();
-        downY = e.getY();
-        velocity = VelocityTracker.obtain();
+      if (e.getActionMasked() == MotionEvent.ACTION_DOWN && velocity != null) {
+        velocity.recycle();
+        velocity = null;
       }
       if (velocity == null) velocity = VelocityTracker.obtain();
       velocity.addMovement(e);
-      if (vertical) {
-        float dy = e.getY() - downY;
-        if (dy < 0 && e.getAction() == MotionEvent.ACTION_MOVE) {
-          if (!drawerPull) {
-            drawer(null);
-            drawerPull = true;
-            activePanel.animate().cancel();
-          }
-          activePanel.setTranslationY(Math.max(0, screen.getHeight() + dy * 2));
-        }
-        if (e.getAction() == MotionEvent.ACTION_UP || e.getAction() == MotionEvent.ACTION_CANCEL) {
-          vertical = false;
-          if (drawerPull) {
-            drawerPull = false;
-            if (dy < -d(70) && e.getAction() != MotionEvent.ACTION_CANCEL)
-              activePanel
-                  .animate()
-                  .translationY(0)
-                  .setDuration(duration())
-                  .setInterpolator(new DecelerateInterpolator())
-                  .start();
-            else close();
-          } else if (dy > d(50)) overview();
-          if (velocity != null) {
-            velocity.recycle();
-            velocity = null;
-          }
-        }
-        return true;
-      }
       boolean result = super.onTouchEvent(e);
-      if (e.getAction() == MotionEvent.ACTION_UP || e.getAction() == MotionEvent.ACTION_CANCEL) {
+      if (e.getActionMasked() == MotionEvent.ACTION_UP
+          || e.getActionMasked() == MotionEvent.ACTION_CANCEL) {
         velocity.computeCurrentVelocity(1000);
         int target = Math.round(getScrollX() / (float) Math.max(1, getWidth()));
-        if (Math.abs(velocity.getXVelocity()) > d(600))
+        if (e.getActionMasked() == MotionEvent.ACTION_UP
+            && Math.abs(velocity.getXVelocity()) > d(600))
           target = a.page + (velocity.getXVelocity() < 0 ? 1 : -1);
         goPage(target, true);
         velocity.recycle();

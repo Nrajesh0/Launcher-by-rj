@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.0.1 — 2026-10-25
+
+- Fix real swipe-up drawer opening across Home tiles, workspace and dock. Cancel child clicks before completing the gesture and animate the full drawer into view. Preserve horizontal paging, short/cancelled swipe rollback and hosted-widget scrolling.
+- Remove the Accessibility edge navigation service, global touch windows, recovery tile and associated setup prompts. Use normal Android Home/Back/Recents integration and system navigation settings.
+- Add physical swipe regression checks and normal system navigation checks with no Accessibility grant.
+- Retain offline operation, layout data, package name and signing certificate. Increment version code to 4 for updater detection.
+
 ## 2.0.0 — 2026-10-25
 
 - Rebuild Home with explicit cell placement, preserved empty space, direct dragging, collision checks, edge paging and resize handles.

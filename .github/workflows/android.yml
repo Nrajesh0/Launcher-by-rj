@@ -120,7 +120,7 @@ jobs:
           profile: pixel_6
           ram-size: 4096M
           disable-animations: false
-          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -no-snapshot -camera-back none -skin 720x1600 -dpi-device 280
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -no-snapshot -camera-back none -skin 720x1600
           script: |
             adb shell am force-stop com.android.launcher3
             adb shell am start -W -a android.intent.action.MAIN -c android.intent.category.HOME

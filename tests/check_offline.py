@@ -5,10 +5,14 @@ import subprocess, sys, re, xml.etree.ElementTree as ET
 root=Path(__file__).resolve().parents[1]
 manifest=ET.parse(root/'app/src/main/AndroidManifest.xml')
 android='{http://schemas.android.com/apk/res/android}'
+for service in manifest.getroot().iter('service'):
+    assert service.get(android+'permission') != 'android.permission.BIND_ACCESSIBILITY_SERVICE', 'Accessibility navigation service found'
 for entry in manifest.getroot().findall('uses-permission'):
     assert entry.get(android+'name') not in {'android.permission.INTERNET','android.permission.ACCESS_NETWORK_STATE','android.permission.CHANGE_NETWORK_STATE'}, 'Network permission found'
+    assert entry.get(android+'name') not in {'android.permission.SYSTEM_ALERT_WINDOW','android.permission.WRITE_SECURE_SETTINGS'}, 'Navigation override permission found'
 for path in (root/'app/src/main/java').rglob('*.java'):
     source=path.read_text()
+    assert not re.search(r'TYPE_ACCESSIBILITY_OVERLAY|performGlobalAction|extends AccessibilityService',source), f'Global navigation interception found: {path}'
     assert not re.search(r'java\.net\.|javax\.net\.|android\.webkit\.|HttpURLConnection|URLConnection|\bSocket\b|https?://|open-meteo|ACTION_INTERNET_CONNECTIVITY',source,re.I), f'Network implementation found: {path}'
 if len(sys.argv)>2:
     badging=subprocess.check_output([sys.argv[1],'dump','badging',sys.argv[2]],text=True)
