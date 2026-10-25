@@ -40,6 +40,62 @@ public class UiSmoke extends Instrumentation {
     }
   }
 
+  android.view.accessibility.AccessibilityNodeInfo findSystemText(
+      android.view.accessibility.AccessibilityNodeInfo node, String text) {
+    if (node == null) return null;
+    if (node.getText() != null && node.getText().toString().equalsIgnoreCase(text)) return node;
+    for (int n = 0; n < node.getChildCount(); n++) {
+      android.view.accessibility.AccessibilityNodeInfo result =
+          findSystemText(node.getChild(n), text);
+      if (result != null) return result;
+    }
+    return null;
+  }
+
+  boolean clickSystemText(String text) {
+    android.view.accessibility.AccessibilityNodeInfo node =
+        findSystemText(
+            getUiAutomation(UiAutomation.FLAG_DONT_SUPPRESS_ACCESSIBILITY_SERVICES)
+                .getRootInActiveWindow(),
+            text);
+    for (int n = 0; node != null && n < 6; n++, node = node.getParent())
+      if (node.isClickable()
+          && node.performAction(android.view.accessibility.AccessibilityNodeInfo.ACTION_CLICK))
+        return true;
+    return false;
+  }
+
+  void chooseDefaultHome() throws Exception {
+    android.app.role.RoleManager roles = home.getSystemService(android.app.role.RoleManager.class);
+    if (roles.isRoleHeld(android.app.role.RoleManager.ROLE_HOME))
+      throw new AssertionError("Fresh fixture already holds Home role; chooser was not exercised");
+    boolean displayed = false;
+    for (int n = 0; n < 50; n++) {
+      android.view.accessibility.AccessibilityNodeInfo root =
+          getUiAutomation(UiAutomation.FLAG_DONT_SUPPRESS_ACCESSIBILITY_SERVICES)
+              .getRootInActiveWindow();
+      String pkg = root == null ? "" : String.valueOf(root.getPackageName());
+      if (pkg.contains("permissioncontroller") && findSystemText(root, "Dot Home") != null) {
+        displayed = true;
+        break;
+      }
+      SystemClock.sleep(100);
+    }
+    if (!displayed) throw new AssertionError("Automatic default-launcher chooser did not open");
+    screenshot("default-launcher-prompt");
+    clickSystemText("Dot Home");
+    SystemClock.sleep(250);
+    boolean confirmed =
+        clickSystemText("Set as default")
+            || clickSystemText("Always")
+            || clickSystemText("Use app");
+    for (int n = 0; n < 50 && !roles.isRoleHeld(android.app.role.RoleManager.ROLE_HOME); n++)
+      SystemClock.sleep(100);
+    if (!roles.isRoleHeld(android.app.role.RoleManager.ROLE_HOME))
+      throw new AssertionError("System Home selection failed; confirmed=" + confirmed);
+    onUi(() -> {});
+  }
+
   void syncActivity() {
     try {
       Class<?> type =
@@ -194,6 +250,7 @@ public class UiSmoke extends Instrumentation {
       SystemClock.sleep(1800);
       ui = field(home, "ui");
       onUi(() -> {});
+      chooseDefaultHome();
       assertText("Welcome to Dot Home");
       screenshot("setup");
       onUi(
@@ -377,9 +434,10 @@ public class UiSmoke extends Instrumentation {
       screenshot("home-after-gestures");
       result.putString(
           "stream",
-          "PASS: home, integrated drawer, visual picker, style gallery, customisation, overview,"
-              + " folder, navigation, live Accessibility edge windows, real Back/Home/Recents"
-              + " swipes, no screen-reading capability and offline permission.\n");
+          "PASS: home, automatic system Home chooser, integrated drawer, visual picker, style"
+              + " gallery, customisation, overview, folder, navigation, live Accessibility edge"
+              + " windows, real Back/Home/Recents swipes, no screen-reading capability and offline"
+              + " permission.\n");
       finish(Activity.RESULT_OK, result);
     } catch (Throwable error) {
       result.putString("stream", "FAIL: " + android.util.Log.getStackTraceString(error));
