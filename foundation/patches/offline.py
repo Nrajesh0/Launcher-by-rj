@@ -134,7 +134,7 @@ allowed = {
     "android.permission.READ_CALENDAR", "android.permission.CAMERA",
     "com.android.alarm.permission.SET_ALARM",
 }
-blocked_components = ("LawnchairAccessibilityService", "UploaderService", "SleepDeviceAdmin", "TouchInteractionService", "ProxyActivityStarter", "AppWidgetsRestoredReceiver")
+blocked_components = ("LawnchairAccessibilityService", "UploaderService", "SleepDeviceAdmin", "TouchInteractionService", "AppWidgetsRestoredReceiver")
 for file in root.rglob("*Manifest*.xml"):
     if any(part in ("build", ".git", ".gradle") for part in file.relative_to(root).parts): continue
     tree = ET.parse(file)

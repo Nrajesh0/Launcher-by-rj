@@ -15,6 +15,7 @@ final class TileActions {
     Activity home=activity(context); if(home==null) return;
     try {
       switch(item.optString("type")) {
+        case "media": TileMedia.read(context).action(context,0); break;
         case "clock": home.startActivity(new Intent(AlarmClock.ACTION_SHOW_ALARMS)); break;
         case "date": home.startActivity(new Intent(Intent.ACTION_VIEW,CalendarContract.CONTENT_URI)); break;
         case "bluetooth": home.startActivity(new Intent(Settings.ACTION_BLUETOOTH_SETTINGS)); break;
@@ -29,7 +30,7 @@ final class TileActions {
           if(context.checkSelfPermission(android.Manifest.permission.CAMERA)!=PackageManager.PERMISSION_GRANTED) { home.requestPermissions(new String[]{android.Manifest.permission.CAMERA},22); return; }
           CameraManager manager=context.getSystemService(CameraManager.class);
           for(String camera:manager.getCameraIdList()) if(Boolean.TRUE.equals(manager.getCameraCharacteristics(camera).get(android.hardware.camera2.CameraCharacteristics.FLASH_INFO_AVAILABLE))) {
-            boolean active=!item.optBoolean("torchActive"); manager.setTorchMode(camera,active); item.put("torchActive",active); TileContext.save(context,id,item); break;
+            boolean active=!context.getSharedPreferences("dot-style",0).getBoolean("torchActive",false); manager.setTorchMode(camera,active); item.put("torchActive",active); TileContext.save(context,id,item); break;
           }
           break;
         default: home.startActivity(new Intent(context,TileConfiguration.class).putExtra("itemId",id).putExtra("initial",item.toString()));

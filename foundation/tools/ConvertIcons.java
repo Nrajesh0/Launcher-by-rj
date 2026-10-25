@@ -8,6 +8,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 public final class ConvertIcons {
   public static void main(String[] args) throws Exception {
+    java.util.logging.Logger.getLogger("com.android.utils.PositionXmlParser").setLevel(java.util.logging.Level.WARNING);
     Path source = Path.of(args[0]), target = Path.of(args[1]);
     Files.createDirectories(target);
     AtomicInteger success = new AtomicInteger(), skipped = new AtomicInteger();

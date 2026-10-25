@@ -327,22 +327,21 @@ final class TileArtwork extends View {
             ink,
             true);
         break;
-      case "media":
+      case "media": {
+        TileMedia media=preview?new TileMedia(null,"Now playing","Artist",null,false):TileMedia.read(a);
         p.setColor(inverted ? a.card : a.bg);
-        r.set(pad, pad, pad + h * .46f, pad + h * .46f);
-        c.drawRoundRect(r, a.dp(12), a.dp(12), p);
-        text(c, "♫", pad + h * .13f, pad + h * .34f, h * .3f, ink, false);
-        text(c, "Now playing", pad + h * .55f, pad + size, Math.min(size, w * .07f), ink, false);
-        text(
-            c,
-            "Your music",
-            pad + h * .55f,
-            pad + size * 2.5f,
-            Math.min(size, w * .06f),
-            secondary,
-            false);
-        text(c, "‹       Ⅱ       ›", pad, h - pad, Math.min(w * .095f, h * .2f), ink, false);
+        r.set(pad,pad,pad+h*.40f,pad+h*.40f);
+        c.drawRoundRect(r,a.dp(10),a.dp(10),p);
+        if(media.artwork!=null && !media.artwork.isRecycled()) {
+          c.save();Path clip=new Path();clip.addRoundRect(r,a.dp(10),a.dp(10),Path.Direction.CW);c.clipPath(clip);
+          c.drawBitmap(media.artwork,null,r,p);c.restore();
+        } else text(c,"♫",pad+h*.12f,pad+h*.30f,h*.26f,ink,false);
+        float left=pad+h*.49f;
+        text(c,fit(media.title,size,w-left-pad),left,pad+size, size,ink,false);
+        text(c,fit(media.artist,size*.78f,w-left-pad),left,pad+size*2.45f,size*.78f,secondary,false);
+        if(preview) text(c,"‹       Ⅱ       ›",pad,h-pad,Math.min(w*.095f,h*.2f),ink,false);
         break;
+      }
       case "away":
         text(c, "Away time", pad, pad + size * .4f, Math.min(size, a.dp(12)), secondary, false);
         AwayTimeStats stats = a.away;

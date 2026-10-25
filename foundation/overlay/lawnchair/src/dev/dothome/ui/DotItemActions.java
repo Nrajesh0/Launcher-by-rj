@@ -17,6 +17,7 @@ public final class DotItemActions {
   private static final class Size extends SystemShortcut<Launcher> {
     Size(Launcher launcher,ItemInfo item,View view) { super(R.drawable.ic_widget,item.spanX>1?R.string.dot_shrink:R.string.dot_enlarge,launcher,item,view); }
     @Override public void onClick(View view) {
+      if (DotArrange.locked(mTarget)) return;
       int span=mItemInfo.spanX>1?1:2;
       var grid=InvariantDeviceProfile.INSTANCE.get(mTarget);
       Rect desired=new Rect(mItemInfo.cellX,mItemInfo.cellY,mItemInfo.cellX+span,mItemInfo.cellY+span);

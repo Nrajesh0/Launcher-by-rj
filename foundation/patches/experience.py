@@ -111,6 +111,7 @@ edit("src/com/android/launcher3/widget/custom/CustomWidgetManager.java", "if (en
 edit("src/com/android/launcher3/widget/custom/CustomWidgetManager.java", 'private static final String PLUGIN_PKG = "android";', 'private static final String PLUGIN_PKG = "dev.dothome";')
 file = root/"lawnchair/AndroidManifest.xml"
 tree=ET.parse(file); doc=tree.getroot(); app=doc.find("application"); a="{http://schemas.android.com/apk/res/android}"
+ET.SubElement(app,"activity",{a+"name":"dev.dothome.ui.DotHidden",a+"exported":"false",a+"theme":"@android:style/Theme.Material.Light.NoActionBar"})
 ET.SubElement(app,"activity",{a+"name":"dev.dothome.widgets.TileConfiguration",a+"exported":"false",a+"theme":"@android:style/Theme.Material.Light.NoActionBar"})
 ET.SubElement(app,"activity",{a+"name":"dev.dothome.migration.UnavailableApp",a+"exported":"false",a+"theme":"@android:style/Theme.Material.Light.NoActionBar"})
 for permission in ("android.permission.CAMERA","android.permission.READ_CALENDAR","com.android.alarm.permission.SET_ALARM"):

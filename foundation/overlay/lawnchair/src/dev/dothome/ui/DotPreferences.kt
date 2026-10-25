@@ -156,7 +156,7 @@ open class DotPreferences : Activity() {
         intArrayOf(0xffbccbbf.toInt(),0xff56a5c7.toInt(),0xff99bd68.toInt(),0xffd7a28d.toInt(),0xffb3a2bf.toInt(),0xff8894ac.toInt()).forEach { color ->
             colours.addView(View(this).apply {
                 background = shape(color, 100); contentDescription = "Accent ${Integer.toHexString(color)}"
-                setOnClickListener { p2.accentColor.setBlocking(ColorOption.CustomColor(color)); invalidate() }
+                setOnClickListener { style.edit().putInt("accent",color).apply(); p2.accentColor.setBlocking(ColorOption.CustomColor(color)); invalidate() }
             }, LinearLayout.LayoutParams(d(34), d(34)).apply { leftMargin = d(6); rightMargin = d(6) })
         }
         body.addView(colours, LinearLayout.LayoutParams(-1, d(62)).apply { bottomMargin = d(2) })
@@ -244,6 +244,7 @@ open class DotPreferences : Activity() {
         gap()
         val role = getSystemService(RoleManager::class.java)
         row("Default Home app", if(role?.isRoleHeld(RoleManager.ROLE_HOME) == true) "Dot Home" else "Choose") { if(role != null) startActivityForResult(role.createRequestRoleIntent(RoleManager.ROLE_HOME), 62) else startActivity(Intent(Settings.ACTION_HOME_SETTINGS)) }
+        row("Hidden icons") { startActivity(Intent(this,DotHidden::class.java)) }
         row("Optional access") { show("access") }
         gap(); body.addView(text("Dot Home · ${com.android.launcher3.BuildConfig.VERSION_NAME}", 12f, secondary))
     }

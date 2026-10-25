@@ -30,3 +30,25 @@ The supplied photos remain composition references. Reference footage has been do
 Pinned Lawnchair 15 Beta 3 / Launcher3 source at `505dbc40e6154c05158b5d0271c45f6a885a411b` is under build/compatibility evaluation. Its existing workspace, drag/reorder, folder, shortcut and widget machinery is preferable to inventing these interactions again. This is a trial, not a claim that migration is complete. The raw upstream build contains Internet permission, web suggestions, online update/bug-report facilities and an Accessibility service. These must be removed from the shipped build, including user-facing choices; removing only the Internet permission is insufficient. The private signing identity stays local. Existing layout migration must retain a recoverable copy.
 
 Exact Nothing source/binaries are not being substituted for an independently built APK. System-wide Nothing UI, hardware and firmware-controlled gestures remain outside a normal launcher. Product-owned appearance and interactions are the target of this rebuild.
+
+## Replacement checkpoint
+
+The replacement engine is on the `rebuild-v4` branch. The default build/release path still uses v3; this is deliberate while runtime and upgrade checks are incomplete. A compiling APK is not evidence of visual parity.
+
+| Area | Implemented in replacement | Acceptance still needed |
+| --- | --- | --- |
+| Home and Apps | Native paging, drag/reorder, folders, swipe-up drawer, local dock search | Real-device touch and high-refresh motion, grid density and dock spacing |
+| Icons | Pinned locally bundled monochrome vectors, themed layers, installed packs, enlarge/shrink action | Optical size across popular POCO apps, fallback consistency, expanded-folder interaction |
+| Menus | Compact anchored Home popup, separate Customisation and Home settings | Popup placement and hierarchy against reference footage |
+| Themes | Geist, light/dark, Classic/Translucent/Dynamic choices, colour selection, real Home preview | Surface translucency/blur and wallpaper-driven colours; not all materials are matched |
+| Wallpapers | Four original local optical/grain presets and document-picked images | Crop workflow and accurate local-image preview; these are not official Nothing wallpapers |
+| Widgets | Native provider-organised tray, shared preview/live renderer, 23 local variants and external providers | Size grouping, configuration discovery, host binding/resize, independent instance state |
+| Local data | Battery, calendar/usage on optional grants, media session controls, visible compass/torch observation | Revocation, lifecycle and process-restoration checks |
+| Organisation | Expanded direct-access folder preview; batch selection with page move/folder/remove transactions | Real selection/movement verification; group dragging of icons and widgets is not complete |
+| Hidden icons | Drawer swipe opens a dedicated page; native hidden-component storage and selection | Profile/tab gesture interactions and filtering/search checks |
+| Upgrade | Original JSON recovery file and atomic native-database import | Signed v3-to-v4 upgrade, widgets/URI/profile preservation and all legacy tile types |
+| Privacy | HTTP clients/update/upload code removed; packaged manifest/Dex gate passes | Repeat for the final release variant |
+
+The first clean CI build passed compilation and packaged privacy gates. Its Android run caught a missing internal activity-result proxy at the default-Home request. The proxy is restored without adding privileges. Runtime verification remains pending. No replacement release has been published.
+
+System lock screen, Quick Settings, status-bar design, Glyph hardware, Essential AI/cloud features and firmware-owned global navigation are not launcher-owned surfaces. Offline weather must use manual/local information or an independently installed provider; fresh weather cannot be fetched by this app.

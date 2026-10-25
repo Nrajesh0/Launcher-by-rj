@@ -61,6 +61,8 @@ public final class FoundationSmoke extends UiSmoke {
       screenshot("foundation-home-light");
       View workspace=(View)invoke(home,"getWorkspace");
       swipe(workspace,.53f,.72f,0,-300,false);awaitState("ALL_APPS");screenshot("foundation-apps");
+      View appsView=(View)invoke(home,"getAppsView");
+      swipe(appsView,.18f,.45f,200,0,false);visible("Hidden icons");screenshot("foundation-hidden-icons");
       homeKey();longPressBlank();visible("Customisation");visible("Widgets");visible("Home settings");visible("Arrange");screenshot("foundation-home-menu");
       if(!clickSystemText("Customisation"))throw new AssertionError("Customisation action did not respond");
       visible("Theme & Style");screenshot("foundation-customisation");
@@ -68,6 +70,9 @@ public final class FoundationSmoke extends UiSmoke {
       visible("Classic");visible("Dynamic");visible("Dark theme");visible("Icon pack");screenshot("foundation-theme-style");
       if(!clickSystemText("Dark theme"))throw new AssertionError("Dark theme row did not respond");
       SystemClock.sleep(500);homeKey();screenshot("foundation-home-dark");
+      longPressBlank();if(!clickSystemText("Arrange"))throw new AssertionError("Arrange entry did not respond");
+      visible("Select apps");visible("Done");screenshot("foundation-arrange");
+      if(!clickSystemText("Done"))throw new AssertionError("Arrange did not finish");awaitState("NORMAL");
       longPressBlank();if(!clickSystemText("Widgets"))throw new AssertionError("Widget entry did not respond");
       visible("Dot Home");screenshot("foundation-widget-tray");
       homeKey();
@@ -76,7 +81,7 @@ public final class FoundationSmoke extends UiSmoke {
       for(String permission:info.requestedPermissions)if(permission.equals("android.permission.INTERNET")||permission.equals("android.permission.WRITE_SECURE_SETTINGS")||permission.equals("android.permission.SYSTEM_ALERT_WINDOW"))throw new AssertionError("Unexpected capability: "+permission);
       shell("am start -a android.settings.SETTINGS");SystemClock.sleep(500);homeKey();screenshot("foundation-system-home");
       shell("input keyevent KEYCODE_APP_SWITCH");SystemClock.sleep(800);assertNoSystemError();screenshot("foundation-system-recents");homeKey();
-      result.putString("stream","PASS: foundation Home chooser and workspace transaction, native swipe-up drawer, compact popup, Theme & Style, widget tray, standard Home/Recents and offline/no-Accessibility package.\n");
+      result.putString("stream","PASS: foundation Home chooser and workspace transaction, native swipe-up drawer, hidden-icons swipe, compact popup, Theme & Style, arrangement mode, widget tray, standard Home/Recents and offline/no-Accessibility package.\n");
       finish(Activity.RESULT_OK,result);
     } catch(Throwable failure) {
       String diagnostics="";

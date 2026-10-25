@@ -51,3 +51,7 @@ print('Native Max Icons/Folders, direct expanded-folder taps and legacy repair-e
 edit("src/com/android/launcher3/folder/FolderIcon.java", "    protected boolean shouldIgnoreTouchDown(float x, float y) {", "    protected boolean shouldIgnoreTouchDown(float x, float y) {\n        if (dev.dothome.ui.DotFolderPreview.expanded(mInfo)) return false;")
 
 edit("src/com/android/launcher3/widget/DatabaseWidgetPreviewLoader.java", "        // Load the preview image if possible", "        android.graphics.Bitmap localPreview = dev.dothome.widgets.TilePreviews.render(mContext, info, maxPreviewWidth, preScaledWidthOut);\n        if (localPreview != null) return localPreview;\n        // Load the preview image if possible")
+
+edit("src/com/android/launcher3/views/OptionsPopupView.java", "        launcher.getStateManager().goToState(EDIT_MODE);", "        dev.dothome.ui.DotArrange.begin(launcher);")
+edit("src/com/android/launcher3/touch/ItemClickHandler.java", "    private static void onClick(View v) {", "    private static void onClick(View v) {\n        if (dev.dothome.ui.DotArrange.select(v)) return;")
+edit("src/com/android/launcher3/folder/FolderIcon.java", "        icon.setOnClickListener(view -> {", "        icon.setOnClickListener(view -> {\n            if (dev.dothome.ui.DotArrange.select(view)) return;")

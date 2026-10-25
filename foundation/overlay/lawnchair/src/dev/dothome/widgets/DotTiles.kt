@@ -29,16 +29,31 @@ open class DotTile(private val context: Context, val kind: String, val face: Int
     private class Surface(context: Context, private val host: AppWidgetHostView, private val tile: DotTile): FrameLayout(context) {
         private val adapter=TileContext(context)
         private val handler=Handler(Looper.getMainLooper())
+        private val sensors=TileSensors(adapter,tile.kind) { invalidateArtwork() }
+        private fun invalidateArtwork() { for(n in 0 until childCount) getChildAt(n).invalidate() }
         private var id=-1L
         private var item=TileContext.load(context,id,tile.kind,tile.face)
-        private val refresh=object: Runnable { override fun run() { if(windowVisibility==VISIBLE && isShown) { adapter.sync(); render(); handler.postDelayed(this,30000) } } }
+        private val refresh=object: Runnable { override fun run() { if(windowVisibility==VISIBLE && isShown) { adapter.sync(); render(); sensors.start(); handler.postDelayed(this,if(tile.kind=="media") 1000 else 30000) } } }
         private fun render() {
             removeAllViews()
             item.put("w",if(width>height*1.4f) 4 else tile.columns); item.put("h",tile.rows)
             val art: View = if(tile.kind=="photo" && item.optString("uri").isNotEmpty()) PhotoView(adapter,item,false) else TileArtwork(adapter,item,false)
             addView(art,LayoutParams(-1,-1))
             contentDescription=tile.label
-            setOnClickListener { TileActions.tap(context,id,item) }
+            if(tile.kind=="media") {
+                val controls=android.widget.LinearLayout(context).apply { gravity=android.view.Gravity.CENTER }
+                val state=TileMedia.read(context)
+                val icons=intArrayOf(android.R.drawable.ic_media_previous,if(state.playing) android.R.drawable.ic_media_pause else android.R.drawable.ic_media_play,android.R.drawable.ic_media_next)
+                val labels=arrayOf("Previous track",if(state.playing) "Pause" else "Play","Next track")
+                icons.forEachIndexed { index, icon ->
+                    controls.addView(android.widget.ImageButton(context).apply {
+                        setImageResource(icon); contentDescription=labels[index]; imageTintList=android.content.res.ColorStateList.valueOf(if(adapter.dark()) 0xfff0f0ea.toInt() else 0xff191a18.toInt())
+                        background=null; setOnClickListener { state.action(context,index-1); handler.removeCallbacks(refresh);handler.post(refresh) }
+                    },android.widget.LinearLayout.LayoutParams(adapter.dp(48f),adapter.dp(48f)))
+                }
+                addView(controls,LayoutParams(-1,adapter.dp(48f),android.view.Gravity.BOTTOM))
+            }
+            setOnClickListener { TileActions.tap(context,id,item); if(tile.kind=="torch") { handler.removeCallbacks(refresh);handler.post(refresh) } }
         }
         override fun onAttachedToWindow() {
             super.onAttachedToWindow()
@@ -48,10 +63,10 @@ open class DotTile(private val context: Context, val kind: String, val face: Int
                 adapter.foreground=true; handler.post(refresh)
             }
         }
-        override fun onDetachedFromWindow() { adapter.foreground=false; handler.removeCallbacksAndMessages(null); super.onDetachedFromWindow() }
+        override fun onDetachedFromWindow() { adapter.foreground=false; sensors.stop(); handler.removeCallbacksAndMessages(null); super.onDetachedFromWindow() }
         override fun onWindowVisibilityChanged(visibility: Int) {
             super.onWindowVisibilityChanged(visibility); adapter.foreground=visibility==VISIBLE
-            handler.removeCallbacks(refresh); if(visibility==VISIBLE) { item=TileContext.load(context,id,tile.kind,tile.face); handler.post(refresh) }
+            handler.removeCallbacks(refresh); if(visibility!=VISIBLE) sensors.stop(); if(visibility==VISIBLE) { item=TileContext.load(context,id,tile.kind,tile.face); handler.post(refresh) }
         }
     }
 }
@@ -73,6 +88,7 @@ object DotTiles {
     class Agenda(context: Context): DotTile(context,"agenda",0,"Quick look")
     class Countdown(context: Context): DotTile(context,"countdown",0,"Countdown")
     class Timer(context: Context): DotTile(context,"timer",0,"Elapsed timer",2,1)
+    class Media(context: Context): DotTile(context,"media",0,"Media player",4,2)
     class Usage(context: Context): DotTile(context,"usage",0,"Screen time",2,1)
     class Compass(context: Context): DotTile(context,"compass",0,"Compass")
     class Torch(context: Context): DotTile(context,"torch",0,"Flashlight",1,1)

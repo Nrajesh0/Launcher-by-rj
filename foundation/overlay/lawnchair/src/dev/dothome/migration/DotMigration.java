@@ -23,7 +23,7 @@ public final class DotMigration {
   private static final String MARKER = "legacyImported";
   private static final Map<String,String> TILES = new HashMap<>();
   static {
-    String[][] entries={{"clock","Clock"},{"date","Date"},{"battery","Battery"},{"breathing","Focus"},{"away","Away"},{"photo","Photo"},{"notes","Notes"},{"agenda","Agenda"},{"countdown","Countdown"},{"timer","Timer"},{"usage","Usage"},{"compass","Compass"},{"torch","Torch"},{"bluetooth","Bluetooth"},{"sound","Sound"},{"dnd","Dnd"}};
+    String[][] entries={{"media","Media"},{"clock","Clock"},{"date","Date"},{"battery","Battery"},{"breathing","Focus"},{"away","Away"},{"photo","Photo"},{"notes","Notes"},{"agenda","Agenda"},{"countdown","Countdown"},{"timer","Timer"},{"usage","Usage"},{"compass","Compass"},{"torch","Torch"},{"bluetooth","Bluetooth"},{"sound","Sound"},{"dnd","Dnd"}};
     for(String[] entry:entries) TILES.put(entry[0],entry[1]);
   }
 

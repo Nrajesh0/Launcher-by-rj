@@ -32,6 +32,32 @@ class HomeActivity : LawnchairLauncher() {
         dev.dothome.migration.DotMigration.start(this)
     }
 
+    private var drawerDownX=0f
+    private var drawerDownY=0f
+    private var drawerSwipe=false
+    override fun dispatchTouchEvent(event: android.view.MotionEvent): Boolean {
+        when(event.actionMasked) {
+            android.view.MotionEvent.ACTION_DOWN -> {
+                drawerDownX=event.x;drawerDownY=event.y
+                drawerSwipe=isInState(com.android.launcher3.LauncherState.ALL_APPS)
+            }
+            android.view.MotionEvent.ACTION_MOVE -> if(drawerSwipe) {
+                val dx=event.x-drawerDownX;val dy=kotlin.math.abs(event.y-drawerDownY)
+                if(dy>resources.displayMetrics.density*32) drawerSwipe=false
+                else if(dx>resources.displayMetrics.density*96 && dy<dx*.3f) {
+                    drawerSwipe=false
+                    val cancel=android.view.MotionEvent.obtain(event);cancel.action=android.view.MotionEvent.ACTION_CANCEL
+                    super.dispatchTouchEvent(cancel);cancel.recycle()
+                    startActivity(Intent(this,dev.dothome.ui.DotHidden::class.java));return true
+                }
+            }
+            android.view.MotionEvent.ACTION_UP,android.view.MotionEvent.ACTION_CANCEL -> drawerSwipe=false
+        }
+        return super.dispatchTouchEvent(event)
+    }
+
+    override fun onDestroy() { dev.dothome.ui.DotArrange.end(this); super.onDestroy() }
+
     override fun onResume() { super.onResume(); updateMaterial() }
 
     override fun onNewIntent(intent: Intent) { super.onNewIntent(intent); setIntent(intent) }
