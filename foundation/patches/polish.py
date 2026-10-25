@@ -46,7 +46,7 @@ file.write_text(text)
 file=root/'lawnchair/res/layout/search_container_hotseat.xml'
 tree=ET.parse(file); doc=tree.getroot(); a='{http://schemas.android.com/apk/res/android}'
 inner=next(el for el in doc.iter() if el.get(a+'id')=='@+id/inner')
-ET.SubElement(inner,'TextView',{a+'layout_width':'match_parent',a+'layout_height':'match_parent',a+'gravity':'center',a+'text':'Search',a+'textSize':'13sp',a+'fontFamily':'@font/geist_regular',a+'textColor':'?android:attr/textColorPrimary',a+'importantForAccessibility':'no'})
+ET.SubElement(inner,'TextView',{a+'id':'@+id/dot_search_text',a+'layout_width':'match_parent',a+'layout_height':'match_parent',a+'gravity':'center',a+'text':'Search',a+'textSize':'13sp',a+'fontFamily':'@font/geist_regular',a+'textColor':'?android:attr/textColorPrimary',a+'importantForAccessibility':'no'})
 ET.register_namespace('android',a[1:-1]);ET.register_namespace('tools','http://schemas.android.com/tools')
 tree.write(file,encoding='unicode',xml_declaration=True)
 print('Local dock search, monochrome palette and bundled icon-map support applied.')
@@ -73,3 +73,9 @@ end=text.index('        colorScheme = themeProvider.colorScheme',start)
 file.write_text(text[:start]+text[end:])
 
 edit("lawnchair/src/app/lawnchair/LawnchairLauncher.kt", 'systemUiController.updateUiState(UI_STATE_BASE_WINDOW, isWorkspaceDarkText || darkStatusBar)', 'systemUiController.updateUiState(UI_STATE_BASE_WINDOW, dev.dothome.ui.DotWallpaperDrawable.darkSystemIcons(this, isWorkspaceDarkText || darkStatusBar))')
+
+edit("lawnchair/src/app/lawnchair/qsb/LawnQsbLayout.kt", 'val baseColor = if (themed) Themes.getColorBackgroundFloating(context) else Themes.getAttrColor(context, R.attr.qsbFillColor)', 'val baseColor = dev.dothome.ui.DotSurface.paper(context)')
+edit("lawnchair/src/app/lawnchair/qsb/LawnQsbLayout.kt", 'val alphaValue = (transparency * 255) / 100', 'val alphaValue = (transparency * Color.alpha(baseColor)) / 100')
+edit("lawnchair/src/app/lawnchair/qsb/LawnQsbLayout.kt", '            background = qsbBackground', '            background = qsbBackground\n            post {\n                findViewById<android.widget.TextView>(R.id.dot_search_text)?.setTextColor(dev.dothome.ui.DotSurface.ink(context))\n                gIcon.imageTintList = android.content.res.ColorStateList.valueOf(dev.dothome.ui.DotSurface.ink(context))\n            }')
+
+edit("lawnchair/res/values/config.xml", '<string name="config_default_icon_shape" translatable="false">system</string>', '<string name="config_default_icon_shape" translatable="false">circle</string>')

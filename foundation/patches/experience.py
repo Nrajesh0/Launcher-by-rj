@@ -119,6 +119,11 @@ seed=ET.SubElement(app,"receiver",{a+"name":"dev.dothome.widgets.LocalWidgetSeed
 intent=ET.SubElement(seed,"intent-filter")
 ET.SubElement(intent,"action",{a+"name":"android.appwidget.action.APPWIDGET_UPDATE"})
 ET.SubElement(seed,"meta-data",{a+"name":"android.appwidget.provider",a+"resource":"@xml/dot_seed_widget"})
+queries=ET.SubElement(doc,"queries")
+for action,category in (("android.intent.action.MAIN","android.intent.category.LAUNCHER"),("android.intent.action.MAIN","android.intent.category.HOME"),("android.appwidget.action.APPWIDGET_UPDATE",None),("org.adw.launcher.THEMES",None),("com.novalauncher.THEME",None),("com.anddoes.launcher.THEME",None)):
+    query=ET.SubElement(queries,"intent")
+    ET.SubElement(query,"action",{a+"name":action})
+    if category: ET.SubElement(query,"category",{a+"name":category})
 ET.SubElement(app,"activity",{a+"name":"dev.dothome.ui.DotHidden",a+"exported":"false",a+"theme":"@android:style/Theme.Material.Light.NoActionBar"})
 ET.SubElement(app,"activity",{a+"name":"dev.dothome.widgets.TileConfiguration",a+"exported":"false",a+"theme":"@android:style/Theme.Material.Light.NoActionBar"})
 ET.SubElement(app,"activity",{a+"name":"dev.dothome.migration.UnavailableApp",a+"exported":"false",a+"theme":"@android:style/Theme.Material.Light.NoActionBar"})

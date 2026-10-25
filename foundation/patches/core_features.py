@@ -55,3 +55,14 @@ edit("src/com/android/launcher3/widget/DatabaseWidgetPreviewLoader.java", "     
 edit("src/com/android/launcher3/views/OptionsPopupView.java", "        launcher.getStateManager().goToState(EDIT_MODE);", "        dev.dothome.ui.DotArrange.begin(launcher);")
 edit("src/com/android/launcher3/touch/ItemClickHandler.java", "    private static void onClick(View v) {", "    private static void onClick(View v) {\n        if (dev.dothome.ui.DotArrange.select(v)) return;")
 edit("src/com/android/launcher3/folder/FolderIcon.java", "        icon.setOnClickListener(view -> {", "        icon.setOnClickListener(view -> {\n            if (dev.dothome.ui.DotArrange.select(view)) return;")
+
+edit("src/com/android/launcher3/util/ItemInflater.kt", "            Favorites.ITEM_TYPE_SEARCH_ACTION -> {", "            Favorites.ITEM_TYPE_SEARCH_ACTION,\n            1 -> {")
+# Native grid changes must retain local custom widgets and recovery shortcuts.
+edit("src/com/android/launcher3/model/GridSizeMigrationUtil.java", "case LauncherSettings.Favorites.ITEM_TYPE_APPLICATION: {", "case LauncherSettings.Favorites.ITEM_TYPE_APPLICATION:\n                        case 1: {")
+edit("src/com/android/launcher3/model/GridSizeMigrationUtil.java", "case LauncherSettings.Favorites.ITEM_TYPE_APPWIDGET: {", "case LauncherSettings.Favorites.ITEM_TYPE_APPWIDGET:\n                        case LauncherSettings.Favorites.ITEM_TYPE_CUSTOM_APPWIDGET: {")
+edit("src/com/android/launcher3/model/GridSizeMigrationUtil.java", "                case LauncherSettings.Favorites.ITEM_TYPE_APPWIDGET:\n                    // mProvider", "                case LauncherSettings.Favorites.ITEM_TYPE_APPWIDGET:\n                case LauncherSettings.Favorites.ITEM_TYPE_CUSTOM_APPWIDGET:\n                    // mProvider")
+edit("src/com/android/launcher3/model/GridSizeMigrationUtil.java", "                case LauncherSettings.Favorites.ITEM_TYPE_APPLICATION:\n                    final String", "                case LauncherSettings.Favorites.ITEM_TYPE_APPLICATION:\n                case 1:\n                    final String")
+
+# In-process widgets must not be recycled through the framework RemoteViews host.
+edit("src/com/android/launcher3/widget/LauncherWidgetHolder.java", "            lahv.setAppWidget(0, appWidget);", "            lahv.setAppWidget(appWidgetId, appWidget);")
+edit("src/com/android/launcher3/widget/LauncherWidgetHolder.java", "        // Binder can also inflate placeholder widgets", "        if (view.getAppWidgetInfo() instanceof LauncherAppWidgetProviderInfo local && local.isCustomWidget()) return view;\n        // Binder can also inflate placeholder widgets")

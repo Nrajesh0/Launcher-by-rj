@@ -73,7 +73,7 @@ public final class FoundationSmoke extends UiSmoke {
     final View[] views=new View[2];
     for(int n=0;n<40;n++){onUi(()->{views[0]=nativeItem(ids[0]);views[1]=nativeItem(ids[1]);});if(views[0]!=null&&views[1]!=null)break;SystemClock.sleep(100);}
     if(views[0]==null||views[1]==null)throw new AssertionError("Native test apps were not bound");
-    longPressBlank();visible("Arrange");if(!clickSystemText("Arrange"))throw new AssertionError("Arrange entry did not respond");
+    longPressBlank();visible("Arrange");clickSystemText("Arrange");awaitState("EDIT_MODE");
     awaitState("EDIT_MODE");visible("Select apps");
     for(int n=0;n<2;n++) {
       final View item=views[n];int[] at=new int[2];onUi(()->item.getLocationOnScreen(at));
@@ -130,6 +130,15 @@ public final class FoundationSmoke extends UiSmoke {
       SystemClock.sleep(2000);
       screenshot("foundation-home-light");
       android.util.Log.i("DotFoundation",fixtureCounts());
+      final int[] placed={0};
+      for(int n=0;n<30;n++) {onUi(()->placed[0]=widgetCount((View)invoke(home,"getWorkspace")));if(placed[0]>=8)break;SystemClock.sleep(100);}
+      if(placed[0]<8)throw new AssertionError("Default native widgets were not bound: "+placed[0]);
+      final boolean[] dialer={false};
+      onUi(()->{
+        Object[] apps=(Object[])invoke(invoke(invoke(home,"getAppsView"),"getAppsStore"),"getApps");
+        for(Object app:apps) {android.content.ComponentName component=(android.content.ComponentName)invoke(app,"getTargetComponent");if(component!=null && component.getPackageName().equals("com.android.dialer"))dialer[0]=true;}
+      });
+      if(!dialer[0])throw new AssertionError("Android 16 fixture Dialer is missing from Apps; launcher package visibility is incomplete");
       View workspace=(View)invoke(home,"getWorkspace");
       swipe(workspace,.53f,.72f,0,-300,false);awaitState("ALL_APPS");screenshot("foundation-apps");
       View appsView=(View)invoke(home,"getAppsView");
@@ -143,7 +152,7 @@ public final class FoundationSmoke extends UiSmoke {
       SystemClock.sleep(500);
       if(!home.getSharedPreferences("dot-style",0).getBoolean("dark",false))throw new AssertionError("Dark theme label did not toggle the setting");
       homeKey();screenshot("foundation-home-dark");
-      longPressBlank();visible("Arrange");if(!clickSystemText("Arrange"))throw new AssertionError("Arrange entry did not respond");
+      longPressBlank();visible("Arrange");clickSystemText("Arrange");awaitState("EDIT_MODE");
       visible("Select apps");visible("Done");screenshot("foundation-arrange");
       if(!clickSystemText("Done"))throw new AssertionError("Arrange did not finish");awaitState("NORMAL");
       longPressBlank();visible("Widgets");if(!clickSystemText("Widgets"))throw new AssertionError("Widget entry did not respond");

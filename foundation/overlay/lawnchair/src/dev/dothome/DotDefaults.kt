@@ -23,6 +23,8 @@ object DotDefaults {
         prefs.edit()
             .putString("pref_accentColor2", "custom|#ff757575")
             .putBoolean("pref_darkStatusBar", true)
+            .putString("pref_iconShape", "circle")
+            .putBoolean("prefs_wrapAdaptive", true)
             .putString("pref_launcherTheme", if(legacyDark) "dark" else "light")
             .putInt("pref_workspaceColumns", columns)
             .putInt("pref_workspaceRows", rows)
