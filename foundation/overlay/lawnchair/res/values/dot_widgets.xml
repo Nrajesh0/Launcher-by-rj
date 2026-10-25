@@ -1,0 +1,12 @@
+<resources>
+ <array name="custom_widget_providers">
+  <item>dev.dothome.widgets.DotTiles$Clock</item><item>dev.dothome.widgets.DotTiles$DotClock</item>
+  <item>dev.dothome.widgets.DotTiles$DialClock</item><item>dev.dothome.widgets.DotTiles$SerifClock</item><item>dev.dothome.widgets.DotTiles$DigitalClock</item>
+  <item>dev.dothome.widgets.DotTiles$Date</item><item>dev.dothome.widgets.DotTiles$Battery</item><item>dev.dothome.widgets.DotTiles$BatteryRing</item>
+  <item>dev.dothome.widgets.DotTiles$Focus</item><item>dev.dothome.widgets.DotTiles$Away</item>
+  <item>dev.dothome.widgets.DotTiles$Photo</item><item>dev.dothome.widgets.DotTiles$Sticker</item><item>dev.dothome.widgets.DotTiles$Notes</item>
+  <item>dev.dothome.widgets.DotTiles$Agenda</item><item>dev.dothome.widgets.DotTiles$Countdown</item><item>dev.dothome.widgets.DotTiles$Timer</item>
+  <item>dev.dothome.widgets.DotTiles$Usage</item><item>dev.dothome.widgets.DotTiles$Compass</item>
+  <item>dev.dothome.widgets.DotTiles$Torch</item><item>dev.dothome.widgets.DotTiles$Bluetooth</item><item>dev.dothome.widgets.DotTiles$Sound</item><item>dev.dothome.widgets.DotTiles$Dnd</item>
+ </array>
+</resources>

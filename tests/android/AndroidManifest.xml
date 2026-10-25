@@ -4,4 +4,4 @@
 <meta-data android:name="android.appwidget.provider" android:resource="@xml/test_widget"/></receiver>
 <activity android:name=".WidgetConfiguration" android:exported="true">
 <intent-filter><action android:name="android.appwidget.action.APPWIDGET_CONFIGURE"/></intent-filter>
-</activity></application><instrumentation android:name="dev.dothome.test.UiSmoke" android:targetPackage="dev.dothome" android:label="Dot Home UI checks"/></manifest>
+</activity></application><instrumentation android:name="dev.dothome.test.UiSmoke" android:targetPackage="dev.dothome" android:label="Dot Home UI checks"/><instrumentation android:name="dev.dothome.test.FoundationSmoke" android:targetPackage="dev.dothome" android:label="Native foundation checks"/></manifest>

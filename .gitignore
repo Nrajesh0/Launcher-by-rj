@@ -8,3 +8,5 @@
 *.keystore
 *.apk
 !release-assets/**/*.apk
+
+__pycache__/
