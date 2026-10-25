@@ -1,0 +1,35 @@
+# Verification record
+
+Build date: 24 October 2026.
+
+## Passed
+
+- All Android sources compile against the Android 36 platform with Java 17 bytecode using JDK 21.
+- Android resources compile and link with build tools 36.0.0.
+- D8 produces dex bytecode; APK alignment completes.
+- `apksigner verify --verbose` verifies the signed APK using v3 signing.
+- 400 seeded random workspace layouts, comprising 24,000 placements, pass bounds, collision and deterministic-order checks.
+- Backup validator accepts a valid layout and rejects 10 malformed cases: unknown schema, invalid columns, invalid icon size, negative page, invalid width/height, unknown item type, duplicate identifiers, oversized dock and excessive item count.
+
+Only compiler deprecation and Java boot-classpath warnings were emitted; no compile failures remain.
+
+## Runtime status
+
+An Android 16 x86_64 emulator was downloaded and started without hardware acceleration because `/dev/kvm` is unavailable. ADB transport connected. Android system services remained in startup and reported timeouts. The initial attempted package installation was refused with `device is still booting`; Dot Home had not been installed or launched by that attempt. That attempt is not a passing smoke test. Runtime verification remains incomplete unless a later successful result is appended below.
+
+## Still required
+
+- Real POCO X6 Pro installation, Home-role selection, navigation and lock/unlock behaviour.
+- Android widget binding/configuration and provider-specific resize interaction.
+- Calendar, media, camera, usage access and photo persistence on physical hardware.
+- Backup/restore through the system document picker and signed APK upgrades.
+- App launch/return, keyboard, landscape and clone/work-profile behaviour.
+- Visual comparison against a frozen Nothing reference; performance, battery and accessibility review.
+
+The deliverable is a compiled independent launcher build. Exact Nothing OS fidelity and daily-use reliability have not been established by these checks.
+
+## Offline release 1.1.0 — 25 October 2026
+
+Removed Internet permission, HTTP/geocoding/forecast code, weather choices, city-search UI and the Internet-settings shortcut. Migration removes legacy weather tiles from layouts, imported backups, recovery and undo. Cached weather preferences are deleted on startup.
+
+Passed locally: Java/resource compilation, dex generation, alignment, signature verification, 400 random layouts, 10 malformed backups, migration/idempotence test, source networking check and compiled APK permission/version check. The release uses the prior signing identity. Physical-device runtime verification remains outstanding.

@@ -1,0 +1,103 @@
+name: Android build and release
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: android-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.name }}
+      signed: ${{ steps.signing.outputs.signed }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - uses: android-actions/setup-android@v3
+      - name: Install Android toolchain
+        run: sdkmanager 'platforms;android-36' 'build-tools;36.0.0'
+      - name: Read and validate version
+        id: version
+        shell: bash
+        run: |
+          version=$(python3 scripts/prepare_version.py)
+          echo "name=$version" >> "$GITHUB_OUTPUT"
+          if [[ "$GITHUB_REF" == refs/tags/* ]]; then
+            test "$GITHUB_REF_NAME" = "v$version"
+          fi
+      - name: Run model, migration and offline checks
+        run: bash scripts/test.sh
+      - name: Restore configured signing key
+        id: signing
+        env:
+          SIGNING_KEY_BASE64: ${{ secrets.ANDROID_SIGNING_KEY_BASE64 }}
+        run: |
+          python3 - <<'PY'
+          import os, base64
+          from pathlib import Path
+          key = os.environ.get('SIGNING_KEY_BASE64', '')
+          if not key:
+              with open(os.environ['GITHUB_OUTPUT'], 'a') as output: output.write('signed=false\n')
+              print('Signing secrets are not configured; building an unsigned CI artifact.')
+              raise SystemExit(0)
+          path = Path(os.environ['RUNNER_TEMP']) / 'dot-home-signing.p12'
+          path.write_bytes(base64.b64decode(key, validate=True))
+          path.chmod(0o600)
+          with open(os.environ['GITHUB_OUTPUT'], 'a') as output: output.write('signed=true\n')
+          PY
+      - name: Build and verify signed offline APK
+        env:
+          SIGNING_KEYSTORE: ${{ runner.temp }}/dot-home-signing.p12
+          SIGNING_STORE_PASS: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          SIGNING_KEY_PASS: ${{ secrets.ANDROID_KEY_PASSWORD }}
+          SIGNING_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+        run: |
+          if [[ '${{ steps.signing.outputs.signed }}' == 'true' ]]; then
+            bash build.sh
+          else
+            bash build.sh --unsigned
+          fi
+      - name: Upload versioned APK and checksum
+        uses: actions/upload-artifact@v4
+        with:
+          name: dot-home-${{ steps.version.outputs.name }}
+          path: |
+            build/dot-home-${{ steps.version.outputs.name }}*.apk
+            build/dot-home-${{ steps.version.outputs.name }}*.apk.sha256
+          if-no-files-found: error
+          retention-days: 30
+      - name: Remove temporary signing key
+        if: always()
+        run: rm -f "$RUNNER_TEMP/dot-home-signing.p12"
+  release:
+    if: startsWith(github.ref, 'refs/tags/v') && needs.build.outputs.signed == 'true'
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: dot-home-${{ needs.build.outputs.version }}
+          path: release-assets
+      - name: Publish GitHub release with APK
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          RELEASE_TAG: ${{ github.ref_name }}
+          RELEASE_VERSION: ${{ needs.build.outputs.version }}
+        shell: bash
+        run: |
+          if gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
+            gh release upload "$RELEASE_TAG" release-assets/* --clobber
+          else
+            gh release create "$RELEASE_TAG" release-assets/* --verify-tag --title "Dot Home $RELEASE_VERSION" --generate-notes --notes 'Offline Android launcher. This APK requests no Internet permission. Download the APK and its SHA-256 checksum below.'
+          fi

@@ -1,0 +1,27 @@
+plugins { id 'com.android.application' }
+def releaseVersion = new Properties()
+rootProject.file('version.properties').withInputStream { releaseVersion.load(it) }
+android {
+    namespace 'dev.dothome'
+    compileSdk 36
+    defaultConfig { applicationId 'dev.dothome'; minSdk 35; targetSdk 36; versionCode releaseVersion.versionCode.toInteger(); versionName releaseVersion.versionName }
+    compileOptions { sourceCompatibility JavaVersion.VERSION_17; targetCompatibility JavaVersion.VERSION_17 }
+    sourceSets.main.manifest.srcFile layout.buildDirectory.file('generated/manifest/AndroidManifest.xml')
+    sourceSets.main.java.srcDir layout.buildDirectory.dir('generated/source/version')
+}
+tasks.register('prepareGradleManifest') {
+    def source = file('src/main/AndroidManifest.xml')
+    def destination = layout.buildDirectory.file('generated/manifest/AndroidManifest.xml')
+    def versionJava = layout.buildDirectory.file('generated/source/version/dev/dothome/BuildInfo.java')
+    inputs.files source, rootProject.file('version.properties')
+    outputs.files destination, versionJava
+    doLast {
+        def output = destination.get().asFile
+        output.parentFile.mkdirs()
+        output.text = source.text.replace(' package="dev.dothome"', '')
+        def java = versionJava.get().asFile
+        java.parentFile.mkdirs()
+        java.text = "package dev.dothome; public final class BuildInfo { public static final String VERSION_NAME=\"${releaseVersion.versionName}\"; public static final int VERSION_CODE=${releaseVersion.versionCode}; }"
+    }
+}
+tasks.named('preBuild').configure { dependsOn 'prepareGradleManifest' }
