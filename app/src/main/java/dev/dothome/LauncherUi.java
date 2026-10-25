@@ -1289,6 +1289,9 @@ final class LauncherUi {
         a.dark() ? "Dark" : "Light",
         () -> {
           HomeActivity.put(a.settings, "dark", !a.dark());
+          if (a.settings.optString("wallpaper", "").isEmpty()
+              && !a.settings.optString("wallpaperPreset", "solid").equals("solid"))
+            HomeActivity.put(a.settings, "wallpaperPreset", a.dark() ? "ocean" : "mist");
           a.save();
           refresh();
           customise();
