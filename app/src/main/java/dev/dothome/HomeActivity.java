@@ -1084,8 +1084,7 @@ public class HomeActivity extends Activity implements SensorEventListener {
     String type = item.optString("type");
     if (type.equals("media")) {
       tile.setPadding(dp(14), dp(12), dp(14), dp(12));
-      tile.setBackground(shape(LauncherTheme.widgetSurface(this), 20));
-      fillMedia(tile);
+      fillMedia(tile, item);
       return;
     }
     tile.setPadding(0, 0, 0, 0);
@@ -1215,8 +1214,17 @@ public class HomeActivity extends Activity implements SensorEventListener {
     mediaCallbacks.clear();
   }
 
-  void fillMedia(LinearLayout tile) {
-    tile.addView(label("NOW PLAYING"));
+  void fillMedia(LinearLayout tile, JSONObject item) {
+    boolean inverted = item.optInt("style") == 1;
+    int mediaInk =
+        inverted ? (dark() ? 0xff151813 : 0xfff0f0e9) : (dark() ? 0xfff0f0e9 : 0xff151813);
+    int mediaSecondary = inverted ? mediaInk : (dark() ? 0xffb8bbb0 : 0xff66705f);
+    int mediaPaper =
+        inverted ? (dark() ? 0xfff0f2eb : 0xff202120) : LauncherTheme.widgetSurface(this);
+    int opacity = Math.max(0, Math.min(100, item.optInt("opacity", 100)));
+    mediaPaper = (mediaPaper & 0xffffff) | ((Color.alpha(mediaPaper) * opacity / 100) << 24);
+    tile.setBackground(shape(mediaPaper, 20));
+    tile.addView(text("NOW PLAYING", 11, mediaSecondary));
     MediaController controller = null;
     try {
       MediaSessionManager mm = (MediaSessionManager) getSystemService(MEDIA_SESSION_SERVICE);
@@ -1232,10 +1240,13 @@ public class HomeActivity extends Activity implements SensorEventListener {
     } catch (SecurityException ignored) {
     }
     if (controller == null) {
-      tile.addView(text("Connect your music", 17, fg), new LinearLayout.LayoutParams(-1, 0, 1));
+      tile.addView(
+          text("Connect your music", 17, mediaInk), new LinearLayout.LayoutParams(-1, 0, 1));
       click(tile, () -> open(new Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS)));
       return;
     }
+    tile.setOnClickListener(null);
+    tile.setClickable(false);
     final MediaController c = controller;
     boolean observed = false;
     for (MediaController registered : mediaCallbacks.keySet())
@@ -1268,7 +1279,7 @@ public class HomeActivity extends Activity implements SensorEventListener {
       row.setGravity(Gravity.CENTER_VERTICAL);
       ImageView image = new ImageView(this);
       image.setScaleType(ImageView.ScaleType.CENTER_CROP);
-      image.setBackground(shape(bg, 14));
+      image.setBackground(shape(mediaPaper, 14));
       image.setClipToOutline(true);
       if (art != null) image.setImageBitmap(art);
       else image.setImageResource(android.R.drawable.ic_media_play);
@@ -1280,7 +1291,7 @@ public class HomeActivity extends Activity implements SensorEventListener {
                       ? "Music"
                       : data.getText(MediaMetadata.METADATA_KEY_ARTIST)),
               12,
-              muted);
+              mediaSecondary);
       artist.setPadding(dp(12), 0, 0, 0);
       artist.setMaxLines(2);
       row.addView(artist, new LinearLayout.LayoutParams(0, dp(48), 1));
@@ -1289,7 +1300,7 @@ public class HomeActivity extends Activity implements SensorEventListener {
 
     String title =
         data == null ? "Media" : String.valueOf(data.getText(MediaMetadata.METADATA_KEY_TITLE));
-    TextView name = text(title, 16, fg);
+    TextView name = text(title, 16, mediaInk);
     name.setMaxLines(2);
     tile.addView(name, new LinearLayout.LayoutParams(-1, 0, 1));
     LinearLayout buttons = new LinearLayout(this);
@@ -1302,7 +1313,7 @@ public class HomeActivity extends Activity implements SensorEventListener {
     };
     for (int n = 0; n < 3; n++) {
       final int action = n;
-      TextView b = text(names[n], 22, fg);
+      TextView b = text(names[n], 22, mediaInk);
       b.setGravity(Gravity.CENTER);
       buttons.addView(b, new LinearLayout.LayoutParams(0, dp(42), 1));
       click(

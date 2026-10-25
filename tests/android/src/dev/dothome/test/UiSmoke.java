@@ -402,6 +402,7 @@ public class UiSmoke extends Instrumentation {
       waitForIdleSync();
       SystemClock.sleep(1800);
       ui = field(home, "ui");
+      chooseDefaultHome();
       onUi(
           () ->
               home.getWindow()
@@ -410,7 +411,6 @@ public class UiSmoke extends Instrumentation {
                           frameTimes.add(
                               metrics.getMetric(android.view.FrameMetrics.TOTAL_DURATION)),
                       new Handler(Looper.getMainLooper())));
-      chooseDefaultHome();
       // A Home intent may legitimately close setup after the role is granted.
       // Assert ownership above, then open setup explicitly to check its contents.
       onUi(() -> call(ui, "setup", new Class[] {}));
@@ -521,6 +521,18 @@ public class UiSmoke extends Instrumentation {
       SystemClock.sleep(500);
       if (((JSONObject) field(home, "settings")).optBoolean("dark") != oldDark)
         throw new AssertionError("Cancelling appearance changed the saved theme");
+      // Changing a wallpaper preview must not commit it or change independent appearance.
+      String oldPreset = ((JSONObject) field(home, "settings")).optString("wallpaperPreset");
+      onUi(() -> call(ui, "wallpaperPresets", new Class[] {}));
+      if (!clickSystemText("Ocean")) throw new AssertionError("Wallpaper preview choice missing");
+      SystemClock.sleep(300);
+      if (!((JSONObject) field(home, "settings")).optString("wallpaperPreset").equals("ocean"))
+        throw new AssertionError("Wallpaper preview did not change");
+      shell("input keyevent KEYCODE_BACK");
+      SystemClock.sleep(400);
+      if (!((JSONObject) field(home, "settings")).optString("wallpaperPreset").equals(oldPreset)
+          || ((JSONObject) field(home, "settings")).optBoolean("dark") != oldDark)
+        throw new AssertionError("Wallpaper cancellation changed committed appearance");
       onUi(() -> call(ui, "customise", new Class[] {}));
       onUi(() -> call(ui, "close", new Class[] {}));
       onUi(() -> call(ui, "overview", new Class[] {}));
@@ -563,6 +575,25 @@ public class UiSmoke extends Instrumentation {
       assertText("Test folder");
       screenshot("folder");
       onUi(() -> call(ui, "close", new Class[] {}));
+      onUi(
+          () -> {
+            try {
+              JSONObject media = new JSONObject().put("type", "media").put("style", 1);
+              LinearLayout tileView = new LinearLayout(home);
+              tileView.setOrientation(1);
+              call(
+                  home,
+                  "fillTile",
+                  new Class[] {LinearLayout.class, JSONObject.class},
+                  tileView,
+                  media);
+              TextView title = (TextView) tileView.getChildAt(0);
+              if (title.getCurrentTextColor() != 0xfff0f0e9)
+                throw new AssertionError("Inverted media palette was not applied in light mode");
+            } catch (JSONException error) {
+              throw new RuntimeException(error);
+            }
+          });
       checkProviderWidget();
       onUi(() -> call(ui, "navigation", new Class[] {}));
       assertText("System navigation");

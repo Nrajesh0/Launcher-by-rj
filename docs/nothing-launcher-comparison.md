@@ -1,8 +1,10 @@
-**Update for Dot Home 2.0.0**
+**Current update for Dot Home 3.0.0**
 
 The audit below records v1.1.0 and remains the reference for the requested rebuild. Version 2 now implements explicit cell coordinates/migration, preserved empty space, dragging/drop previews/collision checks/edge paging, dynamic pages, a stable launcher root, integrated drawer and sheet motion, folder origin transitions and drag-in/out, cover choices, a unified searchable widget gallery, shared preview/live artwork, clock faces, breathing and individual controls, media artwork/callbacks, photo crop positioning, responsive enlarged icons, visual grid/theme settings and optional notification dots.
 
-Android providers use their minimum/default cell footprint and declared resize axes/bounds; provider-specific interaction still needs device testing. Optional Accessibility edge actions provide Back/Home/Recents without ADB or root. The firmware's ability to hide three buttons remains unverified on the POCO.
+Version 3 adds an actually verified Home-role flow, a recycled alphabetic drawer with local categories and hidden-app filtering, transactional batch movement, actual Home previews with reversible appearance/wallpaper controls, licensed offline fonts, local photo crop editing and screen-off break history. Android providers use their minimum/default cell footprint and declared resize axes/bounds.
+
+Accessibility navigation and global gesture overlays were removed. Android owns Home/Back/Recents and the navigation bar. This app uses standard launcher integration without Accessibility, ADB or root; manufacturer restrictions on native third-party gesture navigation remain outside the app. Provider-specific behaviour and HyperOS integration require physical-device testing.
 
 The implementation remains an independent custom launcher. Exact original geometry/motion, proprietary artwork, Smart Drawer algorithms, swipeable widget stacks and physical-device integration have not been established. The original audit's reference-capture/device acceptance gate is still open; do not interpret this rebuild as an exact Nothing OS reproduction. Automated Android 16 UI evidence and final source-run provenance accompany the release.
 

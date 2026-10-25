@@ -94,11 +94,9 @@ final class PhotoView extends View {
     if (event.getActionMasked() == MotionEvent.ACTION_MOVE
         && !zoom.isInProgress()
         && image != null) {
-      float factor =
-          Math.max(
-                  getWidth() / (float) image.getIntrinsicWidth(),
-                  getHeight() / (float) image.getIntrinsicHeight())
-              * scale;
+      float sx = getWidth() / (float) image.getIntrinsicWidth();
+      float sy = getHeight() / (float) image.getIntrinsicHeight();
+      float factor = (item.optInt("style") == 2 ? Math.min(sx, sy) : Math.max(sx, sy)) * scale;
       float extraX = image.getIntrinsicWidth() * factor - getWidth();
       float extraY = image.getIntrinsicHeight() * factor - getHeight();
       if (extraX > 0) cropX = Math.max(0, Math.min(1, cropX - (event.getX() - lastX) / extraX));
