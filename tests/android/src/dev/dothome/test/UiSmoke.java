@@ -94,12 +94,32 @@ public class UiSmoke extends Instrumentation {
   }
 
   void screenshot(String name) throws Exception {
+    assertNoSystemError();
     ParcelFileDescriptor fd =
         getUiAutomation(UiAutomation.FLAG_DONT_SUPPRESS_ACCESSIBILITY_SERVICES)
             .executeShellCommand("screencap -p /sdcard/Download/" + name + ".png");
     try (java.io.InputStream in = new ParcelFileDescriptor.AutoCloseInputStream(fd)) {
       in.readAllBytes();
     }
+  }
+
+  boolean hasSystemError(android.view.accessibility.AccessibilityNodeInfo node) {
+    if (node == null) return false;
+    CharSequence text = node.getText();
+    if (text != null) {
+      String value = text.toString().toLowerCase(java.util.Locale.ROOT);
+      if (value.contains("responding") || value.contains("keeps stopping")) return true;
+    }
+    for (int n = 0; n < node.getChildCount(); n++)
+      if (hasSystemError(node.getChild(n))) return true;
+    return false;
+  }
+
+  void assertNoSystemError() {
+    if (hasSystemError(
+        getUiAutomation(UiAutomation.FLAG_DONT_SUPPRESS_ACCESSIBILITY_SERVICES)
+            .getRootInActiveWindow()))
+      throw new AssertionError("System error dialog covers the launcher");
   }
 
   boolean awaitFocus(boolean expected) {
@@ -191,10 +211,6 @@ public class UiSmoke extends Instrumentation {
               throw new AssertionError("Workspace not laid out");
           });
       screenshot("home");
-      // Only the emulator fixture changes native navigation mode for clean design captures.
-      shell(
-          "cmd overlay enable-exclusive --category com.android.internal.systemui.navbar.gestural");
-      SystemClock.sleep(800);
       onUi(
           () -> {
             try {
@@ -346,6 +362,15 @@ public class UiSmoke extends Instrumentation {
         throw new AssertionError(
             "Home swipe did not return to launcher" + navigationDiagnostic(connected));
       bottomSwipe(connected, true);
+      assertNoSystemError();
+      android.view.accessibility.AccessibilityNodeInfo recentRoot =
+          getUiAutomation(UiAutomation.FLAG_DONT_SUPPRESS_ACCESSIBILITY_SERVICES)
+              .getRootInActiveWindow();
+      String recentPackage = recentRoot == null ? "" : String.valueOf(recentRoot.getPackageName());
+      if (!recentPackage.equals("com.android.launcher3")
+          && !recentPackage.equals("com.android.systemui"))
+        throw new AssertionError(
+            "Recents surface missing: " + recentPackage + navigationDiagnostic(connected));
       screenshot("gesture-recents");
       if (!awaitFocus(false))
         throw new AssertionError(
@@ -353,10 +378,7 @@ public class UiSmoke extends Instrumentation {
       bottomSwipe(connected, false);
       shell("settings put secure enabled_accessibility_services null");
       shell("settings put secure accessibility_enabled 0");
-      shell(
-          "cmd overlay enable-exclusive --category com.android.internal.systemui.navbar.gestural");
-      SystemClock.sleep(800);
-      screenshot("home-gesture-mode");
+      screenshot("home-after-gestures");
       result.putString(
           "stream",
           "PASS: home, integrated drawer, visual picker, style gallery, customisation, overview,"
