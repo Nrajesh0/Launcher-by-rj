@@ -1213,7 +1213,7 @@ public class HomeActivity extends Activity implements SensorEventListener {
     final MediaController c = controller;
     boolean observed = false;
     for (MediaController registered : mediaCallbacks.keySet())
-      if (registered.controlsSameSession(c)) {
+      if (registered.getSessionToken().equals(c.getSessionToken())) {
         observed = true;
         break;
       }
