@@ -28,6 +28,7 @@ class DotHidden : Activity() {
         window.setDecorFitsSystemWindows(false)
         val body=LinearLayout(this).apply {orientation=1;setBackgroundColor(paper);setPadding(d(16),0,d(16),0)}
         setContentView(body)
+        window.decorView.windowInsetsController?.setSystemBarsAppearance(if(dark)0 else WindowInsetsController.APPEARANCE_LIGHT_STATUS_BARS or WindowInsetsController.APPEARANCE_LIGHT_NAVIGATION_BARS,WindowInsetsController.APPEARANCE_LIGHT_STATUS_BARS or WindowInsetsController.APPEARANCE_LIGHT_NAVIGATION_BARS)
         body.setOnApplyWindowInsetsListener {view,insets->val bars=insets.getInsets(WindowInsets.Type.systemBars());view.setPadding(d(16),bars.top,d(16),bars.bottom);insets}
         val header=LinearLayout(this)
         header.addView(text("‹").apply {contentDescription="Back";setOnClickListener {finish()}},LinearLayout.LayoutParams(d(48),d(56)))

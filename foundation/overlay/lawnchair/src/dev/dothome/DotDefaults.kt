@@ -15,12 +15,14 @@ object DotDefaults {
             val recovery = File(context.filesDir, "pre-foundation-layout.json")
             if(!recovery.exists()) previous.copyTo(recovery)
         }
-        val prefs = Utilities.getPrefs(context)
+        val prefs = context.getSharedPreferences("com.android.launcher3.prefs", Context.MODE_PRIVATE)
         val legacySettings = runCatching { JSONObject(previous.readText()).getJSONObject("settings") }.getOrNull()
         val legacyDark = legacySettings?.optBoolean("dark", false) ?: false
         val columns = (legacySettings?.optInt("columns",4) ?: 4).coerceIn(4,5)
         val rows = (legacySettings?.optInt("rows",7) ?: 7).coerceIn(5,8)
         prefs.edit()
+            .putString("pref_accentColor2", "custom|#ff757575")
+            .putBoolean("pref_darkStatusBar", true)
             .putString("pref_launcherTheme", if(legacyDark) "dark" else "light")
             .putInt("pref_workspaceColumns", columns)
             .putInt("pref_workspaceRows", rows)

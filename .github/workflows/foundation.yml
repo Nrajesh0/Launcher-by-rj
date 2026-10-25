@@ -42,11 +42,13 @@ jobs:
           sudo udevadm control --reload-rules
           sudo udevadm trigger --name-match=kvm
       - name: Cache Android 16 system image
+        id: emulator-image
         uses: actions/cache@v4
         with:
           path: ${{ env.ANDROID_HOME }}/system-images/android-36/default/x86_64
           key: foundation-android36-default-x86_64-v1
       - name: Install and verify emulator image
+        id: install-image
         timeout-minutes: 20
         run: |
           for attempt in 1 2 3; do
@@ -57,6 +59,12 @@ jobs:
             if [ -d "$ANDROID_HOME/.temp" ]; then rm -rf "$ANDROID_HOME/.temp"; fi
           done
           exit 1
+      - name: Save verified system image
+        if: steps.emulator-image.outputs.cache-hit != 'true' && steps.install-image.outcome == 'success'
+        uses: actions/cache/save@v4
+        with:
+          path: ${{ env.ANDROID_HOME }}/system-images/android-36/default/x86_64
+          key: foundation-android36-default-x86_64-v1
       - name: Exercise native launcher interactions
         timeout-minutes: 12
         uses: reactivecircus/android-emulator-runner@v2
@@ -71,6 +79,7 @@ jobs:
           script: |
             adb shell am force-stop com.android.launcher3
             adb shell am start -W -a android.intent.action.MAIN -c android.intent.category.HOME
+            adb shell cmd overlay enable-exclusive --category com.android.internal.systemui.navbar.gestural
             adb shell wm density 280
             adb logcat -c
             adb install -r build/ui-test/app.apk
@@ -78,7 +87,7 @@ jobs:
             timeout 240s adb shell am instrument -w dev.dothome.test/dev.dothome.test.FoundationSmoke > build/ui-test/foundation-result.txt || echo RUNNER_ERROR_OR_TIMEOUT >> build/ui-test/foundation-result.txt
             adb shell screencap -p /sdcard/Download/foundation-last-screen.png
             cat build/ui-test/foundation-result.txt
-            adb logcat -d -s AndroidRuntime DotMigration CustomWidgetManager > build/ui-test/foundation-runtime.txt
+            adb logcat -d -s AndroidRuntime DotMigration CustomWidgetManager DotFoundation LoaderTask LauncherModel > build/ui-test/foundation-runtime.txt
             adb pull /sdcard/Download build/ui-test/foundation-screenshots
             grep -q 'PASS: foundation' build/ui-test/foundation-result.txt
             ! grep -q 'FATAL EXCEPTION' build/ui-test/foundation-runtime.txt

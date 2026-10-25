@@ -33,6 +33,7 @@ edit("build.gradle", 'applicationIdSuffix ".debug"', '// Preserve the installed 
 edit("build.gradle", "versionCode 15_00_02_03_00", "versionCode " + version["versionCode"])
 edit("build.gradle", 'versionName "${versionDisplayName}"', 'versionName "'+version['versionName']+'"')
 edit("build.gradle", "targetSdk 35", "targetSdk 36")
+edit("build.gradle", "minSdk 26", "minSdk 35")
 edit("build.gradle", 'resValue("string", "derived_app_name", "Lawnchair")', 'resValue("string", "derived_app_name", "Dot Home")')
 edit("build.gradle", 'resValue("string", "derived_app_name", "Lawnchair (Debug)")', 'resValue("string", "derived_app_name", "Dot Home")')
 edit("build.gradle", "${applicationId}/app.lawnchair.LawnchairLauncher", "${applicationId}/dev.dothome.HomeActivity")
@@ -125,3 +126,11 @@ for permission in ("android.permission.CAMERA","android.permission.READ_CALENDAR
     ET.SubElement(doc,"uses-permission",{a+"name":permission})
 ET.register_namespace("android",a[1:-1]);ET.register_namespace("tools","http://schemas.android.com/tools")
 tree.write(file,encoding="unicode",xml_declaration=True)
+
+# Provider class names are durable workspace identities and loaded from local XML.
+with (root / 'proguard.pro').open('a') as rules:
+    rules.write('\n-keep class dev.dothome.widgets.DotTiles$* { public <init>(android.content.Context); *; }\n-keep class dev.dothome.widgets.DotTile { *; }\n')
+
+# Providers initialise launcher preferences before Application.onCreate.
+edit("lawnchair/src/app/lawnchair/LawnchairApp.kt", "    override fun onCreate() {", "    override fun attachBaseContext(base: Context) {\n        super.attachBaseContext(base)\n        if (base.getSystemService(android.os.UserManager::class.java)?.isUserUnlocked == true) dev.dothome.DotDefaults.apply(base)\n    }\n\n    override fun onCreate() {")
+edit("proguard.pro", "-keepattributes InnerClasses,", "-keepattributes EnclosingMethod, InnerClasses,")

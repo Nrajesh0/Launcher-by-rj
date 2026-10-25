@@ -18,6 +18,7 @@ object DotWallpaper {
     fun paint(canvas: Canvas, width: Int, height: Int, key: String) {
         val w=width.toFloat(); val h=height.toFloat()
         if(w<=0 || h<=0) return
+        paint.reset(); paint.isAntiAlias=true
         canvas.save(); canvas.clipRect(0f,0f,w,h)
         val dark=key=="optic" || key=="graphite"
         canvas.drawColor(if(dark) 0xff0d171b.toInt() else 0xffc9ccc8.toInt())
@@ -48,7 +49,7 @@ object DotWallpaper {
             paint.shader=RadialGradient(w*.68f,h*.34f,w*.19f,intArrayOf(0x99e68476.toInt(),0x00ba5849),floatArrayOf(0f,1f),Shader.TileMode.CLAMP)
             canvas.drawRect(0f,0f,w,h,paint)
         }
-        paint.style=Paint.Style.FILL
+        paint.style=Paint.Style.FILL; paint.color=Color.WHITE
         paint.shader=BitmapShader(grain,Shader.TileMode.REPEAT,Shader.TileMode.REPEAT)
         canvas.drawRect(0f,0f,w,h,paint)
         paint.shader=null

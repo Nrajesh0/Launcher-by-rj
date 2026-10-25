@@ -95,6 +95,23 @@ public final class FoundationSmoke extends UiSmoke {
     if(screens[0]==0||screens[0]!=screens[1])throw new AssertionError("Batch did not durably move both native items to a new page");
     screenshot("foundation-batch-moved");
   }
+  int widgetCount(View view) {
+    int total=0;Object tag=view.getTag();
+    if(tag!=null && tag.getClass().getName().endsWith("LauncherAppWidgetInfo"))total++;
+    if(view instanceof android.view.ViewGroup group)for(int n=0;n<group.getChildCount();n++)total+=widgetCount(group.getChildAt(n));
+    return total;
+  }
+  String fixtureCounts() {
+    final int[] widgets={0};onUi(()->widgets[0]=widgetCount((View)invoke(home,"getWorkspace")));
+    var prefs=home.getSharedPreferences("com.android.launcher3.prefs",0);
+    StringBuilder output=new StringBuilder("Fixture diagnostics: bound widgets="+widgets[0]+", themed="+prefs.getBoolean("themed_icons",false)+", grid="+prefs.getInt("pref_workspaceColumns",-1)+"x"+prefs.getInt("pref_workspaceRows",-1));
+    int widgetRows=0;
+    for(String name:home.databaseList()) {
+      try(var db=android.database.sqlite.SQLiteDatabase.openDatabase(home.getDatabasePath(name).getPath(),null,android.database.sqlite.SQLiteDatabase.OPEN_READONLY);
+          var rows=db.rawQuery("SELECT count(*) FROM favorites WHERE itemType IN (4,5)",null)) {if(rows.moveToFirst())widgetRows+=rows.getInt(0);}catch(Exception ignored){}
+    }
+    return output+", stored widget rows="+widgetRows+"\n";
+  }
   void homeKey() throws Exception { shell("input keyevent KEYCODE_HOME");SystemClock.sleep(700);onUi(()->{});awaitState("NORMAL"); }
   @Override public void onStart() {
     Bundle result=new Bundle();
@@ -105,7 +122,9 @@ public final class FoundationSmoke extends UiSmoke {
       chooseDefaultHome();homeKey();
       for(int n=0;n<50 && !home.getSharedPreferences("dot-style",0).getBoolean("legacyImported",false);n++)SystemClock.sleep(100);
       if(!home.getSharedPreferences("dot-style",0).getBoolean("legacyImported",false))throw new AssertionError("Native workspace migration/default transaction did not complete");
+      SystemClock.sleep(2000);
       screenshot("foundation-home-light");
+      android.util.Log.i("DotFoundation",fixtureCounts());
       View workspace=(View)invoke(home,"getWorkspace");
       swipe(workspace,.53f,.72f,0,-300,false);awaitState("ALL_APPS");screenshot("foundation-apps");
       View appsView=(View)invoke(home,"getAppsView");
@@ -134,7 +153,7 @@ public final class FoundationSmoke extends UiSmoke {
     } catch(Throwable failure) {
       String diagnostics="";
       try {shell("screencap -p /sdcard/Download/foundation-failure.png");diagnostics=systemTree(getUiAutomation().getRootInActiveWindow(),0);}catch(Throwable ignored){}
-      result.putString("stream","FAIL: "+android.util.Log.getStackTraceString(failure)+diagnostics);finish(Activity.RESULT_CANCELED,result);
+      result.putString("stream","FAIL: "+android.util.Log.getStackTraceString(failure)+diagnostics+fixtureCounts());finish(Activity.RESULT_CANCELED,result);
     }
   }
 }

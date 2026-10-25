@@ -26,7 +26,7 @@ open class DotTile(private val context: Context, val kind: String, val face: Int
         parent.removeAllViews(); parent.setPadding(0,0,0,0)
         parent.addView(Surface(parent.context,parent,this), FrameLayout.LayoutParams(-1,-1))
     }
-    private class Surface(context: Context, private val host: AppWidgetHostView, private val tile: DotTile): FrameLayout(context) {
+    private class Surface(context: Context, private val host: AppWidgetHostView, private val tile: DotTile): FrameLayout(context), TileRefresh.Active {
         private val adapter=TileContext(context)
         private val handler=Handler(Looper.getMainLooper())
         private val sensors=TileSensors(adapter,tile.kind) { invalidateArtwork() }
@@ -64,13 +64,23 @@ open class DotTile(private val context: Context, val kind: String, val face: Int
             post {
                 id=(host.tag as? ItemInfo)?.id?.toLong() ?: -1L
                 item=TileContext.load(context,id,tile.kind,tile.face)
-                adapter.foreground=true; handler.post(refresh)
+                setActive(isShown && hasWindowFocus())
             }
         }
+        override fun setActive(active: Boolean) {
+            val home=TileActions.activity(context) as? com.android.launcher3.Launcher
+            val allowed=active && (home==null || home.isInState(com.android.launcher3.LauncherState.NORMAL) || home.isInState(com.android.launcher3.LauncherState.EDIT_MODE))
+            handler.removeCallbacks(refresh); adapter.foreground=allowed
+            if(allowed && isAttachedToWindow && isShown) {
+                item=TileContext.load(context,id,tile.kind,tile.face); handler.post(refresh)
+            } else sensors.stop()
+        }
+        override fun onVisibilityAggregated(visible: Boolean) { super.onVisibilityAggregated(visible); setActive(visible && hasWindowFocus()) }
+        override fun onWindowFocusChanged(focused: Boolean) { super.onWindowFocusChanged(focused); setActive(focused && isShown) }
         override fun onDetachedFromWindow() { adapter.foreground=false; sensors.stop(); handler.removeCallbacksAndMessages(null); super.onDetachedFromWindow() }
         override fun onWindowVisibilityChanged(visibility: Int) {
-            super.onWindowVisibilityChanged(visibility); adapter.foreground=visibility==VISIBLE
-            handler.removeCallbacks(refresh); if(visibility!=VISIBLE) sensors.stop(); if(visibility==VISIBLE) { item=TileContext.load(context,id,tile.kind,tile.face); handler.post(refresh) }
+            super.onWindowVisibilityChanged(visibility)
+            setActive(visibility==VISIBLE && hasWindowFocus())
         }
     }
 }

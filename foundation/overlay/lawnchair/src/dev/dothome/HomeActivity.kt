@@ -58,6 +58,11 @@ class HomeActivity : LawnchairLauncher() {
 
     override fun onDestroy() { dev.dothome.ui.DotArrange.end(this); super.onDestroy() }
 
+    override fun onStateSetStart(state: com.android.launcher3.LauncherState) {
+        super.onStateSetStart(state)
+        workspace?.let { dev.dothome.widgets.TileRefresh.setActive(it,state==com.android.launcher3.LauncherState.NORMAL || state==com.android.launcher3.LauncherState.EDIT_MODE) }
+    }
+
     override fun onResume() { super.onResume(); updateMaterial() }
 
     override fun onNewIntent(intent: Intent) { super.onNewIntent(intent); setIntent(intent) }

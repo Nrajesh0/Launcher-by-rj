@@ -62,3 +62,6 @@ for name,value in {'styles_wallpaper_button_text':'Customisation','edit_home_scr
     element.text=value
 tree.write(file,encoding='unicode',xml_declaration=True)
 
+
+edit("lawnchair/src/app/lawnchair/ui/popup/LauncherOptionsPopup.kt", 'if (Utilities.existsStyleWallpapers(launcher)) R.string.styles_wallpaper_button_text else R.string.wallpapers', 'R.string.styles_wallpaper_button_text')
+edit("lawnchair/res/values/config.xml", '<bool name="config_default_edit_home_screen_on_popup">false</bool>', '<bool name="config_default_edit_home_screen_on_popup">true</bool>')

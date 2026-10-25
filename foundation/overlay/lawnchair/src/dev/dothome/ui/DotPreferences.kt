@@ -216,6 +216,7 @@ open class DotPreferences : Activity() {
                         val bitmap = DotWallpaper.bitmap(key, 1080, 2400)
                         WallpaperManager.getInstance(this).setBitmap(bitmap, null, true, WallpaperManager.FLAG_SYSTEM)
                         bitmap.recycle()
+                        p2.darkStatusBar.setBlocking(key!="optic" && key!="graphite")
                         style.edit().putString("wallpaper", key).putBoolean("wallpaperApplied", true).apply()
                     }
                     runOnUiThread { Toast.makeText(this, if(result.isSuccess) "Wallpaper applied" else "Wallpaper unavailable", Toast.LENGTH_SHORT).show() }
