@@ -122,15 +122,18 @@ jobs:
           disable-animations: false
           emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -no-snapshot -camera-back none
           script: |
+            adb shell wm size 720x1600
+            adb shell wm density 280
             adb install -r build/ui-test/app.apk
             adb install -r build/ui-test/tests.apk
             adb shell cmd package set-home-activity dev.dothome/.HomeActivity
             adb shell am force-stop com.android.launcher3
-            adb shell screenrecord --time-limit 25 --bit-rate 2000000 /sdcard/Download/ui-motion.mp4 & recording_pid=$!; adb shell am instrument -w dev.dothome.test/dev.dothome.test.UiSmoke > build/ui-test/result.txt; wait "$recording_pid" || true
+            adb shell screenrecord --time-limit 25 --bit-rate 2000000 /sdcard/Download/ui-motion.mp4 & recording_pid=$!; timeout 150s adb shell am instrument -w dev.dothome.test/dev.dothome.test.UiSmoke > build/ui-test/result.txt || echo RUNNER_ERROR_OR_TIMEOUT >> build/ui-test/result.txt; wait "$recording_pid" || true
             cat build/ui-test/result.txt
             adb logcat -d -s AndroidRuntime > build/ui-test/runtime.txt
             adb pull /sdcard/Download build/ui-test/screenshots
             grep -q 'PASS: home' build/ui-test/result.txt
+            ! grep -q RUNNER_ERROR_OR_TIMEOUT build/ui-test/result.txt
             ! grep -q 'FATAL EXCEPTION' build/ui-test/runtime.txt
       - uses: actions/upload-artifact@v4
         if: always()
