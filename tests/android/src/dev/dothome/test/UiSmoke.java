@@ -206,6 +206,24 @@ public class UiSmoke extends Instrumentation {
       throw new AssertionError("System error dialog covers the launcher");
   }
 
+  String systemTree(android.view.accessibility.AccessibilityNodeInfo node, int depth) {
+    if (node == null || depth > 15) return "";
+    android.graphics.Rect bounds = new android.graphics.Rect();
+    node.getBoundsInScreen(bounds);
+    StringBuilder text = new StringBuilder();
+    text.append(node.getPackageName())
+        .append(" ")
+        .append(node.getClassName())
+        .append(" text=")
+        .append(node.getText())
+        .append(" bounds=")
+        .append(bounds)
+        .append("\n");
+    for (int n = 0; n < node.getChildCount() && text.length() < 12000; n++)
+      text.append(systemTree(node.getChild(n), depth + 1));
+    return text.toString();
+  }
+
   boolean awaitFocus(boolean expected) {
     final boolean[] value = {false};
     for (int n = 0; n < 50; n++) {
@@ -269,6 +287,10 @@ public class UiSmoke extends Instrumentation {
   public void onStart() {
     Bundle result = new Bundle();
     try {
+      // Connect before the app opens a system dialog so its window events are
+      // observed from the start, rather than attaching halfway through setup.
+      getUiAutomation(UiAutomation.FLAG_DONT_SUPPRESS_ACCESSIBILITY_SERVICES);
+      assertNoSystemError();
       home =
           startActivitySync(
               new Intent()
@@ -468,7 +490,18 @@ public class UiSmoke extends Instrumentation {
               + " permission.\n");
       finish(Activity.RESULT_OK, result);
     } catch (Throwable error) {
-      result.putString("stream", "FAIL: " + android.util.Log.getStackTraceString(error));
+      String diagnostics = "";
+      try {
+        shell("screencap -p /sdcard/Download/failure.png");
+        diagnostics =
+            systemTree(
+                getUiAutomation(UiAutomation.FLAG_DONT_SUPPRESS_ACCESSIBILITY_SERVICES)
+                    .getRootInActiveWindow(),
+                0);
+      } catch (Throwable ignored) {
+      }
+      result.putString(
+          "stream", "FAIL: " + android.util.Log.getStackTraceString(error) + diagnostics);
       finish(Activity.RESULT_CANCELED, result);
     }
   }
