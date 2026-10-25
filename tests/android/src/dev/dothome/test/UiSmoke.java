@@ -235,10 +235,6 @@ public class UiSmoke extends Instrumentation {
             }
           });
       screenshot("home-light");
-      shell(
-          "cmd overlay enable-exclusive --category"
-              + " com.android.internal.systemui.navbar.threebutton");
-      SystemClock.sleep(800);
 
       onUi(
           () ->
