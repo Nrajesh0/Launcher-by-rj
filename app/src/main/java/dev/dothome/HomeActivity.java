@@ -125,6 +125,12 @@ public class HomeActivity extends Activity implements SensorEventListener {
     fg = Color.parseColor(dark() ? "#F1EEE8" : "#191919");
     card = Color.parseColor(dark() ? "#252525" : "#DCD8D0");
     muted = Color.parseColor(dark() ? "#A8A59E" : "#625F59");
+    int bars =
+        WindowInsetsController.APPEARANCE_LIGHT_STATUS_BARS
+            | WindowInsetsController.APPEARANCE_LIGHT_NAVIGATION_BARS;
+    WindowInsetsController controller = getWindow().getInsetsController();
+    if (controller != null) controller.setSystemBarsAppearance(dark() ? 0 : bars, bars);
+    getWindow().setNavigationBarContrastEnforced(false);
   }
 
   @Override
@@ -315,25 +321,38 @@ public class HomeActivity extends Activity implements SensorEventListener {
     items = new JSONArray();
     settings = new JSONObject();
     dock = new JSONArray();
-    put(settings, "wallpaperPreset", "ocean");
+    put(settings, "wallpaperPreset", "mist");
+    put(settings, "dark", false);
+    put(settings, "rows", 7);
     put(settings, "labels", false);
     referenceItems(0);
   }
 
   void referenceItems(int targetPage) {
-    String[] types = {"clock", "date", "breathing", "photo", "torch", "battery"};
-    int[][] cells = {
-      {0, 0, 2, 2}, {2, 0, 2, 1}, {2, 3, 2, 2}, {0, 3, 1, 1}, {1, 3, 1, 1}, {0, 4, 2, 1}
+    String[] types = {
+      "clock", "photo", "bluetooth", "dnd", "timer", "photo", "torch", "battery", "breathing"
     };
+    int[][] cells = {
+      {0, 0, 2, 2},
+      {2, 0, 2, 2},
+      {0, 2, 1, 1},
+      {1, 2, 1, 1},
+      {2, 4, 2, 1},
+      {0, 5, 1, 1},
+      {1, 5, 1, 1},
+      {0, 6, 2, 1},
+      {2, 5, 2, 2}
+    };
+    int offset = Math.max(0, 7 - (ui == null ? settings.optInt("rows", 7) : ui.rows()));
     for (int n = 0; n < types.length; n++) {
       JSONObject x = obj(types[n]);
       put(x, "page", targetPage);
       put(x, "x", cells[n][0]);
-      put(x, "y", cells[n][1]);
+      put(x, "y", Math.max(0, cells[n][1] - (cells[n][1] >= 4 ? offset : 0)));
       put(x, "w", cells[n][2]);
       put(x, "h", cells[n][3]);
-      put(x, "style", n == 0 ? 1 : n == 1 ? 2 : n == 5 ? 1 : 0);
-      put(x, "opacity", 85);
+      put(x, "style", n == 0 ? 1 : n == 1 ? 2 : n == 7 ? 2 : 0);
+      put(x, "opacity", 86);
       items.put(x);
     }
   }
@@ -493,6 +512,9 @@ public class HomeActivity extends Activity implements SensorEventListener {
       icons.put(a.key, d);
     }
     if (settings.optBoolean("mono", true)) {
+      String basic = AppIconArtwork.kind(a.component.getPackageName());
+      if (basic != null && settings.optString("iconPack", "").isEmpty())
+        return new AppIconArtwork(basic, dark());
       if (d instanceof AdaptiveIconDrawable) {
         Drawable mono = ((AdaptiveIconDrawable) d).getMonochrome();
         if (mono != null) {
@@ -973,10 +995,7 @@ public class HomeActivity extends Activity implements SensorEventListener {
     tile.removeAllViews();
     String type = x.optString("type");
     if ((!type.equals("media") && !type.equals("photo"))
-        || (type.equals("photo")
-            && x.optString("uri").isEmpty()
-            && x.optInt("w", 1) == 1
-            && x.optInt("h", 1) == 1)) {
+        || (type.equals("photo") && x.optString("uri").isEmpty())) {
       tile.setPadding(0, 0, 0, 0);
       tile.setBackgroundColor(Color.TRANSPARENT);
       WidgetArtwork art = new WidgetArtwork(this, x, false);
@@ -1117,6 +1136,18 @@ public class HomeActivity extends Activity implements SensorEventListener {
 
   void tileAction(JSONObject x) {
     switch (x.optString("type")) {
+      case "timer":
+        long started = x.optLong("timerStart");
+        if (started > 0) {
+          put(
+              x,
+              "elapsed",
+              x.optLong("elapsed") + Math.max(0, System.currentTimeMillis() - started));
+          x.remove("timerStart");
+        } else put(x, "timerStart", System.currentTimeMillis());
+        save();
+        render();
+        break;
       case "notes":
         input(
             "Edit note",

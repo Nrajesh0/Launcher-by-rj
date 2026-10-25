@@ -136,10 +136,29 @@ final class LauncherUi {
     a.root.addView(dots, new LinearLayout.LayoutParams(-1, d(26)));
     hotseat = new LinearLayout(a);
     hotseat.setGravity(Gravity.CENTER);
-    a.root.addView(hotseat, new LinearLayout.LayoutParams(-1, d(60)));
-    TextView search = button("⌕   Search apps", () -> drawer(null));
+    a.root.addView(hotseat, new LinearLayout.LayoutParams(-1, d(80)));
+    FrameLayout search = new FrameLayout(a);
+    search.addView(button("Search", () -> drawer(null)), new FrameLayout.LayoutParams(-1, -1));
+    View lens =
+        new View(a) {
+          final Paint paint = new Paint(3);
+
+          @Override
+          protected void onDraw(Canvas canvas) {
+            paint.setColor(a.fg);
+            paint.setStyle(Paint.Style.STROKE);
+            paint.setStrokeWidth(d(1.5f));
+            canvas.drawCircle(d(8), d(8), d(5), paint);
+            canvas.drawLine(d(12), d(12), d(17), d(17), paint);
+          }
+        };
+    FrameLayout.LayoutParams lensPosition =
+        new FrameLayout.LayoutParams(d(22), d(22), Gravity.START | Gravity.CENTER_VERTICAL);
+    lensPosition.leftMargin = d(18);
+    search.addView(lens, lensPosition);
+    a.click(search, () -> drawer(null));
     search.setContentDescription("Search apps");
-    LinearLayout.LayoutParams sp = new LinearLayout.LayoutParams(-1, d(48));
+    LinearLayout.LayoutParams sp = new LinearLayout.LayoutParams(-1, d(50));
     sp.setMargins(d(4), d(6), d(4), d(12));
     a.root.addView(search, sp);
     dragBar = button("Remove from Home", () -> {});
@@ -220,7 +239,7 @@ final class LauncherUi {
           });
       FrameLayout slotView = new FrameLayout(a);
       FrameLayout.LayoutParams iconSize =
-          new FrameLayout.LayoutParams(d(52), d(52), Gravity.CENTER);
+          new FrameLayout.LayoutParams(d(68), d(68), Gravity.CENTER);
       slotView.addView(v, iconSize);
       if (app == null) {
         v.setBackground(a.shape(a.card, 100));
@@ -998,7 +1017,8 @@ final class LauncherUi {
     "bluetooth",
     "sound",
     "dnd",
-    "breathing"
+    "breathing",
+    "timer"
   };
   final String[] names = {
     "Clock",
@@ -1015,7 +1035,8 @@ final class LauncherUi {
     "Bluetooth",
     "Sound",
     "Do Not Disturb",
-    "Breathing"
+    "Breathing",
+    "Elapsed timer"
   };
 
   void widgetPicker() {

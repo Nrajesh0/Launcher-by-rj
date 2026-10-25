@@ -3,56 +3,83 @@ package dev.dothome;
 import android.graphics.*;
 import android.graphics.drawable.Drawable;
 
-/** Original local gradients; no remote images or reference-photo assets. */
+/** Original static opalescent gradients, rendered locally without image downloads. */
 final class WallpaperArtwork extends Drawable {
   final String preset;
-  final Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
+  final Paint p = new Paint(3);
 
   WallpaperArtwork(String preset) {
     this.preset = preset;
   }
 
+  void glow(Canvas c, float x, float y, float radius, int color, float w, float h) {
+    p.setShader(
+        new RadialGradient(
+            x,
+            y,
+            radius,
+            new int[] {color, color & 0x00ffffff},
+            new float[] {0, 1},
+            Shader.TileMode.CLAMP));
+    c.drawRect(0, 0, w, h, p);
+  }
+
   @Override
-  public void draw(Canvas canvas) {
+  public void draw(Canvas c) {
     Rect b = getBounds();
+    c.save();
+    c.translate(b.left, b.top);
     float w = b.width(), h = b.height();
-    boolean mist = preset.equals("mist");
-    paint.setShader(
+    boolean light = preset.equals("mist");
+    c.drawColor(light ? 0xffc4ccc2 : 0xff10242b);
+    if (light) {
+      glow(c, -w * .1f, h * .03f, w * .9f, 0xcc9bd4b8, w, h);
+      glow(c, w * .8f, h * .12f, w * .62f, 0x99b8a2d5, w, h);
+      glow(c, w * .85f, h * .43f, w * .8f, 0xaab5ce91, w, h);
+      glow(c, w * .06f, h * .48f, w * .85f, 0x99c1afd5, w, h);
+      glow(c, w * .75f, h * .72f, w * .7f, 0x77d3bed8, w, h);
+      glow(c, w * .1f, h * .93f, w * .8f, 0xbbafcba8, w, h);
+    } else {
+      glow(c, w * .05f, h * .25f, w * 1.15f, 0xbb355968, w, h);
+      glow(c, w * .95f, h * .68f, w * .8f, 0x883e7273, w, h);
+      glow(c, w * .4f, h * .9f, w * .7f, 0x99243c4d, w, h);
+    }
+    Path curve = new Path();
+    curve.moveTo(w * 1.2f, h * .08f);
+    curve.cubicTo(-w * .5f, h * .22f, w * 1.8f, h * .55f, -w * .2f, h * .83f);
+    p.setShader(
         new LinearGradient(
             0,
             0,
             w,
             h,
-            mist
-                ? new int[] {0xffaebdc2, 0xffc4ccbe, 0xffb8b3c7}
-                : new int[] {0xff152832, 0xff1d4d59, 0xff0a1621},
+            new int[] {0x00ffffff, light ? 0x33ffffff : 0x163cabb2, 0x00ffffff},
             null,
             Shader.TileMode.CLAMP));
-    canvas.drawRect(b, paint);
-    paint.setShader(
-        new RadialGradient(
-            w * .1f,
-            h * .35f,
-            w * .95f,
-            mist ? new int[] {0x88dce8df, 0x00dce8df} : new int[] {0x885c9ba0, 0x005c9ba0},
+    p.setStyle(Paint.Style.STROKE);
+    p.setStrokeWidth(w * .25f);
+    c.drawPath(curve, p);
+    p.setStrokeWidth(w * .02f);
+    p.setShader(
+        new LinearGradient(
+            0,
+            0,
+            w,
+            h,
+            new int[] {0x00ffffff, light ? 0x44ffffff : 0x225ca7af, 0x00ffffff},
             null,
             Shader.TileMode.CLAMP));
-    canvas.drawRect(b, paint);
-    paint.setShader(null);
-    paint.setColor(mist ? 0x16435f69 : 0x163b91a6);
-    canvas.drawCircle(w * .9f, h * .72f, w * .8f, paint);
-    paint.setStyle(Paint.Style.STROKE);
-    paint.setStrokeWidth(1);
-    paint.setColor(mist ? 0x2284939a : 0x335b9eab);
-    canvas.drawCircle(w * .9f, h * .72f, w * .8f, paint);
-    paint.setStyle(Paint.Style.FILL);
+    c.drawPath(curve, p);
+    p.setShader(null);
+    p.setStyle(Paint.Style.FILL);
+    c.restore();
   }
 
   @Override
   public void setAlpha(int alpha) {}
 
   @Override
-  public void setColorFilter(ColorFilter filter) {}
+  public void setColorFilter(ColorFilter colorFilter) {}
 
   @Override
   public int getOpacity() {

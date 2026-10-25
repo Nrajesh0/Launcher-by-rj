@@ -48,12 +48,16 @@ final class WidgetArtwork extends View {
     h = getHeight();
     u = Math.min(w, h);
     int style = item.optInt("style");
-    boolean inverted = style == 1;
-    paper = inverted ? a.fg : a.card;
-    ink = inverted ? a.bg : a.fg;
-    secondary = inverted ? a.bg : a.muted;
-    if (style == 2) paper = a.dark() ? 0x99181818 : 0x99e2ded6;
     String type = item.optString("type");
+    boolean inverted = style == 1 && !type.equals("clock") && !type.equals("battery");
+    paper = a.dark() ? 0xff202120 : 0xfff0f2eb;
+    ink = a.dark() ? 0xfff0f0e9 : 0xff151813;
+    secondary = a.dark() ? 0xffb8bbb0 : 0xff66705f;
+    if (inverted) {
+      paper = a.dark() ? 0xfff0f2eb : 0xff202120;
+      ink = a.dark() ? 0xff151813 : 0xfff0f0e9;
+      secondary = ink;
+    }
     int tone = item.optInt("tone");
     if (tone > 0) {
       paper = new int[] {a.card, 0xffeeeede, 0xff181a1c, 0xffb7ca9c, 0xffcc292d}[Math.min(4, tone)];
@@ -73,8 +77,13 @@ final class WidgetArtwork extends View {
     p.setColor(paper);
     r.set(0, 0, w, h);
     if (control || (type.equals("clock") && (style == 1 || style == 3)))
-      c.drawCircle(w / 2, h / 2, u * .49f, p);
-    else c.drawRoundRect(r, a.dp(22), a.dp(22), p);
+      c.drawCircle(w / 2, h / 2, u * (control ? .44f : .46f), p);
+    else if (!(type.equals("photo") && style == 2))
+      c.drawRoundRect(
+          r,
+          type.equals("battery") && h < w * .65f ? h / 2 : a.dp(19),
+          type.equals("battery") && h < w * .65f ? h / 2 : a.dp(19),
+          p);
     float pad = Math.min(a.dp(18), w * .12f), size = Math.min(a.dp(15), u * .16f);
     Date now = preview ? new GregorianCalendar(2026, 9, 25, 10, 8).getTime() : new Date();
     switch (type) {
@@ -106,7 +115,7 @@ final class WidgetArtwork extends View {
               radius * .43f,
               (time.get(Calendar.HOUR) % 12 + time.get(Calendar.MINUTE) / 60f) * 30,
               ink,
-              style == 1 ? u * .10f : a.dp(2.5f));
+              style == 1 ? u * .075f : a.dp(2.5f));
           hand(
               c,
               centerX,
@@ -114,7 +123,7 @@ final class WidgetArtwork extends View {
               radius * .72f,
               time.get(Calendar.MINUTE) * 6,
               ink,
-              style == 1 ? u * .025f : a.dp(1.5f));
+              style == 1 ? u * .018f : a.dp(1.5f));
           if (style == 3)
             hand(
                 c,
@@ -181,7 +190,56 @@ final class WidgetArtwork extends View {
             ink,
             true);
         break;
+      case "timer":
+        long elapsed =
+            item.optLong("elapsed")
+                + (item.optLong("timerStart") > 0
+                    ? Math.max(0, System.currentTimeMillis() - item.optLong("timerStart"))
+                    : 0);
+        long minutes = elapsed / 60000;
+        String duration = (minutes >= 60 ? minutes / 60 + "h " : "") + minutes % 60 + "m";
+        serif(c, duration, pad, h * .48f, Math.min(w * .14f, h * .32f), ink);
+        text(
+            c,
+            item.optLong("timerStart") > 0 ? "Running" : "Timer",
+            pad,
+            h * .78f,
+            Math.min(a.dp(10), h * .15f),
+            secondary,
+            false);
+        p.setColor(0xff819665);
+        p.setStrokeWidth(a.dp(1));
+        p.setStyle(Paint.Style.STROKE);
+        float sunX = w - pad * 1.3f, sunY = h * .35f;
+        c.drawCircle(sunX, sunY, a.dp(3), p);
+        for (int n = 0; n < 8; n++) {
+          double angle = n * Math.PI / 4;
+          c.drawLine(
+              sunX + (float) Math.cos(angle) * a.dp(5),
+              sunY + (float) Math.sin(angle) * a.dp(5),
+              sunX + (float) Math.cos(angle) * a.dp(7),
+              sunY + (float) Math.sin(angle) * a.dp(7),
+              p);
+        }
+        p.setStyle(Paint.Style.FILL);
+        break;
       case "battery":
+        if (style == 2) {
+          float percentValue = preview ? 76 : a.battery;
+          int columns = 18, rows = 4;
+          float step = Math.min((w - pad * 2) / columns, (h - pad * 2) / rows);
+          float left = (w - step * columns) / 2, top = (h - step * rows) / 2;
+          for (int row = 0; row < rows; row++)
+            for (int col = 0; col < columns; col++) {
+              boolean full = col * 100f / columns < percentValue;
+              p.setColor(
+                  full
+                      ? (percentValue <= 20 ? a.accent : ink)
+                      : (a.dark() ? 0xff55564e : 0xffb5bdad));
+              c.drawCircle(left + (col + .5f) * step, top + (row + .5f) * step, step * .34f, p);
+            }
+          break;
+        }
         float percent = preview ? 76 : a.battery;
         float cx = w * .3f, cy = h * .52f, rr = Math.min(w * .2f, h * .29f);
         p.setStyle(Paint.Style.STROKE);
@@ -211,6 +269,10 @@ final class WidgetArtwork extends View {
               true);
         break;
       case "photo":
+        if (style == 2) {
+          car(c);
+          break;
+        }
         if (control) {
           drawControl(c, "photo", w / 2, h / 2, u * .24f, ink);
           break;
@@ -259,7 +321,7 @@ final class WidgetArtwork extends View {
             preview || a.settings.optBoolean("reduceMotion", false)
                 ? .5f
                 : (float) ((Math.sin(System.currentTimeMillis() / 2600.0) + 1) / 2);
-        text(c, "Focus", pad, pad + size * .45f, Math.min(size, a.dp(11)), secondary, false);
+        text(c, "Focus", pad, pad + size * .45f, Math.min(size, a.dp(10)), secondary, false);
         p.setColor(ink);
         p.setStyle(Paint.Style.STROKE);
         p.setStrokeWidth(a.dp(.8f));
@@ -274,15 +336,6 @@ final class WidgetArtwork extends View {
           c.drawOval(r, p);
         }
         p.setStyle(Paint.Style.FILL);
-        if (!preview)
-          text(
-              c,
-              progress > .5 ? "Breathe in" : "Breathe out",
-              pad,
-              h - pad,
-              Math.min(size, a.dp(10)),
-              secondary,
-              false);
         break;
       case "torch":
       case "bluetooth":
@@ -352,6 +405,88 @@ final class WidgetArtwork extends View {
           type.equals("breathing") && !a.settings.optBoolean("reduceMotion", false)
               ? 40
               : type.equals("compass") ? 120 : 1000);
+  }
+
+  void car(Canvas c) {
+    c.save();
+    float scale = Math.min(w / 220f, h / 145f);
+    c.translate((w - 220 * scale) / 2, (h - 145 * scale) / 2);
+    c.scale(scale, scale);
+    Paint q = new Paint(3);
+    Path car = new Path();
+    car.moveTo(17, 82);
+    car.lineTo(24, 52);
+    car.quadTo(27, 41, 42, 39);
+    car.lineTo(119, 39);
+    car.quadTo(131, 39, 142, 58);
+    car.lineTo(178, 63);
+    car.quadTo(191, 66, 196, 85);
+    car.lineTo(205, 87);
+    car.lineTo(202, 105);
+    car.lineTo(18, 105);
+    car.close();
+    q.setColor(0xfff5f5ed);
+    q.setStyle(Paint.Style.STROKE);
+    q.setStrokeWidth(8);
+    q.setStrokeJoin(Paint.Join.ROUND);
+    c.drawPath(car, q);
+    c.drawCircle(57, 104, 25, q);
+    c.drawCircle(165, 104, 25, q);
+    q.setStyle(Paint.Style.FILL);
+    q.setColor(0xff566d48);
+    c.drawPath(car, q);
+    q.setShader(
+        new LinearGradient(
+            0,
+            39,
+            0,
+            107,
+            new int[] {0xffb5ca92, 0xff7c9761, 0xff4b6240},
+            null,
+            Shader.TileMode.CLAMP));
+    c.drawPath(car, q);
+    q.setShader(null);
+    q.setColor(0xff1d2c23);
+    Path windows = new Path();
+    windows.moveTo(40, 48);
+    windows.lineTo(117, 48);
+    windows.quadTo(124, 50, 131, 64);
+    windows.lineTo(35, 64);
+    windows.close();
+    c.drawPath(windows, q);
+    q.setColor(0xff53634e);
+    c.drawRect(67, 48, 72, 65, q);
+    c.drawRect(96, 48, 101, 65, q);
+    q.setColor(0xffbbccaa);
+    c.drawRect(37, 68, 178, 70, q);
+    q.setColor(0xff3c5038);
+    q.setStrokeWidth(1.3f);
+    c.drawLine(73, 66, 73, 99, q);
+    c.drawLine(130, 66, 130, 99, q);
+    c.drawLine(31, 91, 188, 91, q);
+    q.setColor(0xff1a211b);
+    c.drawRect(115, 73, 122, 76, q);
+    c.drawRect(61, 73, 68, 76, q);
+    q.setColor(0xffd6ddc2);
+    c.drawRoundRect(new RectF(185, 76, 197, 84), 2, 2, q);
+    q.setColor(0xffb35944);
+    c.drawRect(23, 77, 28, 88, q);
+    q.setColor(0xff36422f);
+    c.drawRect(18, 97, 203, 103, q);
+    for (float wheel : new float[] {57, 165}) {
+      q.setColor(0xff252a23);
+      c.drawCircle(wheel, 104, 22, q);
+      q.setColor(0xff718564);
+      c.drawCircle(wheel, 104, 14, q);
+      q.setColor(0xffa7b297);
+      c.drawCircle(wheel, 104, 6, q);
+      q.setColor(0xff394331);
+      q.setStyle(Paint.Style.STROKE);
+      q.setStrokeWidth(2);
+      c.drawCircle(wheel, 104, 18, q);
+      q.setStyle(Paint.Style.FILL);
+    }
+    c.restore();
   }
 
   void serif(Canvas c, String value, float x, float y, float size, int color) {

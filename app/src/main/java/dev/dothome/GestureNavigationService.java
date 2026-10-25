@@ -12,6 +12,15 @@ import java.util.*;
 public final class GestureNavigationService extends AccessibilityService {
   static volatile GestureNavigationService active;
   WindowManager windows;
+  int lastGlobalAction = -1;
+  boolean lastActionSucceeded;
+  final int[] edgeTouches = new int[3];
+
+  void action(int action) {
+    lastGlobalAction = action;
+    lastActionSucceeded = performGlobalAction(action);
+  }
+
   final ArrayList<View> edges = new ArrayList<>();
   final Handler handler = new Handler(Looper.getMainLooper());
 
@@ -125,7 +134,7 @@ public final class GestureNavigationService extends AccessibilityService {
         () -> {
           if (touching) {
             recent = true;
-            performGlobalAction(GLOBAL_ACTION_RECENTS);
+            action(GLOBAL_ACTION_RECENTS);
             performHapticFeedback(HapticFeedbackConstants.LONG_PRESS);
           }
         };
@@ -157,6 +166,7 @@ public final class GestureNavigationService extends AccessibilityService {
     public boolean onTouchEvent(android.view.MotionEvent e) {
       switch (e.getAction()) {
         case MotionEvent.ACTION_DOWN:
+          edgeTouches[kind]++;
           startX = e.getRawX();
           startY = e.getRawY();
           recent = false;
@@ -174,9 +184,9 @@ public final class GestureNavigationService extends AccessibilityService {
           handler.removeCallbacks(hold);
           float dx = e.getRawX() - startX, dy = e.getRawY() - startY;
           if (kind == 0) {
-            if (!recent && dy < -dp(30)) performGlobalAction(GLOBAL_ACTION_HOME);
+            if (!recent && dy < -dp(30)) action(GLOBAL_ACTION_HOME);
           } else if ((kind == 1 && dx > dp(32)) || (kind == 2 && dx < -dp(32)))
-            performGlobalAction(GLOBAL_ACTION_BACK);
+            action(GLOBAL_ACTION_BACK);
           return true;
         case MotionEvent.ACTION_CANCEL:
           touching = false;

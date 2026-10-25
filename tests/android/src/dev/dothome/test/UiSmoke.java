@@ -78,6 +78,27 @@ public class UiSmoke extends Instrumentation {
     }
   }
 
+  boolean awaitFocus(boolean expected) {
+    final boolean[] value = {false};
+    for (int n = 0; n < 50; n++) {
+      runOnMainSync(() -> value[0] = home.hasWindowFocus());
+      if (value[0] == expected) return true;
+      SystemClock.sleep(100);
+    }
+    return false;
+  }
+
+  String navigationDiagnostic(Object connected) {
+    return " action="
+        + field(connected, "lastGlobalAction")
+        + " result="
+        + field(connected, "lastActionSucceeded")
+        + " touches="
+        + java.util.Arrays.toString((int[]) field(connected, "edgeTouches"))
+        + " destroyed="
+        + home.isDestroyed();
+  }
+
   void bottomSwipe(Object service, boolean hold) throws Exception {
     final int[] location = new int[2];
     final int[] size = new int[2];
@@ -259,21 +280,21 @@ public class UiSmoke extends Instrumentation {
       SystemClock.sleep(700);
       bottomSwipe(connected, false);
       screenshot("gesture-home");
-      onUi(
-          () -> {
-            if (!home.hasWindowFocus())
-              throw new AssertionError("Home swipe did not return to launcher");
-          });
+      if (!awaitFocus(true))
+        throw new AssertionError(
+            "Home swipe did not return to launcher" + navigationDiagnostic(connected));
       bottomSwipe(connected, true);
       screenshot("gesture-recents");
-      onUi(
-          () -> {
-            if (home.hasWindowFocus())
-              throw new AssertionError("Hold gesture did not open Recents");
-          });
+      if (!awaitFocus(false))
+        throw new AssertionError(
+            "Hold gesture did not open Recents" + navigationDiagnostic(connected));
       bottomSwipe(connected, false);
       shell("settings put secure enabled_accessibility_services null");
       shell("settings put secure accessibility_enabled 0");
+      shell(
+          "cmd overlay enable-exclusive --category com.android.internal.systemui.navbar.gestural");
+      SystemClock.sleep(800);
+      screenshot("home-gesture-mode");
       result.putString(
           "stream",
           "PASS: home, integrated drawer, visual picker, style gallery, customisation, overview,"

@@ -38,6 +38,7 @@ public final class LayoutValidator {
                 "usage",
                 "controls",
                 "breathing",
+                "timer",
                 "torch",
                 "bluetooth",
                 "sound",
