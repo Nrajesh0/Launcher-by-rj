@@ -1,3 +1,13 @@
+**Update for Dot Home 2.0.0**
+
+The audit below records v1.1.0 and remains the reference for the requested rebuild. Version 2 now implements explicit cell coordinates/migration, preserved empty space, dragging/drop previews/collision checks/edge paging, dynamic pages, a stable launcher root, integrated drawer and sheet motion, folder origin transitions and drag-in/out, cover choices, a unified searchable widget gallery, shared preview/live artwork, clock faces, breathing and individual controls, media artwork/callbacks, photo crop positioning, responsive enlarged icons, visual grid/theme settings and optional notification dots.
+
+Android providers use their minimum/default cell footprint and declared resize axes/bounds; provider-specific interaction still needs device testing. Optional Accessibility edge actions provide Back/Home/Recents without ADB or root. The firmware's ability to hide three buttons remains unverified on the POCO.
+
+The implementation remains an independent custom launcher. Exact original geometry/motion, proprietary artwork, Smart Drawer algorithms, swipeable widget stacks and physical-device integration have not been established. The original audit's reference-capture/device acceptance gate is still open; do not interpret this rebuild as an exact Nothing OS reproduction. Automated Android 16 UI evidence and final source-run provenance accompany the release.
+
+---
+
 **Nothing Launcher comparison — Dot Home 1.1.0**
 
 Audit date: 25 October 2026. Target phone: POCO X6 Pro / HyperOS 3 / Android 16. The app must remain offline, with no Internet permission or online option.

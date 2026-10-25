@@ -296,12 +296,25 @@ public class HomeActivity extends Activity implements SensorEventListener {
     items = new JSONArray();
     settings = new JSONObject();
     dock = new JSONArray();
-    String[] types = {"clock", "date", "battery", "notes"};
-    for (String t : types) {
-      JSONObject x = obj(t);
-      put(x, "w", t.equals("clock") ? 4 : 2);
-      put(x, "h", t.equals("clock") ? 2 : 1);
-      if (t.equals("notes")) put(x, "text", "Make room for what matters.");
+    put(settings, "wallpaperPreset", "ocean");
+    put(settings, "labels", false);
+    referenceItems(0);
+  }
+
+  void referenceItems(int targetPage) {
+    String[] types = {"clock", "date", "breathing", "photo", "torch", "battery"};
+    int[][] cells = {
+      {0, 0, 2, 2}, {2, 0, 2, 1}, {2, 3, 2, 2}, {0, 3, 1, 1}, {1, 3, 1, 1}, {0, 4, 2, 1}
+    };
+    for (int n = 0; n < types.length; n++) {
+      JSONObject x = obj(types[n]);
+      put(x, "page", targetPage);
+      put(x, "x", cells[n][0]);
+      put(x, "y", cells[n][1]);
+      put(x, "w", cells[n][2]);
+      put(x, "h", cells[n][3]);
+      put(x, "style", n == 0 ? 1 : n == 1 ? 2 : n == 5 ? 1 : 0);
+      put(x, "opacity", 85);
       items.put(x);
     }
   }
@@ -360,6 +373,42 @@ public class HomeActivity extends Activity implements SensorEventListener {
                 apps.clear();
                 apps.addAll(result);
                 icons.clear();
+                if (!settings.optBoolean("dockInitialised", false)) {
+                  String[] categories = {
+                    Intent.CATEGORY_APP_CONTACTS,
+                    Intent.CATEGORY_APP_MESSAGING,
+                    "camera",
+                    Intent.CATEGORY_APP_BROWSER
+                  };
+                  for (int slot = 0; slot < 4; slot++) {
+                    Intent intent =
+                        slot == 0
+                            ? new Intent(Intent.ACTION_DIAL)
+                            : slot == 2
+                                ? new Intent(
+                                    android.provider.MediaStore.INTENT_ACTION_STILL_IMAGE_CAMERA)
+                                : new Intent(Intent.ACTION_MAIN).addCategory(categories[slot]);
+                    android.content.pm.ResolveInfo resolved =
+                        getPackageManager()
+                            .resolveActivity(intent, PackageManager.MATCH_DEFAULT_ONLY);
+                    App chosen = null;
+                    if (resolved != null && resolved.activityInfo != null)
+                      for (App app : apps)
+                        if (app.component
+                            .getPackageName()
+                            .equals(resolved.activityInfo.packageName)) {
+                          chosen = app;
+                          break;
+                        }
+                    if (chosen != null && dock.optString(slot, "").isEmpty())
+                      try {
+                        dock.put(slot, chosen.key);
+                      } catch (Exception ignored) {
+                      }
+                  }
+                  put(settings, "dockInitialised", true);
+                  save();
+                }
                 render();
               });
         });
@@ -443,6 +492,14 @@ public class HomeActivity extends Activity implements SensorEventListener {
       ColorMatrix cm = new ColorMatrix();
       cm.setSaturation(0);
       d.setColorFilter(new ColorMatrixColorFilter(cm));
+      Bitmap bitmap = Bitmap.createBitmap(dp(64), dp(64), Bitmap.Config.ARGB_8888);
+      Canvas canvas = new Canvas(bitmap);
+      Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
+      paint.setColor(fg);
+      canvas.drawCircle(dp(32), dp(32), dp(30), paint);
+      d.setBounds(dp(14), dp(14), dp(50), dp(50));
+      d.draw(canvas);
+      return new android.graphics.drawable.BitmapDrawable(getResources(), bitmap);
     } else d.clearColorFilter();
     return d;
   }
@@ -588,6 +645,24 @@ public class HomeActivity extends Activity implements SensorEventListener {
       setMeasuredDimension(width, height);
       for (int i = 0; i < getChildCount(); i++) {
         JSONObject x = visible.get(i);
+        View child = getChildAt(i);
+        int itemWidth = Math.max(1, x.optInt("w", 1) * width / cols() - dp(10));
+        int itemHeight = Math.max(1, x.optInt("h", 1) * height / ui.rows() - dp(10));
+        if (x.optString("type").equals("app") && child instanceof LinearLayout) {
+          LinearLayout iconBox = (LinearLayout) child;
+          if (iconBox.getChildAt(0) instanceof FrameLayout) {
+            int labelHeight = iconBox.getChildCount() > 1 ? dp(22) : 0;
+            int iconSize =
+                x.optInt("w", 1) > 1 && x.optInt("h", 1) > 1
+                    ? (int) Math.min(itemWidth * .76f, itemHeight - labelHeight - dp(12))
+                    : dp(settings.optInt("iconSize", 46));
+            iconSize =
+                Math.max(1, Math.min(iconSize, Math.min(itemWidth, itemHeight - labelHeight)));
+            iconBox
+                .getChildAt(0)
+                .setLayoutParams(new LinearLayout.LayoutParams(iconSize, iconSize));
+          }
+        }
         getChildAt(i)
             .measure(
                 MeasureSpec.makeMeasureSpec(
@@ -720,6 +795,9 @@ public class HomeActivity extends Activity implements SensorEventListener {
             Math.max(
                 1,
                 Math.min(ui.rows() - x.optInt("y"), Math.round(e.getY() / ch()) - x.optInt("y")));
+        int[] allowed = constrainedSize(x, resizeW, resizeH);
+        resizeW = allowed[0];
+        resizeH = allowed[1];
         if (e.getAction() == MotionEvent.ACTION_UP) {
           if (WorkspaceModel.fits(
               items,
@@ -776,13 +854,6 @@ public class HomeActivity extends Activity implements SensorEventListener {
           a == null
               ? text(x.optString("label", "App unavailable"), 12, muted)
               : appView(a, settings.optBoolean("labels", true));
-      if (a != null
-          && x.optInt("w", 1) >= 2
-          && x.optInt("h", 1) >= 2
-          && v instanceof LinearLayout) {
-        View image = ((LinearLayout) v).getChildAt(0);
-        image.setLayoutParams(new LinearLayout.LayoutParams(dp(78), dp(78)));
-      }
     } else if (type.equals("folder")) {
       LinearLayout box = new LinearLayout(this);
       box.setOrientation(1);
@@ -881,7 +952,11 @@ public class HomeActivity extends Activity implements SensorEventListener {
   void fillTile(LinearLayout tile, JSONObject x) {
     tile.removeAllViews();
     String type = x.optString("type");
-    if (!type.equals("media") && !type.equals("photo")) {
+    if ((!type.equals("media") && !type.equals("photo"))
+        || (type.equals("photo")
+            && x.optString("uri").isEmpty()
+            && x.optInt("w", 1) == 1
+            && x.optInt("h", 1) == 1)) {
       tile.setPadding(0, 0, 0, 0);
       tile.setBackgroundColor(Color.TRANSPARENT);
       WidgetArtwork art = new WidgetArtwork(this, x, false);
@@ -953,14 +1028,41 @@ public class HomeActivity extends Activity implements SensorEventListener {
       case "photo":
         String uri = x.optString("uri");
         if (!uri.isEmpty()) {
-          ImageView im = new ImageView(this);
-          im.setScaleType(ImageView.ScaleType.CENTER_CROP);
-          im.setBackground(shape(card, x.optInt("style") == 1 ? 1000 : 24));
-          im.setClipToOutline(true);
-          if (x.optInt("crop", 1) != 1) {
-            im.setScaleType(ImageView.ScaleType.FIT_START);
-            if (x.optInt("crop") == 2) im.setScaleType(ImageView.ScaleType.FIT_END);
+          ImageView im =
+              new ImageView(this) {
+                @Override
+                protected void onSizeChanged(int w, int h, int oldW, int oldH) {
+                  super.onSizeChanged(w, h, oldW, oldH);
+                  if (x.optInt("style") == 2) return;
+                  Drawable image = getDrawable();
+                  if (image == null
+                      || image.getIntrinsicWidth() <= 0
+                      || image.getIntrinsicHeight() <= 0) return;
+                  float scale =
+                      Math.max(
+                          w / (float) image.getIntrinsicWidth(),
+                          h / (float) image.getIntrinsicHeight());
+                  Matrix matrix = new Matrix();
+                  matrix.setScale(scale, scale);
+                  matrix.postTranslate(
+                      (w - image.getIntrinsicWidth() * scale) / 2f,
+                      (h - image.getIntrinsicHeight() * scale)
+                          * Math.max(0, Math.min(2, x.optInt("crop", 1)))
+                          / 2f);
+                  setImageMatrix(matrix);
+                }
+              };
+          im.setScaleType(
+              x.optInt("style") == 2 ? ImageView.ScaleType.FIT_CENTER : ImageView.ScaleType.MATRIX);
+          im.setBackground(
+              shape(
+                  x.optInt("style") == 2 ? Color.TRANSPARENT : card,
+                  x.optInt("style") == 1 ? 1000 : 24));
+          if (x.optInt("style") == 2) {
+            tile.setPadding(0, 0, 0, 0);
+            tile.setBackgroundColor(Color.TRANSPARENT);
           }
+          im.setClipToOutline(true);
           try {
             im.setImageDrawable(scaledImage(Uri.parse(uri)));
             tile.addView(im, new LinearLayout.LayoutParams(-1, -1));
@@ -1667,18 +1769,94 @@ public class HomeActivity extends Activity implements SensorEventListener {
     else finishWidget();
   }
 
+  int[] constrainedSize(JSONObject item, int width, int height) {
+    String type = item.optString("type");
+    if (type.equals("app") || type.equals("folder")) {
+      int size = width > 1 || height > 1 ? 2 : 1;
+      return new int[] {size, size};
+    }
+    if (type.equals("clock") || type.equals("media")) {
+      width = Math.max(2, width);
+      height = Math.max(2, height);
+    }
+    if (type.equals("widget")) {
+      AppWidgetProviderInfo info =
+          AppWidgetManager.getInstance(this).getAppWidgetInfo(item.optInt("widgetId", -1));
+      if (info != null) {
+        float cellW =
+            board == null
+                ? getResources().getDisplayMetrics().widthPixels / (float) cols()
+                : board.cw();
+        float cellH = board == null ? dp(90) : board.ch();
+        if ((info.resizeMode & AppWidgetProviderInfo.RESIZE_HORIZONTAL) == 0)
+          width = item.optInt("w", 1);
+        else {
+          width =
+              Math.max(width, Math.max(1, (int) Math.ceil((info.minResizeWidth + dp(10)) / cellW)));
+          if (info.maxResizeWidth > 0)
+            width =
+                Math.min(
+                    width, Math.max(1, (int) Math.floor((info.maxResizeWidth + dp(10)) / cellW)));
+        }
+        if ((info.resizeMode & AppWidgetProviderInfo.RESIZE_VERTICAL) == 0)
+          height = item.optInt("h", 1);
+        else {
+          height =
+              Math.max(
+                  height, Math.max(1, (int) Math.ceil((info.minResizeHeight + dp(10)) / cellH)));
+          if (info.maxResizeHeight > 0)
+            height =
+                Math.min(
+                    height, Math.max(1, (int) Math.floor((info.maxResizeHeight + dp(10)) / cellH)));
+        }
+      }
+    }
+    return new int[] {width, height};
+  }
+
   void finishWidget() {
     JSONObject x = obj("widget");
     put(x, "widgetId", pendingWidget);
-    put(x, "w", cols());
-    put(x, "h", 2);
-    AppWidgetProviderInfo i = AppWidgetManager.getInstance(this).getAppWidgetInfo(pendingWidget);
-    if (i != null) put(x, "provider", i.provider.flattenToString());
-    items.put(x);
+    AppWidgetProviderInfo info = AppWidgetManager.getInstance(this).getAppWidgetInfo(pendingWidget);
+    if (info == null) {
+      cancelWidget();
+      toast("Widget provider unavailable");
+      return;
+    }
+    float cellW =
+        board == null
+            ? getResources().getDisplayMetrics().widthPixels / (float) cols()
+            : board.cw();
+    float cellH = board == null ? dp(90) : board.ch();
+    int width =
+        Math.max(
+            info.targetCellWidth, Math.max(1, (int) Math.ceil((info.minWidth + dp(10)) / cellW)));
+    int height =
+        Math.max(
+            info.targetCellHeight, Math.max(1, (int) Math.ceil((info.minHeight + dp(10)) / cellH)));
+    if (width > cols() || height > ui.rows()) {
+      cancelWidget();
+      toast("Widget needs a larger grid; change Home layout first");
+      return;
+    }
+    put(x, "w", width);
+    put(x, "h", height);
+    put(x, "provider", info.provider.flattenToString());
+    try {
+      JSONArray candidate = new JSONArray(items.toString());
+      candidate.put(x);
+      items = WorkspaceModel.normalise(candidate, cols(), ui.rows());
+    } catch (Exception error) {
+      cancelWidget();
+      toast("No room; existing layout preserved");
+      return;
+    }
     pendingWidget = -1;
     prefs.edit().remove("pendingWidget").apply();
     save();
     render();
+    int at = index(x.optString("id"));
+    if (at >= 0) ui.goPage(items.optJSONObject(at).optInt("page"), true);
   }
 
   void cancelWidget() {

@@ -95,11 +95,15 @@ final class LauncherUi {
     reconcile();
     a.colors();
     if (screen == null) mount();
-    a.root.setBackgroundColor(a.bg);
+    screen.setBackgroundColor(a.bg);
+    screen.setBackground(new WallpaperArtwork(a.settings.optString("wallpaperPreset", "solid")));
+    if (a.settings.optString("wallpaperPreset", "solid").equals("solid"))
+      screen.setBackgroundColor(a.bg);
+    a.root.setBackgroundColor(Color.TRANSPARENT);
     String wall = a.settings.optString("wallpaper", "");
     if (!wall.isEmpty())
       try {
-        a.root.setBackground(a.scaledImage(android.net.Uri.parse(wall)));
+        screen.setBackground(a.scaledImage(android.net.Uri.parse(wall)));
       } catch (Exception ignored) {
       }
     renderPages();
@@ -132,7 +136,7 @@ final class LauncherUi {
     a.root.addView(dots, new LinearLayout.LayoutParams(-1, d(26)));
     hotseat = new LinearLayout(a);
     hotseat.setGravity(Gravity.CENTER);
-    a.root.addView(hotseat, new LinearLayout.LayoutParams(-1, d(72)));
+    a.root.addView(hotseat, new LinearLayout.LayoutParams(-1, d(60)));
     TextView search = button("⌕   Search apps", () -> drawer(null));
     search.setContentDescription("Search apps");
     LinearLayout.LayoutParams sp = new LinearLayout.LayoutParams(-1, d(48));
@@ -214,9 +218,15 @@ final class LauncherUi {
             selectDock(slot);
             return true;
           });
-      LinearLayout.LayoutParams dockCell = new LinearLayout.LayoutParams(0, -1, 1);
-      dockCell.setMargins(d(4), d(3), d(4), d(3));
-      hotseat.addView(v, dockCell);
+      FrameLayout slotView = new FrameLayout(a);
+      FrameLayout.LayoutParams iconSize =
+          new FrameLayout.LayoutParams(d(52), d(52), Gravity.CENTER);
+      slotView.addView(v, iconSize);
+      if (app == null) {
+        v.setBackground(a.shape(a.card, 100));
+        v.setAlpha(.65f);
+      }
+      hotseat.addView(slotView, new LinearLayout.LayoutParams(0, -1, 1));
     }
   }
 
@@ -603,6 +613,40 @@ final class LauncherUi {
     if (!type.equals("app") && !type.equals("folder") && !type.equals("widget")) {
       body.addView(
           button("Style & size", () -> stylePicker(type, x)),
+          new LinearLayout.LayoutParams(-1, d(54)));
+    }
+    if (!type.equals("app")
+        && !type.equals("folder")
+        && !type.equals("widget")
+        && !type.equals("photo")
+        && !type.equals("media")) {
+      body.addView(
+          button(
+              "Widget colour",
+              () ->
+                  a.menu(
+                      "Widget colour",
+                      new String[] {"Theme", "Chalk", "Ink", "Sage", "Red"},
+                      n -> {
+                        HomeActivity.put(x, "tone", n);
+                        a.save();
+                        close();
+                        refresh();
+                      })),
+          new LinearLayout.LayoutParams(-1, d(54)));
+      body.addView(
+          button(
+              "Background opacity",
+              () ->
+                  a.menu(
+                      "Background opacity",
+                      new String[] {"Solid", "85%", "60%", "Transparent"},
+                      n -> {
+                        HomeActivity.put(x, "opacity", new int[] {100, 85, 60, 0}[n]);
+                        a.save();
+                        close();
+                        refresh();
+                      })),
           new LinearLayout.LayoutParams(-1, d(54)));
     }
     if (type.equals("app") || type.equals("folder")) {
@@ -1092,7 +1136,7 @@ final class LauncherUi {
     LinearLayout list = vertical();
     scroll.addView(list);
     body.addView(scroll, new LinearLayout.LayoutParams(-1, 0, 1));
-    for (int style = 0; style < 3; style++) {
+    for (int style = 0; style < (type.equals("clock") ? 5 : 3); style++) {
       final int variant = style;
       JSONObject candidate = sample(type, style);
       if (existing != null)
@@ -1109,12 +1153,18 @@ final class LauncherUi {
       list.addView(
           a.label(
               (type.equals("clock")
-                      ? new String[] {"DOT MATRIX", "ANALOGUE", "DIGITAL"}[style]
-                      : new String[] {"CLASSIC", "INVERTED", "MINIMAL"}[style])
+                      ? new String[] {
+                            "DOT MATRIX", "ANALOGUE", "SERIF", "TICK DIAL", "ROUNDED DIGITAL"
+                          }
+                          [style]
+                      : (type.equals("photo")
+                              ? new String[] {"RECTANGLE", "CIRCLE", "STICKER"}
+                              : new String[] {"CLASSIC", "INVERTED", "MINIMAL"})
+                          [style])
                   + " · SAMPLE PREVIEW"));
       LinearLayout sizes = new LinearLayout(a);
       int[][] options =
-          type.equals("clock") || type.equals("media")
+          type.equals("clock") || type.equals("media") || type.equals("breathing")
               ? new int[][] {{2, 2}, {4, 2}}
               : new int[][] {{1, 1}, {2, 1}, {2, 2}};
       for (int[] span : options) {
@@ -1160,6 +1210,49 @@ final class LauncherUi {
     }
   }
 
+  void referencePage() {
+    if (pages() >= 64) {
+      a.toast("Page limit reached");
+      return;
+    }
+    int next = pages();
+    a.referenceItems(next);
+    HomeActivity.put(a.settings, "pages", next + 1);
+    a.save();
+    close();
+    refresh();
+    goPage(next, true);
+  }
+
+  void wallpaperPresets() {
+    LinearLayout body = surface("Wallpaper & colour", true);
+    for (String preset : new String[] {"ocean", "mist", "solid"}) {
+      FrameLayout preview = new FrameLayout(a);
+      preview.setBackground(
+          preset.equals("solid")
+              ? new android.graphics.drawable.ColorDrawable(a.bg)
+              : new WallpaperArtwork(preset));
+      TextView label =
+          button(
+              preset.equals("ocean")
+                  ? "Ocean"
+                  : preset.equals("mist") ? "Soft mist" : "Solid background",
+              () -> {
+                HomeActivity.put(a.settings, "wallpaperPreset", preset);
+                a.settings.remove("wallpaper");
+                HomeActivity.put(a.settings, "dark", !preset.equals("mist"));
+                a.save();
+                refresh();
+                close();
+              });
+      FrameLayout.LayoutParams lp = new FrameLayout.LayoutParams(-1, d(50), Gravity.BOTTOM);
+      preview.addView(label, lp);
+      LinearLayout.LayoutParams card = new LinearLayout.LayoutParams(-1, d(155));
+      card.bottomMargin = d(12);
+      body.addView(preview, card);
+    }
+  }
+
   void customise() {
     LinearLayout body = surface("Customisation", true);
     ScrollView scroll = new ScrollView(a);
@@ -1201,6 +1294,12 @@ final class LauncherUi {
           refresh();
           customise();
         });
+    option(
+        list,
+        "Styled page",
+        "Add a sparse layout inspired by your references",
+        () -> referencePage());
+    option(list, "Wallpaper & colour", "Original offline presets", () -> wallpaperPresets());
     option(list, "Icon pack", "Choose installed pack", () -> a.chooseIconPack());
     option(
         list,
@@ -1213,6 +1312,7 @@ final class LauncherUi {
         "Use solid background",
         () -> {
           a.settings.remove("wallpaper");
+          HomeActivity.put(a.settings, "wallpaperPreset", "solid");
           a.save();
           refresh();
           customise();

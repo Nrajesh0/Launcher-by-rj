@@ -78,6 +78,40 @@ public class UiSmoke extends Instrumentation {
     }
   }
 
+  void bottomSwipe(Object service, boolean hold) throws Exception {
+    final int[] location = new int[2];
+    final int[] size = new int[2];
+    onUi(
+        () -> {
+          View bottom = (View) ((java.util.List<?>) field(service, "edges")).get(0);
+          bottom.getLocationOnScreen(location);
+          size[0] = bottom.getWidth();
+          size[1] = bottom.getHeight();
+        });
+    float x = location[0] + size[0] / 2f,
+        y = location[1] + size[1] - 4 * home.getResources().getDisplayMetrics().density;
+    long down = SystemClock.uptimeMillis();
+    for (int n = 0; n <= 8; n++) {
+      if (n == 8 && hold) SystemClock.sleep(600);
+      MotionEvent e =
+          MotionEvent.obtain(
+              down,
+              SystemClock.uptimeMillis(),
+              n == 0
+                  ? MotionEvent.ACTION_DOWN
+                  : n == 8 ? MotionEvent.ACTION_UP : MotionEvent.ACTION_MOVE,
+              x,
+              y - n * 14 * home.getResources().getDisplayMetrics().density,
+              0);
+      getUiAutomation(UiAutomation.FLAG_DONT_SUPPRESS_ACCESSIBILITY_SERVICES)
+          .injectInputEvent(e, true);
+      e.recycle();
+      SystemClock.sleep(25);
+    }
+    waitForIdleSync();
+    SystemClock.sleep(900);
+  }
+
   @Override
   public void onStart() {
     Bundle result = new Bundle();
@@ -119,6 +153,7 @@ public class UiSmoke extends Instrumentation {
               call(ui, "stylePicker", new Class[] {String.class, JSONObject.class}, "clock", null));
       assertText("Choose a style");
       assertText("ANALOGUE · SAMPLE PREVIEW");
+      assertText("ROUNDED DIGITAL · SAMPLE PREVIEW");
       screenshot("styles");
       onUi(() -> call(ui, "close", new Class[] {}));
       onUi(() -> call(ui, "customise", new Class[] {}));
@@ -129,6 +164,8 @@ public class UiSmoke extends Instrumentation {
       onUi(() -> call(ui, "overview", new Class[] {}));
       assertText("Home screen");
       screenshot("overview");
+      onUi(() -> call(ui, "referencePage", new Class[] {}));
+      screenshot("styled-page");
       onUi(() -> call(ui, "close", new Class[] {}));
       onUi(
           () -> {
@@ -211,13 +248,31 @@ public class UiSmoke extends Instrumentation {
       onUi(() -> call(ui, "navigation", new Class[] {}));
       assertText("Edge gestures are running");
       screenshot("gestures-running");
+      shell("cmd package set-home-activity dev.dothome/.HomeActivity");
+      shell("am start -a android.settings.SETTINGS");
+      SystemClock.sleep(700);
+      bottomSwipe(connected, false);
+      onUi(
+          () -> {
+            if (!home.hasWindowFocus())
+              throw new AssertionError("Home swipe did not return to launcher");
+          });
+      screenshot("gesture-home");
+      bottomSwipe(connected, true);
+      onUi(
+          () -> {
+            if (home.hasWindowFocus())
+              throw new AssertionError("Hold gesture did not open Recents");
+          });
+      screenshot("gesture-recents");
+      bottomSwipe(connected, false);
       shell("settings put secure enabled_accessibility_services null");
       shell("settings put secure accessibility_enabled 0");
       result.putString(
           "stream",
           "PASS: home, integrated drawer, visual picker, style gallery, customisation, overview,"
-              + " folder, navigation, live Accessibility edge windows, real Back swipe, no"
-              + " screen-reading capability and offline permission.\n");
+              + " folder, navigation, live Accessibility edge windows, real Back/Home/Recents"
+              + " swipes, no screen-reading capability and offline permission.\n");
       finish(Activity.RESULT_OK, result);
     } catch (Throwable error) {
       result.putString("stream", "FAIL: " + android.util.Log.getStackTraceString(error));
