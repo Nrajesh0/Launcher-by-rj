@@ -16,6 +16,6 @@ with zipfile.ZipFile(apk) as archive:
     for name in archive.namelist():
         if name.endswith('.dex'):
             data=archive.read(name)
-            for forbidden in (b'Lokhttp3/',b'Lretrofit2/',b'Lcoil/'):
+            for forbidden in (b'Lokhttp3/',b'Lretrofit2/',b'Lcoil/',b'Lapp/lawnchair/bugreport/'):
                 assert forbidden not in data, f'Unexpected network library: {forbidden!r}'
 print('Packaged foundation: no Internet/network libraries, Accessibility or navigation override permissions.')

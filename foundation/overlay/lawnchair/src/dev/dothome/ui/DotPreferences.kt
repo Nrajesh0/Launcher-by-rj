@@ -151,7 +151,9 @@ open class DotPreferences : Activity() {
                 if (style.getString("material", "classic") == key) background = shape(card, 100)
                 setOnClickListener {
                     style.edit().putString("material", key).apply()
-                    p2.accentColor.setBlocking(if(key == "classic") ColorOption.CustomColor(0xffd71920.toInt()) else ColorOption.WallpaperPrimary)
+                    val accent=style.getInt("accent",if(style.getString("wallpaper","glass")=="optic")0xff80b0ba.toInt() else 0xffb4c9b8.toInt())
+                    if(key!="classic" && !style.contains("accent"))style.edit().putInt("accent",accent).apply()
+                    p2.accentColor.setBlocking(if(key == "classic")ColorOption.CustomColor(0xffd71920.toInt()) else if(style.getBoolean("wallpaperApplied",false) && !style.getBoolean("manualAccent",false))ColorOption.WallpaperPrimary else ColorOption.CustomColor(accent))
                     show("appearance", false)
                 }
             }, LinearLayout.LayoutParams(0, d(42), 1f))
@@ -163,34 +165,35 @@ open class DotPreferences : Activity() {
             update.apply();p.launcherTheme.set(if(it)"dark" else "light");show("appearance",false)
         }
         val colours = LinearLayout(this).apply { gravity = Gravity.CENTER; setPadding(d(8), d(12), d(8), d(12)); background = shape(card, 14) }
-        intArrayOf(0xffbccbbf.toInt(),0xff56a5c7.toInt(),0xff99bd68.toInt(),0xffd7a28d.toInt(),0xffb3a2bf.toInt(),0xff8894ac.toInt()).forEach { color ->
+        val colourNames=listOf("Sage","Blue","Lime","Terracotta","Lilac","Slate")
+        intArrayOf(0xffbccbbf.toInt(),0xff56a5c7.toInt(),0xff99bd68.toInt(),0xffd7a28d.toInt(),0xffb3a2bf.toInt(),0xff8894ac.toInt()).forEachIndexed { index,color ->
             colours.addView(View(this).apply {
-                background = shape(color, 100); contentDescription = "Accent ${Integer.toHexString(color)}"
-                setOnClickListener { style.edit().putInt("accent",color).apply(); p2.accentColor.setBlocking(ColorOption.CustomColor(color)); invalidate() }
+                background = shape(color,100).apply {if(style.getInt("accent",0)==color)setStroke(d(2),ink)}; contentDescription = "${colourNames[index]} accent"
+                setOnClickListener { style.edit().putInt("accent",color).putBoolean("manualAccent",true).apply(); p2.accentColor.setBlocking(ColorOption.CustomColor(color)); show("appearance",false) }
             }, LinearLayout.LayoutParams(d(34), d(34)).apply { leftMargin = d(6); rightMargin = d(6) })
         }
         body.addView(colours, LinearLayout.LayoutParams(-1, d(62)).apply { bottomMargin = d(2) })
         row("Icon pack", packLabel()) { show("icons") }
-        toggle("Apply icons to Home screen only", !p.drawerThemedIcons.get()) { p.drawerThemedIcons.set(!it) }
+        if(p.iconPackPackage.get().isEmpty() && p.themedIcons.get()) toggle("Apply icons to Home screen only",style.getBoolean("homeOnlyIcons",false)) {style.edit().putBoolean("homeOnlyIcons",it).apply();p.drawerThemedIcons.set(!it)}
     }
 
     private fun packLabel(): String {
         val pack = p.iconPackPackage.get()
-        return if(pack.isEmpty()) "Monochrome" else runCatching { packageManager.getApplicationLabel(packageManager.getApplicationInfo(pack, 0)).toString() }.getOrDefault("Unavailable pack")
+        return if(pack.isEmpty()) {if(p.themedIcons.get())"Monochrome" else "System icons"} else runCatching { packageManager.getApplicationLabel(packageManager.getApplicationInfo(pack, 0)).toString() }.getOrDefault("Unavailable pack")
     }
 
     private fun icons() {
         val preview = LinearLayout(this).apply { gravity = Gravity.CENTER; setPadding(0, d(20), 0, d(28)) }
         LawnchairLauncher.instance?.appsView?.appsStore?.apps?.take(5)?.forEach { app ->
-            preview.addView(ImageView(this).apply { setImageBitmap(app.bitmap.icon); scaleType = ImageView.ScaleType.FIT_CENTER }, LinearLayout.LayoutParams(d(50), d(50)).apply { leftMargin = d(7); rightMargin = d(7) })
+            preview.addView(ImageView(this).apply { setImageDrawable(app.newIcon(this@DotPreferences,p.themedIcons.get())); scaleType = ImageView.ScaleType.FIT_CENTER }, LinearLayout.LayoutParams(d(50), d(50)).apply { leftMargin = d(7); rightMargin = d(7) })
         }
         body.addView(preview)
-        row("Monochrome", if(p.iconPackPackage.get().isEmpty() && p.themedIcons.get()) "Selected" else "") { p.iconPackPackage.set(""); p.themedIcons.set(true); show("icons", false) }
-        row("System icons", if(p.iconPackPackage.get().isEmpty() && !p.themedIcons.get()) "Selected" else "") { p.iconPackPackage.set(""); p.themedIcons.set(false); show("icons", false) }
+        row("Monochrome", if(p.iconPackPackage.get().isEmpty() && p.themedIcons.get()) "Selected" else "") { p.iconPackPackage.set(""); p.themedIcons.set(true); p.drawerThemedIcons.set(!style.getBoolean("homeOnlyIcons",false)); show("icons", false) }
+        row("System icons", if(p.iconPackPackage.get().isEmpty() && !p.themedIcons.get()) "Selected" else "") { p.iconPackPackage.set(""); p.themedIcons.set(false); p.drawerThemedIcons.set(false); show("icons", false) }
         val packs = packageManager.queryIntentActivities(Intent("org.adw.launcher.THEMES"), 0).distinctBy { it.activityInfo.packageName }
         packs.forEach { info ->
             val key = info.activityInfo.packageName
-            row(info.loadLabel(packageManager).toString(), if(p.iconPackPackage.get() == key) "Selected" else "") { p.iconPackPackage.set(key); show("icons", false) }
+            row(info.loadLabel(packageManager).toString(), if(p.iconPackPackage.get() == key) "Selected" else "") { p.iconPackPackage.set(key); p.themedIcons.set(false); p.drawerThemedIcons.set(false); show("icons", false) }
         }
         gap(); body.addView(text("Installed icon packs appear here. Everything is loaded locally.", 13f, secondary))
     }

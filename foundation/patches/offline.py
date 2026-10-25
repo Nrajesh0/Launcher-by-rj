@@ -160,3 +160,17 @@ for base in ("lawnchair/src", "src", "quickstep/src"):
         if re.search(r"^import\s+(?:retrofit2|okhttp3|coil)\.", file.read_text(), re.M):
             raise RuntimeError(f"Network-capable import remains: {file.relative_to(root)}")
 print("Pinned foundation: HTTP clients, update/upload implementations and privileged manifest entries removed.")
+
+# Remove the crash-notification upload UI as well as its already removed HTTP client.
+edit(lc+'LawnchairProcessInitializer.kt', 'import app.lawnchair.bugreport.LawnchairBugReporter\n', '')
+edit(lc+'LawnchairProcessInitializer.kt', '        LawnchairBugReporter.INSTANCE.get(context)\n', '')
+for file in (root/lc/'bugreport').glob('*.kt'):
+    file.unlink()
+for file in root.rglob('*Manifest*.xml'):
+    if any(part in ('build','.git','.gradle') for part in file.relative_to(root).parts): continue
+    tree=ET.parse(file);app=tree.getroot().find('application')
+    if app is None: continue
+    for child in list(app):
+        if child.get(android+'name','').startswith('app.lawnchair.bugreport.'):
+            app.remove(child)
+    tree.write(file,encoding='unicode',xml_declaration=True)

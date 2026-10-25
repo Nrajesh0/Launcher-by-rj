@@ -32,7 +32,7 @@ public final class FoundationSmoke extends UiSmoke {
   }
   void visible(String value) {
     for(int n=0;n<40;n++) {
-      var node=findSystemText(getUiAutomation().getRootInActiveWindow(),value);
+      var node=findSystemText(getUiAutomation(UiAutomation.FLAG_DONT_SUPPRESS_ACCESSIBILITY_SERVICES).getRootInActiveWindow(),value);
       if(node!=null && node.isVisibleToUser())return;
       SystemClock.sleep(100);
     }
@@ -43,9 +43,9 @@ public final class FoundationSmoke extends UiSmoke {
     int[] at=new int[2];onUi(()->workspace[0].getLocationOnScreen(at));
     float x=at[0]+workspace[0].getWidth()*.12f,y=at[1]+workspace[0].getHeight()*.46f;
     long start=SystemClock.uptimeMillis();
-    MotionEvent down=MotionEvent.obtain(start,start,MotionEvent.ACTION_DOWN,x,y,0);down.setSource(InputDevice.SOURCE_TOUCHSCREEN);getUiAutomation().injectInputEvent(down,true);down.recycle();
+    MotionEvent down=MotionEvent.obtain(start,start,MotionEvent.ACTION_DOWN,x,y,0);down.setSource(InputDevice.SOURCE_TOUCHSCREEN);getUiAutomation(UiAutomation.FLAG_DONT_SUPPRESS_ACCESSIBILITY_SERVICES).injectInputEvent(down,true);down.recycle();
     SystemClock.sleep(900);
-    MotionEvent up=MotionEvent.obtain(start,SystemClock.uptimeMillis(),MotionEvent.ACTION_UP,x,y,0);up.setSource(InputDevice.SOURCE_TOUCHSCREEN);getUiAutomation().injectInputEvent(up,true);up.recycle();
+    MotionEvent up=MotionEvent.obtain(start,SystemClock.uptimeMillis(),MotionEvent.ACTION_UP,x,y,0);up.setSource(InputDevice.SOURCE_TOUCHSCREEN);getUiAutomation(UiAutomation.FLAG_DONT_SUPPRESS_ACCESSIBILITY_SERVICES).injectInputEvent(up,true);up.recycle();
     SystemClock.sleep(500);
   }
   Object api(Object target,String method,Class<?>[] types,Object... args) {
@@ -73,14 +73,14 @@ public final class FoundationSmoke extends UiSmoke {
     final View[] views=new View[2];
     for(int n=0;n<40;n++){onUi(()->{views[0]=nativeItem(ids[0]);views[1]=nativeItem(ids[1]);});if(views[0]!=null&&views[1]!=null)break;SystemClock.sleep(100);}
     if(views[0]==null||views[1]==null)throw new AssertionError("Native test apps were not bound");
-    longPressBlank();visible("Arrange");clickSystemText("Arrange");awaitState("EDIT_MODE");
+    longPressBlank();visible("Arrange");if(!clickSystemText("Arrange"))throw new AssertionError("Arrange touch was not accepted");awaitState("EDIT_MODE");
     awaitState("EDIT_MODE");visible("Select apps");
     for(int n=0;n<2;n++) {
       final View item=views[n];int[] at=new int[2];onUi(()->item.getLocationOnScreen(at));
       long downTime=SystemClock.uptimeMillis();
       for(int action:new int[]{MotionEvent.ACTION_DOWN,MotionEvent.ACTION_UP}) {
         MotionEvent touch=MotionEvent.obtain(downTime,SystemClock.uptimeMillis(),action,at[0]+item.getWidth()*.5f,at[1]+item.getHeight()*.5f,0);touch.setSource(InputDevice.SOURCE_TOUCHSCREEN);
-        getUiAutomation().injectInputEvent(touch,true);touch.recycle();SystemClock.sleep(50);
+        getUiAutomation(UiAutomation.FLAG_DONT_SUPPRESS_ACCESSIBILITY_SERVICES).injectInputEvent(touch,true);touch.recycle();SystemClock.sleep(50);
       }
       SystemClock.sleep(250);
     }
@@ -152,7 +152,7 @@ public final class FoundationSmoke extends UiSmoke {
       SystemClock.sleep(500);
       if(!home.getSharedPreferences("dot-style",0).getBoolean("dark",false))throw new AssertionError("Dark theme label did not toggle the setting");
       homeKey();screenshot("foundation-home-dark");
-      longPressBlank();visible("Arrange");clickSystemText("Arrange");awaitState("EDIT_MODE");
+      longPressBlank();visible("Arrange");if(!clickSystemText("Arrange"))throw new AssertionError("Arrange touch was not accepted");awaitState("EDIT_MODE");
       visible("Select apps");visible("Done");screenshot("foundation-arrange");
       if(!clickSystemText("Done"))throw new AssertionError("Arrange did not finish");awaitState("NORMAL");
       longPressBlank();visible("Widgets");if(!clickSystemText("Widgets"))throw new AssertionError("Widget entry did not respond");
@@ -168,7 +168,7 @@ public final class FoundationSmoke extends UiSmoke {
       finish(Activity.RESULT_OK,result);
     } catch(Throwable failure) {
       String diagnostics="";
-      try {shell("screencap -p /sdcard/Download/foundation-failure.png");diagnostics=systemTree(getUiAutomation().getRootInActiveWindow(),0);}catch(Throwable ignored){}
+      try {shell("screencap -p /sdcard/Download/foundation-failure.png");diagnostics=systemTree(getUiAutomation(UiAutomation.FLAG_DONT_SUPPRESS_ACCESSIBILITY_SERVICES).getRootInActiveWindow(),0);}catch(Throwable ignored){}
       result.putString("stream","FAIL: "+android.util.Log.getStackTraceString(failure)+diagnostics+fixtureCounts());finish(Activity.RESULT_CANCELED,result);
     }
   }

@@ -79,3 +79,7 @@ edit("lawnchair/src/app/lawnchair/qsb/LawnQsbLayout.kt", 'val alphaValue = (tran
 edit("lawnchair/src/app/lawnchair/qsb/LawnQsbLayout.kt", '            background = qsbBackground', '            background = qsbBackground\n            post {\n                findViewById<android.widget.TextView>(R.id.dot_search_text)?.setTextColor(dev.dothome.ui.DotSurface.ink(context))\n                gIcon.imageTintList = android.content.res.ColorStateList.valueOf(dev.dothome.ui.DotSurface.ink(context))\n            }')
 
 edit("lawnchair/res/values/config.xml", '<string name="config_default_icon_shape" translatable="false">system</string>', '<string name="config_default_icon_shape" translatable="false">circle</string>')
+
+# Classic uses an achromatic system palette; avoid the default Monet lilac tint.
+edit("lawnchair/src/app/lawnchair/theme/ThemeProvider.kt", "        val key = Pair(colorInt, colorStyle)", '        val resolvedStyle = if (context.getSharedPreferences("dot-style", 0).getString("material", "classic") == "classic") Style.MONOCHROMATIC else colorStyle\n        val key = Pair(colorInt, resolvedStyle)')
+edit("lawnchair/src/app/lawnchair/theme/ThemeProvider.kt", "MonetColorSchemeCompat(colorInt, colorStyle)", "MonetColorSchemeCompat(colorInt, resolvedStyle)")
