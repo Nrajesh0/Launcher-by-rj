@@ -160,6 +160,7 @@ public class HomeActivity extends Activity implements SensorEventListener {
             android.window.OnBackInvokedDispatcher.PRIORITY_DEFAULT, () -> onBackPressed());
     render();
     if (getIntent().getBooleanExtra("navigationSetup", false)) handler.post(() -> ui.navigation());
+    else if (!prefs.getBoolean("setupSeen2", false)) handler.post(() -> ui.setup());
     loadApps();
   }
 
@@ -183,6 +184,7 @@ public class HomeActivity extends Activity implements SensorEventListener {
     render();
     handler.removeCallbacks(ticker);
     handler.post(ticker);
+    if (ui != null && ui.state.equals("navigation")) ui.navigation();
   }
 
   @Override
@@ -290,6 +292,23 @@ public class HomeActivity extends Activity implements SensorEventListener {
       }
       defaults();
     }
+  }
+
+  void requestHomeRole() {
+    android.app.role.RoleManager roles = getSystemService(android.app.role.RoleManager.class);
+    if (roles != null && roles.isRoleAvailable(android.app.role.RoleManager.ROLE_HOME)) {
+      if (roles.isRoleHeld(android.app.role.RoleManager.ROLE_HOME)) {
+        toast("Dot Home is already your default launcher");
+        return;
+      }
+      try {
+        startActivityForResult(
+            roles.createRequestRoleIntent(android.app.role.RoleManager.ROLE_HOME), 100);
+        return;
+      } catch (Exception ignored) {
+      }
+    }
+    open(new Intent(Settings.ACTION_HOME_SETTINGS));
   }
 
   void defaults() {
@@ -1520,7 +1539,7 @@ public class HomeActivity extends Activity implements SensorEventListener {
               RoleManager rm = (RoleManager) getSystemService(ROLE_SERVICE);
               if (rm.isRoleAvailable(RoleManager.ROLE_HOME))
                 startActivityForResult(rm.createRequestRoleIntent(RoleManager.ROLE_HOME), 50);
-              else open(new Intent(Settings.ACTION_HOME_SETTINGS));
+              else requestHomeRole();
               break;
             case 1:
               put(settings, "dark", !dark());

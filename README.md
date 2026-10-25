@@ -4,7 +4,7 @@ An independent native Android home-screen replacement inspired by Nothing's mono
 
 ## Install and use
 
-Install the versioned APK from [GitHub Releases](https://github.com/Nrajesh0/Launcher-by-rj/releases), open Dot Home, then long press empty space → **Home settings → Set as default Home**. Android may ask you to permit installation from the app used to download the file. Keep POCO Launcher installed.
+Install the versioned APK from [GitHub Releases](https://github.com/Nrajesh0/Launcher-by-rj/releases), open Dot Home, then use **Choose default Home** in the first-run setup. You can reopen setup under Customisation → Setup & permissions, or use Home settings → Set as default Home. Android may ask you to permit installation from the app used to download the file. Keep POCO Launcher installed.
 
 - Swipe up or tap Search apps for the integrated local drawer. Search, categories and hidden-app controls work offline.
 - Long press empty space for page management, Widgets, Customisation and Home settings.
@@ -16,6 +16,9 @@ Install the versioned APK from [GitHub Releases](https://github.com/Nrajesh0/Lau
 - Customisation includes live theme preview, visual grid choices, labels, icons, wallpaper, layout lock, notification dots, reduced motion and navigation setup. Advanced Home settings include backups, import, recovery and icon packs. Add a Styled page from Customisation for a sparse reference-inspired arrangement without replacing your layout. Original Ocean/Soft mist wallpaper presets are bundled offline. Built-in item actions include colour and background opacity; photos support rectangle, circle and transparent-source sticker styles.
 
 ### Gestures on HyperOS
+
+A computer-assisted fallback is documented in [ADB navigation setup](docs/adb-navigation.md), including readback and restore commands. This does not add any network access or protected-settings permission to the app.
+
 
 **No ADB, computer or root is required for Dot Home's optional edge actions.** Open Customisation → Gesture navigation, enable **Dot Home edge gestures** in Android Accessibility settings, and add the recovery Quick Settings tile. Swipe inward at either side for Back, swipe up from the bottom for Home, or swipe up and hold for Recents.
 

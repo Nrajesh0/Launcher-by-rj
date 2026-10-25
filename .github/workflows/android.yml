@@ -123,10 +123,8 @@ jobs:
           script: |
             adb install -r build/ui-test/app.apk
             adb install -r build/ui-test/tests.apk
-            adb shell screenrecord --time-limit 25 --bit-rate 2000000 /sdcard/Download/ui-motion.mp4 &
-            recording_pid=$!
-            adb shell am instrument -w dev.dothome.test/dev.dothome.test.UiSmoke > build/ui-test/result.txt
-            wait "$recording_pid" || true
+            adb shell cmd package set-home-activity dev.dothome/.HomeActivity
+            adb shell screenrecord --time-limit 25 --bit-rate 2000000 /sdcard/Download/ui-motion.mp4 & recording_pid=$!; adb shell am instrument -w dev.dothome.test/dev.dothome.test.UiSmoke > build/ui-test/result.txt; wait "$recording_pid" || true
             cat build/ui-test/result.txt
             adb logcat -d -s AndroidRuntime > build/ui-test/runtime.txt
             adb pull /sdcard/Download build/ui-test/screenshots

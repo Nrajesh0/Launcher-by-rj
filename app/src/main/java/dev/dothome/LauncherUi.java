@@ -1300,6 +1300,7 @@ final class LauncherUi {
         "Add a sparse layout inspired by your references",
         () -> referencePage());
     option(list, "Wallpaper & colour", "Original offline presets", () -> wallpaperPresets());
+    option(list, "Setup & permissions", "Default Home and optional feature access", () -> setup());
     option(list, "Icon pack", "Choose installed pack", () -> a.chooseIconPack());
     option(
         list,
@@ -1420,8 +1421,99 @@ final class LauncherUi {
     body.addView(choices);
   }
 
+  void setup() {
+    LinearLayout body = surface("Welcome to Dot Home", true);
+    changeState("setup");
+    ScrollView sc = new ScrollView(a);
+    LinearLayout list = vertical();
+    sc.addView(list);
+    body.addView(sc, new LinearLayout.LayoutParams(-1, 0, 1));
+    TextView intro =
+        a.text(
+            "Your home screen, entirely offline. Choose the features you want to enable. No"
+                + " Internet permission or online option is included.",
+            16,
+            a.muted);
+    intro.setPadding(0, d(12), 0, d(20));
+    list.addView(intro);
+    option(
+        list,
+        "Choose default Home",
+        "Use Android’s launcher selection dialog",
+        () -> a.requestHomeRole());
+    option(
+        list,
+        "Set up gesture navigation",
+        "Enable optional Accessibility edge actions",
+        () -> navigation());
+    option(list, "Widget & media access", "Review optional permissions", () -> permissions());
+    TextView note =
+        a.text(
+            "Android does not show an all-permissions prompt at launch. Core Home needs no runtime"
+                + " grants. Accessibility and notification access require separate system settings;"
+                + " widgets ask only when their features need access.",
+            14,
+            a.muted);
+    note.setPadding(0, d(18), 0, d(18));
+    list.addView(note);
+    list.addView(
+        button(
+            "Start customising",
+            () -> {
+              a.prefs.edit().putBoolean("setupSeen2", true).apply();
+              close();
+              refresh();
+            }),
+        new LinearLayout.LayoutParams(-1, d(56)));
+  }
+
+  void permissions() {
+    LinearLayout body = surface("Optional access", true);
+    ScrollView sc = new ScrollView(a);
+    LinearLayout list = vertical();
+    sc.addView(list);
+    body.addView(sc, new LinearLayout.LayoutParams(-1, 0, 1));
+    option(
+        list,
+        "Gesture navigation",
+        GestureNavigationService.active != null ? "Running" : "Accessibility access is off",
+        () -> navigation());
+    option(
+        list,
+        "Calendar widgets",
+        a.checkSelfPermission(android.Manifest.permission.READ_CALENDAR)
+                == android.content.pm.PackageManager.PERMISSION_GRANTED
+            ? "Allowed"
+            : "Read events for Quick look",
+        () -> a.requestPermissions(new String[] {android.Manifest.permission.READ_CALENDAR}, 21));
+    option(
+        list,
+        "Flashlight",
+        a.checkSelfPermission(android.Manifest.permission.CAMERA)
+                == android.content.pm.PackageManager.PERMISSION_GRANTED
+            ? "Allowed"
+            : "Camera permission controls the torch",
+        () -> a.requestPermissions(new String[] {android.Manifest.permission.CAMERA}, 22));
+    option(
+        list,
+        "Media & notification dots",
+        "Enable Dot Home in Notification access",
+        () -> a.open(new Intent(android.provider.Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS)));
+    option(
+        list,
+        "Screen time",
+        "Optional usage access",
+        () -> a.open(new Intent(android.provider.Settings.ACTION_USAGE_ACCESS_SETTINGS)));
+    option(
+        list,
+        "Photos",
+        "Select individual images from the widget; no broad gallery permission",
+        () -> a.toast("Add a Photos widget, then tap it to choose an image"));
+  }
+
   void navigation() {
     LinearLayout body = surface("Gesture navigation", true);
+    changeState("navigation");
     ScrollView scroll = new ScrollView(a);
     LinearLayout list = vertical();
     scroll.addView(list);

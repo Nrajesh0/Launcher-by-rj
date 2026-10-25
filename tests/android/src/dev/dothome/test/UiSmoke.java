@@ -124,6 +124,13 @@ public class UiSmoke extends Instrumentation {
       waitForIdleSync();
       SystemClock.sleep(1800);
       ui = field(home, "ui");
+      assertText("Welcome to Dot Home");
+      screenshot("setup");
+      onUi(
+          () -> {
+            home.getSharedPreferences("runtime", 0).edit().putBoolean("setupSeen2", true).apply();
+            call(ui, "close", new Class[] {});
+          });
       if (getTargetContext().checkSelfPermission("android.permission.INTERNET")
           != PackageManager.PERMISSION_DENIED)
         throw new AssertionError("App has Internet permission");
@@ -248,7 +255,6 @@ public class UiSmoke extends Instrumentation {
       onUi(() -> call(ui, "navigation", new Class[] {}));
       assertText("Edge gestures are running");
       screenshot("gestures-running");
-      shell("cmd package set-home-activity dev.dothome/.HomeActivity");
       shell("am start -a android.settings.SETTINGS");
       SystemClock.sleep(700);
       bottomSwipe(connected, false);

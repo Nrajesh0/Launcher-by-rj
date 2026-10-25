@@ -11,6 +11,7 @@
 - Add an integrated swipe-up drawer, sheet transitions, reduced motion and visual grid/theme customisation.
 - Use adaptive monochrome icon layers when available; add optional local notification dots and live media callbacks.
 - Add optional Accessibility-based Back/Home/Recents edge gestures and a recovery Quick Settings tile. No ADB, computer or root is required for these actions; hiding HyperOS buttons remains firmware-dependent. The service cannot read window contents.
+- Add first-run Home-role/permission setup and a reusable optional-access page. Include reversible ADB instructions for firmware button hiding.
 - Add Android 16 emulator UI checks and screenshot artifacts in GitHub Actions.
 - Preserve offline-only operation, upgrade migration, package and signing identity.
 
