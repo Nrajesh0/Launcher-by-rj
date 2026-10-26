@@ -119,51 +119,15 @@ jobs:
         with:
           path: ${{ env.ANDROID_HOME }}/system-images/android-36/google_apis/x86_64
           key: foundation-android36-google-apis-x86_64-v1
+      - name: Install pinned emulator
+        run: |
+          curl --fail --location --retry 3 https://dl.google.com/android/repository/emulator-linux_x64-15507667.zip -o "$RUNNER_TEMP/emulator.zip"
+          unzip -q -o "$RUNNER_TEMP/emulator.zip" -d "$ANDROID_HOME"
+          "$ANDROID_HOME/emulator/emulator" -version
+          echo no | avdmanager create avd --force --name foundation --package 'system-images;android-36;google_apis;x86_64' --device pixel_6
       - name: Exercise native launcher interactions
         timeout-minutes: 12
-        uses: reactivecircus/android-emulator-runner@v2
-        with:
-          emulator-build: 15507667 # Android Emulator 36.6.11 stable, from the official archive
-          api-level: 36
-          arch: x86_64
-          target: google_apis
-          profile: pixel_6
-          ram-size: 2048M
-          disable-animations: false
-          emulator-options: -no-window -gpu swiftshader -feature -Vulkan -noaudio -no-boot-anim -no-snapshot -camera-back none -skin 720x1600 -prop qemu.sf.lcd_density=280
-          script: |
-            adb shell settings put global device_provisioned 1
-            adb shell settings put secure user_setup_complete 1
-            adb shell am start -W -a android.intent.action.MAIN -c android.intent.category.HOME
-            adb shell cmd overlay enable-exclusive --category com.android.internal.systemui.navbar.gestural
-            adb shell wm density 280
-            adb shell input keyevent KEYCODE_WAKEUP
-            adb shell wm dismiss-keyguard
-            adb logcat -c
-            adb install -r --no-incremental build/ui-test/app.apk
-            adb install -r --no-incremental build/ui-test/tests.apk
-            nohup adb logcat -v threadtime -s AndroidRuntime ActivityManager ActivityTaskManager libc art Zygote DotMigration DotFoundation AppWidgetHostView > build/ui-test/runtime-live.txt 2>&1 < /dev/null &
-            nohup bash tests/android/watch_screenshots.sh > build/ui-test/capture-status.txt 2>&1 < /dev/null &
-            timeout 240s adb shell am instrument -w dev.dothome.test/dev.dothome.test.FoundationSmoke > build/ui-test/foundation-result.txt || echo RUNNER_ERROR_OR_TIMEOUT >> build/ui-test/foundation-result.txt
-            cat build/ui-test/foundation-result.txt
-            adb logcat -d -s AndroidRuntime DotMigration CustomWidgetManager DotFoundation LoaderTask WorkspaceItemProcessor WidgetInflater LauncherModel AppWidgetHostView LauncherAppWidgetHostView > build/ui-test/foundation-runtime.txt
-            adb pull /sdcard/Download build/ui-test/foundation-screenshots
-            grep -q 'PASS: foundation' build/ui-test/foundation-result.txt
-            ! grep -q 'FATAL EXCEPTION' build/ui-test/foundation-runtime.txt
-            adb uninstall dev.dothome
-            adb install --no-incremental build/ui-test/previous.apk
-            adb install -r --no-incremental build/ui-test/tests.apk
-            timeout 60s adb shell am instrument -w dev.dothome.test/dev.dothome.test.LegacySeed > build/ui-test/legacy-seed.txt
-            adb logcat -d -s AndroidRuntime > build/ui-test/legacy-seed-runtime.txt
-            cat build/ui-test/legacy-seed.txt
-            grep -q 'PASS: synthetic' build/ui-test/legacy-seed.txt
-            adb install -r --no-incremental build/ui-test/app.apk
-            timeout 150s adb shell am instrument -w dev.dothome.test/dev.dothome.test.FoundationUpgrade > build/ui-test/upgrade-result.txt
-            cat build/ui-test/upgrade-result.txt
-            adb logcat -d -s AndroidRuntime DotMigration > build/ui-test/upgrade-runtime.txt
-            adb pull /sdcard/Download/. build/ui-test/foundation-screenshots/
-            grep -q 'PASS: v3-to-v4' build/ui-test/upgrade-result.txt
-            ! grep -q 'FATAL EXCEPTION' build/ui-test/upgrade-runtime.txt
+        run: bash tests/android/run_emulator.sh
       - name: Diagnose runner failures
         if: always()
         run: |
@@ -179,6 +143,8 @@ jobs:
             build/ui-test/foundation-runtime.txt
             build/ui-test/runtime-live.txt
             build/ui-test/capture-status.txt
+            build/ui-test/emulator-host.txt
+            build/ui-test/emulator-exit.txt
             build/ui-test/upgrade-result.txt
             build/ui-test/upgrade-runtime.txt
             build/ui-test/legacy-seed.txt

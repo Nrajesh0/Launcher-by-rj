@@ -182,3 +182,7 @@ edit(lc+'LawnchairLauncher.kt', '''        prefs.feedProvider.subscribeChanges(t
             defaultOverlay.setEnableFeed(enable)
         }.launchIn(scope = lifecycleScope)
 ''', '')
+
+# A normal Home APK has no privileged Quickstep service. Do not repeatedly bind
+# a component deliberately absent from its manifest or retain pending callbacks.
+edit("quickstep/src/com/android/quickstep/util/TISBindHelper.java", "    private void internalBindToTIS() {\n", "    private void internalBindToTIS() {\n        if (mContext.getPackageManager().resolveService(new Intent(mContext, TouchInteractionService.class), 0) == null) return;\n")

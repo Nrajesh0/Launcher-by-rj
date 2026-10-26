@@ -105,7 +105,7 @@ object DotArrange {
             val occupied=mutableListOf<Rect>();val children=page.shortcutsAndWidgets
             for(n in 0 until children.childCount) {val other=children.getChildAt(n).tag as? ItemInfo ?: continue;if(other.id !in selected)occupied.add(Rect(other.cellX,other.cellY,other.cellX+other.spanX,other.cellY+other.spanY))}
             if(positions.any {it.left<0||it.top<0||it.right>grid.numColumns||it.bottom>grid.numRows||occupied.any {other->Rect.intersects(it,other)}} || positions.indices.any {a->positions.indices.any {b->a<b&&Rect.intersects(positions[a],positions[b])}}) {Toast.makeText(launcher,"Make room for this selection",Toast.LENGTH_SHORT).show();return}
-            transaction {db->items.forEachIndexed {n,item->val values=ContentValues();values.put("screen",target);values.put("cellX",positions[n].left);values.put("cellY",positions[n].top);check(db.update("favorites",values,"_id=?",arrayOf(item.id.toString()))==1)}}
+            transaction {db->val committedScreen=if(target<0)db.getNewScreenId() else target;items.forEachIndexed {n,item->val values=ContentValues();values.put("screen",committedScreen);values.put("cellX",positions[n].left);values.put("cellY",positions[n].top);check(db.update("favorites",values,"_id=?",arrayOf(item.id.toString()))==1)}}
         }
         fun d(value: Int)=(value*launcher.resources.displayMetrics.density).toInt()
         fun open() {
