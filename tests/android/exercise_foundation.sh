@@ -12,7 +12,7 @@ adb install -r --no-incremental build/ui-test/app.apk
 adb install -r --no-incremental build/ui-test/tests.apk
 nohup adb logcat -v threadtime -s AndroidRuntime ActivityManager ActivityTaskManager libc art Zygote DotMigration DotFoundation AppWidgetHostView > build/ui-test/runtime-live.txt 2>&1 < /dev/null &
 nohup bash tests/android/watch_screenshots.sh > build/ui-test/capture-status.txt 2>&1 < /dev/null &
-timeout 240s adb shell am instrument -w dev.dothome.test/dev.dothome.test.FoundationSmoke > build/ui-test/foundation-result.txt || echo RUNNER_ERROR_OR_TIMEOUT >> build/ui-test/foundation-result.txt
+timeout 420s adb shell am instrument -w dev.dothome.test/dev.dothome.test.FoundationSmoke > build/ui-test/foundation-result.txt || echo RUNNER_ERROR_OR_TIMEOUT >> build/ui-test/foundation-result.txt
 cat build/ui-test/foundation-result.txt
 timeout 20s adb logcat -d -s AndroidRuntime DotMigration CustomWidgetManager DotFoundation LoaderTask WorkspaceItemProcessor WidgetInflater LauncherModel AppWidgetHostView LauncherAppWidgetHostView > build/ui-test/foundation-runtime.txt
 timeout 20s adb pull /sdcard/Download build/ui-test/foundation-screenshots

@@ -106,19 +106,27 @@ public class UiSmoke extends Instrumentation {
       SystemClock.sleep(100);
     }
     if (!displayed) throw new AssertionError("Automatic default-launcher chooser did not open");
+    // The accessibility window can exist before its first composited frame.
+    try {getUiAutomation(UiAutomation.FLAG_DONT_SUPPRESS_ACCESSIBILITY_SERVICES).waitForIdle(500,10000);}
+    catch(java.util.concurrent.TimeoutException busy) { /* Confirm readiness from the live controls below. */ }
     screenshot("default-launcher-prompt");
     if (!clickSystemText("Dot Home"))
       throw new AssertionError("Could not tap the visible Dot Home option");
     SystemClock.sleep(750);
     screenshot("default-launcher-selected");
     boolean confirmed = false;
-    for (int n = 0; n < 30 && !confirmed; n++) {
+    for (int n = 0; n < 40 && !confirmed; n++) {
       confirmed =
           clickSystemText("Set as default")
               || clickSystemText("Set default")
               || clickSystemText("Always")
               || clickSystemText("Use app");
-      if (!confirmed) SystemClock.sleep(100);
+      if (!confirmed) {
+        // A tap during the dialog's opening animation may not select its radio.
+        // Retry the real visible option; never grant or set the Home role by shell.
+        clickSystemText("Dot Home");
+        SystemClock.sleep(200);
+      }
     }
     for (int n = 0; n < 50 && !roles.isRoleHeld(android.app.role.RoleManager.ROLE_HOME); n++)
       SystemClock.sleep(100);
