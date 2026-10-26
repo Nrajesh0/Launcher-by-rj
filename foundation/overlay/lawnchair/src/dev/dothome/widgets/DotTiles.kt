@@ -46,6 +46,13 @@ open class DotTile(private val context: Context, val kind: String, val face: Int
             val art: View = if(tile.kind=="photo" && item.optString("uri").isNotEmpty()) PhotoView(adapter,item,false) else TileArtwork(adapter,item,false)
             addView(art,LayoutParams(-1,-1))
             contentDescription=tile.label
+            if(tile.kind=="controls") {
+                val grid=android.widget.GridLayout(context).apply {columnCount=2;rowCount=2}
+                arrayOf("bluetooth","sound","torch","dnd").forEachIndexed {index,kind->
+                    grid.addView(android.widget.TextView(context).apply {text=arrayOf("Bluetooth","Sound","Flashlight","Do not disturb")[index];textSize=11f;gravity=android.view.Gravity.CENTER;setTextColor(dev.dothome.ui.DotSurface.ink(context));setOnClickListener {TileActions.tap(context,this@Surface.id,org.json.JSONObject().put("type",kind))}},android.widget.GridLayout.LayoutParams().apply {width=0;height=0;columnSpec=android.widget.GridLayout.spec(index%2,1f);rowSpec=android.widget.GridLayout.spec(index/2,1f)})
+                }
+                addView(grid,LayoutParams(-1,-1));setOnClickListener(null);return
+            }
             if(tile.kind=="media") {
                 val controls=android.widget.LinearLayout(context).apply { gravity=android.view.Gravity.CENTER }
                 val state=TileMedia.read(context)
@@ -104,6 +111,7 @@ object DotTiles {
     class Agenda(context: Context): DotTile(context,"agenda",0,"Quick look")
     class Countdown(context: Context): DotTile(context,"countdown",0,"Countdown")
     class Timer(context: Context): DotTile(context,"timer",0,"Elapsed timer",2,1)
+    class Controls(context: Context): DotTile(context,"controls",0,"Quick controls")
     class Media(context: Context): DotTile(context,"media",0,"Media player",4,2)
     class Usage(context: Context): DotTile(context,"usage",0,"Screen time",2,1)
     class Compass(context: Context): DotTile(context,"compass",0,"Compass")

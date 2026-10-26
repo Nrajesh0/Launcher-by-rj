@@ -1,7 +1,5 @@
 name: Launcher foundation trial
 on:
-  push:
-    branches: [rebuild-v4]
   workflow_dispatch:
 permissions:
   contents: read

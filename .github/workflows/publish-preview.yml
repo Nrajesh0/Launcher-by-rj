@@ -1,4 +1,4 @@
-name: Publish signed preview
+name: Publish verified signed release
 on:
   push:
     branches: [main]
@@ -26,13 +26,13 @@ jobs:
         with:
           packages: platform-tools
           log-accepted-android-sdk-licenses: false
-      - run: sdkmanager 'build-tools;36.0.0'
-      - name: Verify preview signature, offline contract and original CI payload
+      - run: sdkmanager 'build-tools;36.1.0'
+      - name: Verify release signature, offline contract and original CI payload
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
         run: python3 scripts/verify_preview.py
-      - name: Publish APK as a preview release
+      - name: Publish versioned APK as the latest release
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
@@ -40,8 +40,8 @@ jobs:
           version=$(python3 scripts/prepare_version.py)
           source=$(python3 -c 'import json,sys; print(json.load(open("release-assets/v"+sys.argv[1]+"/provenance.json"))["source_commit"])' "$version")
           if gh release view "v$version" >/dev/null 2>&1; then
-            gh release edit "v$version" --prerelease --title "Dot Home $version Preview" --notes-file "release-assets/v$version/NOTES.md"
+            gh release edit "v$version" --prerelease=false --latest --title "Dot Home $version" --notes-file "release-assets/v$version/NOTES.md"
             gh release upload "v$version" "release-assets/v$version/dot-home-$version.apk" "release-assets/v$version/dot-home-$version.apk.sha256" --clobber
           else
-            gh release create "v$version" "release-assets/v$version/dot-home-$version.apk" "release-assets/v$version/dot-home-$version.apk.sha256" --target "$source" --prerelease --title "Dot Home $version Preview" --notes-file "release-assets/v$version/NOTES.md"
+            gh release create "v$version" "release-assets/v$version/dot-home-$version.apk" "release-assets/v$version/dot-home-$version.apk.sha256" --target "$source" --prerelease=false --latest --title "Dot Home $version" --notes-file "release-assets/v$version/NOTES.md"
           fi

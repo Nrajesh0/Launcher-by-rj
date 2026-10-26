@@ -36,6 +36,10 @@ object DotDefaults {
             .putBoolean("pref_add_icon_to_home", false)
             .putBoolean("pref_searchResultStartPageSuggestion", false)
             .commit()
-        marker.edit().putBoolean("foundationDefaults", true).putBoolean("dark", legacyDark).putString("material", "classic").apply()
+        legacySettings?.let {saved->
+            prefs.edit().putBoolean("themed_icons",saved.optBoolean("monochrome",true)).putBoolean("drawer_themed_icons",saved.optBoolean("monochrome",true)).putString("pref_iconPackPackage",saved.optString("iconPack","")).apply()
+            marker.edit().putString("material",saved.optString("material","classic")).apply()
+        }
+        marker.edit().putBoolean("foundationDefaults", true).putBoolean("dark", legacyDark).putString("material", legacySettings?.optString("material","classic") ?: "classic").apply()
     }
 }

@@ -74,7 +74,7 @@ final class PhotoView extends View {
     if (style != 2) {
       Path mask = new Path();
       if (style == 1) mask.addCircle(w / 2, h / 2, Math.min(w, h) / 2, Path.Direction.CW);
-      else mask.addRoundRect(new RectF(0, 0, w, h), a.dp(20), a.dp(20), Path.Direction.CW);
+      else if(!item.optBoolean("wallpaper")) mask.addRoundRect(new RectF(0, 0, w, h), a.dp(20), a.dp(20), Path.Direction.CW);
       canvas.clipPath(mask);
     }
     image.setBounds(Math.round(x), Math.round(y), Math.round(x + dw), Math.round(y + dh));

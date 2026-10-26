@@ -33,22 +33,12 @@ Exact Nothing source/binaries are not being substituted for an independently bui
 
 ## Replacement checkpoint
 
-The replacement engine is on the `rebuild-v4` branch. The default build/release path still uses v3; this is deliberate while runtime and upgrade checks are incomplete. A compiling APK is not evidence of visual parity.
+The default build path now prepares the pinned engine. Android 16 emulator run [40229451748](https://github.com/Nrajesh0/Launcher-by-rj/actions/runs/40229451748) passed the baseline chooser, swipe-up drawer, hidden page, light/dark appearance, native widget binding, compact popup, batch move and Home/Recents interactions. Actual screenshots revealed and helped fix framework RemoteViews updates erasing local widget contents; counting database rows alone had missed that defect.
 
-| Area | Implemented in replacement | Acceptance still needed |
-| --- | --- | --- |
-| Home and Apps | Native paging, drag/reorder, folders, swipe-up drawer, local dock search | Real-device touch and high-refresh motion, grid density and dock spacing |
-| Icons | Pinned locally bundled monochrome vectors, themed layers, installed packs, enlarge/shrink action | Optical size across popular POCO apps, fallback consistency, expanded-folder interaction |
-| Menus | Compact anchored Home popup, separate Customisation and Home settings | Popup placement and hierarchy against reference footage |
-| Themes | Geist, light/dark, Classic/Translucent/Dynamic choices, colour selection, real Home preview | Surface translucency/blur and wallpaper-driven colours; not all materials are matched |
-| Wallpapers | Four original local optical/grain presets and document-picked images | Crop workflow and accurate local-image preview; these are not official Nothing wallpapers |
-| Widgets | Native provider-organised tray, shared preview/live renderer, 23 local variants and external providers | Size grouping, configuration discovery, host binding/resize, independent instance state |
-| Local data | Battery, calendar/usage on optional grants, media session controls, visible compass/torch observation | Revocation, lifecycle and process-restoration checks |
-| Organisation | Expanded direct-access folder preview; batch selection with page move/folder/remove transactions | Real selection/movement verification; group dragging of icons and widgets is not complete |
-| Hidden icons | Drawer swipe opens a dedicated page; native hidden-component storage and selection | Profile/tab gesture interactions and filtering/search checks |
-| Upgrade | Original JSON recovery file and atomic native-database import | Signed v3-to-v4 upgrade, widgets/URI/profile preservation and all legacy tile types |
-| Privacy | HTTP clients/update/upload code removed; packaged manifest/Dex gate passes | Repeat for the final release variant |
+Subsequent release checks exercise the added per-instance style sheet and installation upgrade. Screenshots and filtered diagnostics are artifacts of each run. Physical POCO touch, high-refresh frame timing and comparison with a physical Nothing device remain unverified.
 
-The first clean CI build passed compilation and packaged privacy gates. Its Android run caught a missing internal activity-result proxy at the default-Home request. The proxy is restored without adding privileges. Runtime verification remains pending. No replacement release has been published.
+Implemented launcher-owned work includes native placement/reorder/resize/folders, local icon mappings and installed packs, compact settings and actual Home preview, Classic/Translucent/Dynamic with independent dark mode, original local wallpapers and crop editor, a provider tray, visible local data widgets, batch icon/widget selection with move/folder/remove and group dragging, folder covers, local backup/restore and legacy JSON import. A successful emulator check does not establish pixel-perfect Nothing parity.
+
+Remaining differences include the precise proprietary icon/folder artwork, exact motion curves, platform-specific integrations and some widget families. Translucent widgets sample and blur our own saved wallpaper; they do not capture other apps. Backups store document references and widget placement, not provider internals or transferable grants. Controls use public system settings where direct toggles are restricted.
 
 System lock screen, Quick Settings, status-bar design, Glyph hardware, Essential AI/cloud features and firmware-owned global navigation are not launcher-owned surfaces. Offline weather must use manual/local information or an independently installed provider; fresh weather cannot be fetched by this app.

@@ -1,7 +1,7 @@
 name: Android build and release
 on:
   push:
-    branches: [main, rebuild-v3]
+    branches: [main, rebuild-v4]
     tags: ['v*']
     paths-ignore: ['release-assets/**']
   workflow_dispatch:
@@ -13,9 +13,7 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
-    outputs:
-      version: ${{ steps.version.outputs.name }}
-      signed: ${{ steps.signing.outputs.signed }}
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-java@v4
@@ -26,93 +24,61 @@ jobs:
         with:
           packages: platform-tools
           log-accepted-android-sdk-licenses: false
-      - name: Install Android toolchain
-        run: sdkmanager 'platforms;android-36' 'build-tools;36.0.0'
-      - name: Read and validate version
-        id: version
-        shell: bash
-        run: |
-          version=$(python3 scripts/prepare_version.py)
-          echo "name=$version" >> "$GITHUB_OUTPUT"
-          if [[ "$GITHUB_REF" == refs/tags/* ]]; then
-            test "$GITHUB_REF_NAME" = "v$version"
-          fi
-      - name: Run model, migration and offline checks
-        run: bash scripts/test.sh
-      - name: Restore configured signing key
-        id: signing
-        env:
-          SIGNING_KEY_BASE64: ${{ secrets.ANDROID_SIGNING_KEY_BASE64 }}
-        run: |
-          python3 - <<'PY'
-          import os, base64
-          from pathlib import Path
-          key = os.environ.get('SIGNING_KEY_BASE64', '')
-          if not key:
-              with open(os.environ['GITHUB_OUTPUT'], 'a') as output: output.write('signed=false\n')
-              print('Signing secrets are not configured; building an unsigned CI artifact.')
-              raise SystemExit(0)
-          path = Path(os.environ['RUNNER_TEMP']) / 'dot-home-signing.p12'
-          path.write_bytes(base64.b64decode(key, validate=True))
-          path.chmod(0o600)
-          with open(os.environ['GITHUB_OUTPUT'], 'a') as output: output.write('signed=true\n')
-          PY
-      - name: Build and verify signed offline APK
-        env:
-          SIGNING_KEYSTORE: ${{ runner.temp }}/dot-home-signing.p12
-          SIGNING_STORE_PASS: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
-          SIGNING_KEY_PASS: ${{ secrets.ANDROID_KEY_PASSWORD }}
-          SIGNING_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
-        run: |
-          if [[ '${{ steps.signing.outputs.signed }}' == 'true' ]]; then
-            bash build.sh
-          else
-            bash build.sh --unsigned
-          fi
-      - name: Upload versioned APK and checksum
-        uses: actions/upload-artifact@v4
+      - uses: gradle/actions/setup-gradle@v4
         with:
-          name: dot-home-${{ steps.version.outputs.name }}
+          cache-read-only: false
+      - run: sdkmanager 'platforms;android-36' 'platforms;android-36.1' 'build-tools;36.1.0'
+      - name: Compile and inspect replacement engine
+        env:
+          DOT_BUILD_TYPE: Release
+        run: |
+          bash scripts/test.sh
+          bash build.sh --unsigned
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dot-home-4.0.0
           path: |
-            build/dot-home-${{ steps.version.outputs.name }}*.apk
-            build/dot-home-${{ steps.version.outputs.name }}*.apk.sha256
+            build/dot-home-4.0.0-unsigned.apk
+            build/dot-home-4.0.0-unsigned.apk.sha256
           if-no-files-found: error
-          retention-days: 30
-      - name: Remove temporary signing key
-        if: always()
-        run: rm -f "$RUNNER_TEMP/dot-home-signing.p12"
-  ui-smoke:
-    needs: build
-    runs-on: ubuntu-latest
-    timeout-minutes: 20
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: '21'
-      - uses: android-actions/setup-android@v3
-        with:
-          packages: platform-tools
-          log-accepted-android-sdk-licenses: false
-      - run: sdkmanager 'platforms;android-36' 'build-tools;36.0.0'
-      - uses: actions/download-artifact@v4
-        with:
-          name: dot-home-${{ needs.build.outputs.version }}
-          path: build/download
-      - name: Build instrumentation and sign emulator-only copies
+      - name: Build independent instrumentation
         run: |
-          bash scripts/build_ui_test.sh
-          keytool -genkeypair -keystore "$RUNNER_TEMP/emulator-only.p12" -alias smoke -storepass android -keypass android -keyalg RSA -validity 2 -dname 'CN=Ephemeral UI test' -noprompt
-          apk=$(find build/download -name '*.apk' | head -1)
-          "$ANDROID_HOME/build-tools/36.0.0/apksigner" sign --ks "$RUNNER_TEMP/emulator-only.p12" --ks-pass pass:android --out build/ui-test/app.apk "$apk"
-          "$ANDROID_HOME/build-tools/36.0.0/apksigner" sign --ks "$RUNNER_TEMP/emulator-only.p12" --ks-pass pass:android --out build/ui-test/tests.apk build/ui-test/aligned.apk
-      - name: Enable KVM for the test emulator
+          BUILD_TOOLS_DIR="$ANDROID_HOME/build-tools/36.1.0" bash scripts/build_ui_test.sh
+          keytool -genkeypair -keystore "$RUNNER_TEMP/test.p12" -alias smoke -storepass android -keypass android -keyalg RSA -validity 2 -dname 'CN=Disposable foundation test' -noprompt
+          "$ANDROID_HOME/build-tools/36.1.0/apksigner" sign --ks "$RUNNER_TEMP/test.p12" --ks-pass pass:android --out build/ui-test/app.apk build/dot-home-4.0.0-unsigned.apk
+          "$ANDROID_HOME/build-tools/36.1.0/apksigner" sign --ks "$RUNNER_TEMP/test.p12" --ks-pass pass:android --out build/ui-test/tests.apk build/ui-test/aligned.apk
+          "$ANDROID_HOME/build-tools/36.1.0/apksigner" sign --ks "$RUNNER_TEMP/test.p12" --ks-pass pass:android --out build/ui-test/previous.apk release-assets/v3.0.0/dot-home-3.0.0.apk
+      - name: Enable hardware acceleration
         run: |
-          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm.rules
           sudo udevadm control --reload-rules
           sudo udevadm trigger --name-match=kvm
-      - name: Run Android 16 UI checks
+      - name: Cache Android 16 system image
+        id: emulator-image
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.ANDROID_HOME }}/system-images/android-36/default/x86_64
+          key: foundation-android36-default-x86_64-v1
+      - name: Install and verify emulator image
+        id: install-image
+        timeout-minutes: 20
+        run: |
+          for attempt in 1 2 3; do
+            if timeout 480s sdkmanager 'system-images;android-36;default;x86_64' && test -s "$ANDROID_HOME/system-images/android-36/default/x86_64/system.img"; then
+              exit 0
+            fi
+            echo "System image installation attempt $attempt failed; retrying the SDK download."
+            if [ -d "$ANDROID_HOME/.temp" ]; then rm -rf "$ANDROID_HOME/.temp"; fi
+          done
+          exit 1
+      - name: Save verified system image
+        if: steps.emulator-image.outputs.cache-hit != 'true' && steps.install-image.outcome == 'success'
+        uses: actions/cache/save@v4
+        with:
+          path: ${{ env.ANDROID_HOME }}/system-images/android-36/default/x86_64
+          key: foundation-android36-default-x86_64-v1
+      - name: Exercise native launcher interactions
+        timeout-minutes: 12
         uses: reactivecircus/android-emulator-runner@v2
         with:
           api-level: 36
@@ -125,44 +91,38 @@ jobs:
           script: |
             adb shell am force-stop com.android.launcher3
             adb shell am start -W -a android.intent.action.MAIN -c android.intent.category.HOME
+            adb shell cmd overlay enable-exclusive --category com.android.internal.systemui.navbar.gestural
+            adb shell wm density 280
+            adb logcat -c
             adb install -r build/ui-test/app.apk
             adb install -r build/ui-test/tests.apk
-            adb shell screenrecord --time-limit 25 --bit-rate 2000000 /sdcard/Download/ui-motion.mp4 & recording_pid=$!; timeout 210s adb shell am instrument -w dev.dothome.test/dev.dothome.test.UiSmoke > build/ui-test/result.txt || echo RUNNER_ERROR_OR_TIMEOUT >> build/ui-test/result.txt; wait "$recording_pid" || true
-            cat build/ui-test/result.txt
-            adb logcat -d -s AndroidRuntime > build/ui-test/runtime.txt
-            adb pull /sdcard/Download build/ui-test/screenshots
-            grep -q 'PASS: home' build/ui-test/result.txt
-            ! grep -q RUNNER_ERROR_OR_TIMEOUT build/ui-test/result.txt
-            ! grep -q 'FATAL EXCEPTION' build/ui-test/runtime.txt
+            timeout 240s adb shell am instrument -w dev.dothome.test/dev.dothome.test.FoundationSmoke > build/ui-test/foundation-result.txt || echo RUNNER_ERROR_OR_TIMEOUT >> build/ui-test/foundation-result.txt
+            adb shell screencap -p /sdcard/Download/foundation-last-screen.png
+            cat build/ui-test/foundation-result.txt
+            adb logcat -d -s AndroidRuntime DotMigration CustomWidgetManager DotFoundation LoaderTask WorkspaceItemProcessor WidgetInflater LauncherModel AppWidgetHostView LauncherAppWidgetHostView > build/ui-test/foundation-runtime.txt
+            adb pull /sdcard/Download build/ui-test/foundation-screenshots
+            grep -q 'PASS: foundation' build/ui-test/foundation-result.txt
+            ! grep -q 'FATAL EXCEPTION' build/ui-test/foundation-runtime.txt
+            adb uninstall dev.dothome
+            adb install build/ui-test/previous.apk
+            timeout 60s adb shell am instrument -w dev.dothome.test/dev.dothome.test.LegacySeed > build/ui-test/legacy-seed.txt
+            grep -q 'PASS: synthetic' build/ui-test/legacy-seed.txt
+            adb install -r build/ui-test/app.apk
+            timeout 150s adb shell am instrument -w dev.dothome.test/dev.dothome.test.FoundationUpgrade > build/ui-test/upgrade-result.txt
+            cat build/ui-test/upgrade-result.txt
+            adb logcat -d -s AndroidRuntime DotMigration > build/ui-test/upgrade-runtime.txt
+            adb pull /sdcard/Download/foundation-upgrade-home.png build/ui-test/foundation-screenshots/
+            grep -q 'PASS: v3-to-v4' build/ui-test/upgrade-result.txt
+            ! grep -q 'FATAL EXCEPTION' build/ui-test/upgrade-runtime.txt
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: ui-evidence-${{ needs.build.outputs.version }}
+          name: foundation-evidence
           path: |
-            build/ui-test/result.txt
-            build/ui-test/runtime.txt
-            build/ui-test/screenshots
-  release:
-    if: startsWith(github.ref, 'refs/tags/v') && needs.build.outputs.signed == 'true'
-    needs: [build, ui-smoke]
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-    steps:
-      - uses: actions/download-artifact@v4
-        with:
-          name: dot-home-${{ needs.build.outputs.version }}
-          path: release-assets
-      - name: Publish GitHub release with APK
-        env:
-          GH_TOKEN: ${{ github.token }}
-          GH_REPO: ${{ github.repository }}
-          RELEASE_TAG: ${{ github.ref_name }}
-          RELEASE_VERSION: ${{ needs.build.outputs.version }}
-        shell: bash
-        run: |
-          if gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
-            gh release upload "$RELEASE_TAG" release-assets/* --clobber
-          else
-            gh release create "$RELEASE_TAG" release-assets/* --verify-tag --title "Dot Home $RELEASE_VERSION" --generate-notes --notes 'Offline Android launcher. This APK requests no Internet permission. Download the APK and its SHA-256 checksum below.'
-          fi
+            build/ui-test/foundation-result.txt
+            build/ui-test/foundation-runtime.txt
+            build/ui-test/upgrade-result.txt
+            build/ui-test/upgrade-runtime.txt
+            build/ui-test/legacy-seed.txt
+            build/ui-test/foundation-screenshots
+            build/foundation/build/reports/problems/problems-report.html

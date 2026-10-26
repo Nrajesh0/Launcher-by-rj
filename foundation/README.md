@@ -1,6 +1,6 @@
-# Replacement launcher engine (development)
+# Replacement launcher engine
 
-This source adaptation replaces the previous Activity-based workspace with a pinned Launcher3/Lawnchair core. It is being validated on `rebuild-v4`; the public release and default build script have not switched engines.
+This source adaptation replaces the previous Activity-based workspace with a pinned Launcher3/Lawnchair core. The default build and release path uses this engine.
 
 ## Reproduce
 
@@ -16,7 +16,7 @@ The script creates an owned, ignored `build/foundation` checkout, verifies the u
 
 ## Verification
 
-`.github/workflows/foundation.yml` builds independently and exercises the actual Android launcher, role chooser, swipe drawer, hidden-icons page, settings/theme screen and widget tray. Emulator screenshots and failure logs are saved as `foundation-evidence`. Functional checks are separate from the [visual/upgrade acceptance checklist](../docs/reference/v4-audit.md). Debug test certificates are disposable and must not be used to publish an update.
+`.github/workflows/android.yml` builds the release variant independently and exercises the actual Android launcher, role chooser, swipe drawer, hidden-icons page, settings/theme screen, widget editing/tray, batch movement and a synthetic v3 installation upgrade. Emulator screenshots and failure logs are saved as `foundation-evidence`. Functional checks are separate from the [visual/upgrade acceptance checklist](../docs/reference/v4-audit.md). Debug test certificates are disposable and must not be used to publish an update.
 
 ## Attribution
 

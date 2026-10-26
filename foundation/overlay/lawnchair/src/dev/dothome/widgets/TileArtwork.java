@@ -76,6 +76,12 @@ final class TileArtwork extends View {
     p.setStyle(Paint.Style.FILL);
     p.setColor(paper);
     r.set(0, 0, w, h);
+    if(a.settings.optString("material").equals("translucent") && !type.equals("photo")) {
+      c.save();Path mask=new Path();
+      if(control || (type.equals("clock") && (style==1 || style==3)))mask.addCircle(w/2,h/2,u*(control?.44f:.46f),Path.Direction.CW);
+      else mask.addRoundRect(r,a.dp(19),a.dp(19),Path.Direction.CW);
+      c.clipPath(mask);dev.dothome.ui.DotBackdrop.glass(this,c);c.restore();
+    }
     if (control || (type.equals("clock") && (style == 1 || style == 3)))
       c.drawCircle(w / 2, h / 2, u * (control ? .44f : .46f), p);
     else if (!(type.equals("photo") && style == 2))
@@ -184,8 +190,8 @@ final class TileArtwork extends View {
         text(
             c,
             new SimpleDateFormat("MMM", Locale.getDefault()).format(now).toUpperCase(),
-            w * .58f,
-            h - pad,
+            w * .62f,
+            pad + size,
             size,
             ink,
             true);

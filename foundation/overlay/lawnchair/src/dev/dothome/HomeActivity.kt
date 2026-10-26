@@ -36,6 +36,7 @@ class HomeActivity : LawnchairLauncher() {
     private var drawerDownY=0f
     private var drawerSwipe=false
     override fun dispatchTouchEvent(event: android.view.MotionEvent): Boolean {
+        if(dev.dothome.ui.DotArrange.touch(this,event))return true
         when(event.actionMasked) {
             android.view.MotionEvent.ACTION_DOWN -> {
                 drawerDownX=event.x;drawerDownY=event.y

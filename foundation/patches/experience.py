@@ -125,7 +125,7 @@ for action,category in (("android.intent.action.MAIN","android.intent.category.L
     ET.SubElement(query,"action",{a+"name":action})
     if category: ET.SubElement(query,"category",{a+"name":category})
 ET.SubElement(app,"activity",{a+"name":"dev.dothome.ui.DotHidden",a+"exported":"false",a+"theme":"@android:style/Theme.Material.Light.NoActionBar"})
-ET.SubElement(app,"activity",{a+"name":"dev.dothome.widgets.TileConfiguration",a+"exported":"false",a+"theme":"@android:style/Theme.Material.Light.NoActionBar"})
+ET.SubElement(app,"activity",{a+"name":"dev.dothome.widgets.TileConfiguration",a+"exported":"false",a+"theme":"@style/DotWidgetSheet"})
 ET.SubElement(app,"activity",{a+"name":"dev.dothome.migration.UnavailableApp",a+"exported":"false",a+"theme":"@android:style/Theme.Material.Light.NoActionBar"})
 for permission in ("android.permission.CAMERA","android.permission.READ_CALENDAR","com.android.alarm.permission.SET_ALARM"):
     ET.SubElement(doc,"uses-permission",{a+"name":permission})
@@ -134,7 +134,7 @@ tree.write(file,encoding="unicode",xml_declaration=True)
 
 # Provider class names are durable workspace identities and loaded from local XML.
 with (root / 'proguard.pro').open('a') as rules:
-    rules.write('\n-keep class dev.dothome.widgets.DotTiles$* { public <init>(android.content.Context); *; }\n-keep class dev.dothome.widgets.DotTile { *; }\n')
+    rules.write('\n-keep class dev.dothome.** { *; }\n-keep class com.android.launcher3.** { *; }\n-keep class app.lawnchair.LawnchairLauncher { *; }\n-keep class app.lawnchair.LawnchairLauncher$* { *; }\n-keep class dev.dothome.widgets.DotTiles$* { public <init>(android.content.Context); *; }\n-keep class dev.dothome.widgets.DotTile { *; }\n')
 
 # Providers initialise launcher preferences before Application.onCreate.
 edit("lawnchair/src/app/lawnchair/LawnchairApp.kt", "    override fun onCreate() {", "    override fun attachBaseContext(base: Context) {\n        super.attachBaseContext(base)\n        if (base.getSystemService(android.os.UserManager::class.java)?.isUserUnlocked == true) dev.dothome.DotDefaults.apply(base)\n    }\n\n    override fun onCreate() {")

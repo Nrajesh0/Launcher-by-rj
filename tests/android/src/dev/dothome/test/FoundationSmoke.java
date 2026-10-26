@@ -7,7 +7,7 @@ import android.view.*;
 import java.lang.reflect.*;
 
 /** Exercises the actual replacement engine, without product Accessibility or shell role grants. */
-public final class FoundationSmoke extends UiSmoke {
+public class FoundationSmoke extends UiSmoke {
   @Override void syncActivity() {
     try {
       Class<?> cls=Class.forName("app.lawnchair.LawnchairLauncher",true,getTargetContext().getClassLoader());
@@ -74,7 +74,7 @@ public final class FoundationSmoke extends UiSmoke {
     for(int n=0;n<40;n++){onUi(()->{views[0]=nativeItem(ids[0]);views[1]=nativeItem(ids[1]);});if(views[0]!=null&&views[1]!=null)break;SystemClock.sleep(100);}
     if(views[0]==null||views[1]==null)throw new AssertionError("Native test apps were not bound");
     longPressBlank();visible("Arrange");if(!clickSystemText("Arrange"))throw new AssertionError("Arrange touch was not accepted");awaitState("EDIT_MODE");
-    awaitState("EDIT_MODE");visible("Select apps");
+    awaitState("EDIT_MODE");visible("Select items");
     for(int n=0;n<2;n++) {
       final View item=views[n];int[] at=new int[2];onUi(()->item.getLocationOnScreen(at));
       long downTime=SystemClock.uptimeMillis();
@@ -94,6 +94,23 @@ public final class FoundationSmoke extends UiSmoke {
     }
     if(screens[0]==0||screens[0]!=screens[1])throw new AssertionError("Batch did not durably move both native items to a new page");
     screenshot("foundation-batch-moved");
+  }
+  View firstTile(View view) {
+    if(view.getClass().getName().equals("dev.dothome.widgets.TileArtwork"))return view;
+    if(view instanceof android.view.ViewGroup group)for(int n=0;n<group.getChildCount();n++){View result=firstTile(group.getChildAt(n));if(result!=null)return result;}
+    return null;
+  }
+  void tapView(View view) throws Exception {
+    android.graphics.Rect bounds=new android.graphics.Rect();onUi(()->view.getGlobalVisibleRect(bounds));
+    long down=SystemClock.uptimeMillis();
+    for(int action:new int[]{MotionEvent.ACTION_DOWN,MotionEvent.ACTION_UP}) {
+      MotionEvent touch=MotionEvent.obtain(down,SystemClock.uptimeMillis(),action,bounds.exactCenterX(),bounds.exactCenterY(),0);touch.setSource(InputDevice.SOURCE_TOUCHSCREEN);getUiAutomation(UiAutomation.FLAG_DONT_SUPPRESS_ACCESSIBILITY_SERVICES).injectInputEvent(touch,true);touch.recycle();SystemClock.sleep(80);
+    }
+  }
+  int artworkCount(View view) {
+    int count=view.getClass().getName().equals("dev.dothome.widgets.TileArtwork")?1:0;
+    if(view instanceof android.view.ViewGroup group)for(int n=0;n<group.getChildCount();n++)count+=artworkCount(group.getChildAt(n));
+    return count;
   }
   int widgetCount(View view) {
     int total=0;Object tag=view.getTag();
@@ -132,6 +149,7 @@ public final class FoundationSmoke extends UiSmoke {
       android.util.Log.i("DotFoundation",fixtureCounts());
       final int[] placed={0};
       for(int n=0;n<30;n++) {onUi(()->placed[0]=widgetCount((View)invoke(home,"getWorkspace")));if(placed[0]>=8)break;SystemClock.sleep(100);}
+      onUi(()->placed[0]=artworkCount((View)invoke(home,"getWorkspace")));
       if(placed[0]<8)throw new AssertionError("Default native widgets were not bound: "+placed[0]);
       final boolean[] dialer={false};
       onUi(()->{
@@ -153,7 +171,14 @@ public final class FoundationSmoke extends UiSmoke {
       if(!home.getSharedPreferences("dot-style",0).getBoolean("dark",false))throw new AssertionError("Dark theme label did not toggle the setting");
       homeKey();screenshot("foundation-home-dark");
       longPressBlank();visible("Arrange");if(!clickSystemText("Arrange"))throw new AssertionError("Arrange touch was not accepted");awaitState("EDIT_MODE");
-      visible("Select apps");visible("Done");screenshot("foundation-arrange");
+      visible("Select items");visible("Done");screenshot("foundation-arrange");
+      final View[] clock={null};
+      onUi(()->{android.view.ViewGroup page=(android.view.ViewGroup)api(invoke(home,"getWorkspace"),"getScreenWithId",new Class<?>[]{int.class},0);clock[0]=firstTile(page);});
+      if(clock[0]==null)throw new AssertionError("Clock artwork missing in arrangement mode");
+      tapView(clock[0]);visible("1 selected");if(!clickSystemText("Style"))throw new AssertionError("Widget style action did not respond");
+      visible("Clock face");visible("Minimal");screenshot("foundation-widget-style");
+      if(!clickSystemText("Done"))throw new AssertionError("Widget configuration did not save");homeKey();
+      longPressBlank();visible("Arrange");clickSystemText("Arrange");awaitState("EDIT_MODE");
       if(!clickSystemText("Done"))throw new AssertionError("Arrange did not finish");awaitState("NORMAL");
       longPressBlank();visible("Widgets");if(!clickSystemText("Widgets"))throw new AssertionError("Widget entry did not respond");
       visible("Dot Home");screenshot("foundation-widget-tray");

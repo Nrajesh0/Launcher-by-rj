@@ -24,17 +24,28 @@ version = dict(line.split("=", 1) for line in (ROOT / "version.properties").read
 assert re.fullmatch(r"\d+\.\d+\.\d+", version)
 folder = ROOT / "release-assets" / f"v{version}"
 apk = folder / f"dot-home-{version}.apk"
+provenance = json.loads((folder / "provenance.json").read_text())
+if not apk.exists():
+    parts = provenance.get("apk_parts", [])
+    assert 0 < len(parts) <= 96, "Missing APK parts"
+    with apk.open("wb") as output:
+        for index, entry in enumerate(parts):
+            assert entry["name"] == f"{apk.name}.part{index:03d}", "Invalid part path/order"
+            payload=(folder/entry["name"]).read_bytes()
+            assert 0 < len(payload) <= 2*1024*1024 and hashlib.sha256(payload).hexdigest()==entry["sha256"], "Part checksum mismatch"
+            output.write(payload)
+    assert apk.stat().st_size <= 96*1024*1024, "Unexpected APK size"
 expected = (folder / f"{apk.name}.sha256").read_text().split()[0]
 assert hashlib.sha256(apk.read_bytes()).hexdigest() == expected, "APK checksum mismatch"
 provenance = json.loads((folder / "provenance.json").read_text())
 assert provenance["certificate_sha256"] == CERTIFICATE, "Unrecognized signing identity"
 sdk = Path(os.environ.get("ANDROID_HOME", os.environ.get("ANDROID_SDK_ROOT", "/workspace/android-sdk")))
-build_tools = sdk / "build-tools" / "36.0.0"
+build_tools = sdk / "build-tools" / "36.1.0"
 if not build_tools.exists():
     build_tools = sdk / "build-tools" / "android-16"
 certs = subprocess.check_output([str(build_tools / "apksigner"), "verify", "--print-certs", str(apk)], text=True)
 assert CERTIFICATE in certs, "APK signing identity mismatch"
-subprocess.run(["python3", str(ROOT / "tests/check_offline.py"), str(build_tools / "aapt"), str(apk)], check=True)
+subprocess.run(["python3", str(ROOT / "tests/check_foundation.py"), str(build_tools / "aapt"), str(apk)], check=True)
 repo = os.environ["GH_REPO"]
 run_id = provenance["actions_run_id"]
 assert isinstance(run_id, int) and run_id > 0

@@ -251,12 +251,15 @@ open class DotPreferences : Activity() {
 
     override fun onActivityResult(request: Int, result: Int, data: Intent?) {
         super.onActivityResult(request, result, data)
+        if(result==RESULT_OK && data?.data!=null) {
+            if(request==71) {DotBackup.export(this,data.data!!);return}
+            if(request==72) {DotBackup.inspect(this,data.data!!);return}
+        }
         if(request == 61 && result == RESULT_OK && data?.data != null) {
             val uri = data.data!!
-            work.execute {
-                val success = runCatching { contentResolver.openInputStream(uri).use { WallpaperManager.getInstance(this).setStream(it, null, true, WallpaperManager.FLAG_SYSTEM) }; style.edit().putBoolean("wallpaperApplied", true).putString("wallpaper", "local").apply() }.isSuccess
-                runOnUiThread { Toast.makeText(this, if(success) "Wallpaper applied" else "Image unavailable", Toast.LENGTH_SHORT).show() }
-            }
+            runCatching {contentResolver.takePersistableUriPermission(uri,Intent.FLAG_GRANT_READ_URI_PERMISSION)}
+            val item=org.json.JSONObject().put("type","photo").put("style",0).put("uri",uri.toString()).put("wallpaper",true)
+            startActivity(Intent(this,dev.dothome.widgets.TileConfiguration::class.java).putExtra("initial",item.toString()))
         }
     }
 
@@ -271,6 +274,8 @@ open class DotPreferences : Activity() {
         val role = getSystemService(RoleManager::class.java)
         row("Default Home app", if(role?.isRoleHeld(RoleManager.ROLE_HOME) == true) "Dot Home" else "Choose") { if(role != null) startActivityForResult(role.createRequestRoleIntent(RoleManager.ROLE_HOME), 62) else startActivity(Intent(Settings.ACTION_HOME_SETTINGS)) }
         row("Hidden icons") { startActivity(Intent(this,DotHidden::class.java)) }
+        row("Back up Home layout") { startActivityForResult(Intent(Intent.ACTION_CREATE_DOCUMENT).setType("application/json").addCategory(Intent.CATEGORY_OPENABLE).putExtra(Intent.EXTRA_TITLE,"dot-home-layout.json"),71) }
+        row("Restore Home layout") { startActivityForResult(Intent(Intent.ACTION_OPEN_DOCUMENT).setType("application/json").addCategory(Intent.CATEGORY_OPENABLE),72) }
         row("Optional access") { show("access") }
         row("Open-source licences") { show("licenses") }
         gap(); body.addView(text("Dot Home · ${com.android.launcher3.BuildConfig.VERSION_NAME}", 12f, secondary))
@@ -303,7 +308,7 @@ open class DotPreferences : Activity() {
             canvas.save(); canvas.translate((width-w)/2, (height-h)/2)
             val clip = Path().apply { addRoundRect(RectF(0f,0f,w,h),d(22).toFloat(),d(22).toFloat(),Path.Direction.CW) }
             canvas.clipPath(clip)
-            DotWallpaper.paint(canvas,w.toInt(),h.toInt(),style.getString("wallpaper","glass")!!)
+            DotBackdrop.draw(this@DotPreferences,canvas,RectF(0f,0f,w,h))
             canvas.scale(scale,scale)
             dev.dothome.widgets.TileRefresh.sync(home)
             runCatching { home.draw(canvas) }

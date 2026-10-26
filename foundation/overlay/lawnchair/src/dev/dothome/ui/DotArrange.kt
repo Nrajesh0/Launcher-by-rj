@@ -29,15 +29,84 @@ object DotArrange {
         val launcher=Launcher.getLauncher(view.context)
         val session=sessions[launcher] ?: return false
         val item=view.tag as? ItemInfo ?: return false
-        if(item.container!=LauncherSettings.Favorites.CONTAINER_DESKTOP || (item !is WorkspaceItemInfo && item !is FolderInfo))return false
+        if(item.container!=LauncherSettings.Favorites.CONTAINER_DESKTOP || (item !is WorkspaceItemInfo && item !is FolderInfo && item !is LauncherAppWidgetInfo))return false
         session.toggle(view,item);return true
     }
+    @JvmStatic fun touch(launcher: Launcher,event: MotionEvent): Boolean = sessions[launcher]?.touch(event) ?: false
     private class Session(val launcher: Launcher): StateManager.StateListener<LauncherState> {
         val selected=linkedMapOf<Int,Pair<View,ItemInfo>>()
         val badges=mutableMapOf<Int,Drawable>()
         val bar=LinearLayout(launcher)
         val count=TextView(launcher)
         val actions=mutableListOf<TextView>()
+        var touched: View?=null
+        var downX=0f;var downY=0f;var downTime=0L
+        var dragX=0f;var dragY=0f;var dragging=false
+        var ghost: View?=null
+        val handler=android.os.Handler(android.os.Looper.getMainLooper())
+        val edge=object: Runnable {override fun run() {
+            if(!dragging)return
+            val workspace=launcher.workspace
+            val direction=if(dragX<d(40))-1 else if(dragX>launcher.dragLayer.width-d(40))1 else 0
+            if(direction!=0)workspace.snapToPage((workspace.currentPage+direction).coerceIn(0,workspace.pageCount-1))
+            handler.postDelayed(this,800)
+        }}
+        fun touch(event: MotionEvent): Boolean {
+            when(event.actionMasked) {
+                MotionEvent.ACTION_DOWN -> {
+                    touched=null
+                    val page=launcher.workspace.getScreenWithId(launcher.workspace.getScreenIdForPageIndex(launcher.workspace.currentPage)) ?: return false
+                    val bounds=Rect();val children=page.shortcutsAndWidgets
+                    for(n in 0 until children.childCount) {
+                        val view=children.getChildAt(n);val item=view.tag as? ItemInfo ?: continue
+                        if(item.container==LauncherSettings.Favorites.CONTAINER_DESKTOP && view.getGlobalVisibleRect(bounds) && bounds.contains(event.rawX.toInt(),event.rawY.toInt())) {touched=view;break}
+                    }
+                    downX=event.x;downY=event.y;downTime=event.eventTime
+                }
+                MotionEvent.ACTION_MOVE -> if(touched!=null) {
+                    dragX=event.x;dragY=event.y
+                    if(!dragging && event.eventTime-downTime>=250 && kotlin.math.hypot(event.x-downX,event.y-downY)>d(12)) {
+                        val view=touched!!;val item=view.tag as ItemInfo
+                        if(item.id !in selected)toggle(view,item)
+                        dragging=true
+                        ghost=object: View(launcher) {
+                            val paint=Paint(Paint.ANTI_ALIAS_FLAG)
+                            override fun onDraw(canvas: Canvas) {
+                                paint.color=0xee232523.toInt();canvas.drawRoundRect(0f,0f,width.toFloat(),height.toFloat(),d(22).toFloat(),d(22).toFloat(),paint)
+                                paint.color=Color.WHITE;paint.textSize=d(18).toFloat();paint.textAlign=Paint.Align.CENTER
+                                canvas.drawText("${selected.size} items",width/2f,height/2f+d(6),paint)
+                            }
+                        }.also {launcher.dragLayer.addView(it,com.android.launcher3.views.BaseDragLayer.LayoutParams(d(112),d(72)))}
+                        handler.postDelayed(edge,800)
+                        touched?.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
+                    }
+                    ghost?.let {it.translationX=event.x-it.width/2;it.translationY=event.y-it.height/2}
+                }
+                MotionEvent.ACTION_UP -> if(touched!=null) {
+                    if(dragging)drop(event.rawX,event.rawY) else touched?.let {select(it)}
+                    clearDrag();return true
+                }
+                MotionEvent.ACTION_CANCEL -> {val captured=touched!=null;clearDrag();return captured}
+            }
+            return touched!=null || event.actionMasked==MotionEvent.ACTION_UP && (dragging || ghost!=null)
+        }
+        fun clearDrag() {handler.removeCallbacks(edge);ghost?.let {(it.parent as? ViewGroup)?.removeView(it)};ghost=null;dragging=false;touched=null}
+        fun drop(rawX: Float,rawY: Float) {
+            val workspace=launcher.workspace;val target=workspace.getScreenIdForPageIndex(workspace.currentPage)
+            val page=workspace.getScreenWithId(target) ?: return
+            val bounds=Rect();page.getGlobalVisibleRect(bounds)
+            if(!bounds.contains(rawX.toInt(),rawY.toInt()))return
+            val cell=IntArray(2)
+            page.pointToCellExact(((rawX-bounds.left)*page.width/bounds.width()).toInt(),((rawY-bounds.top)*page.height/bounds.height()).toInt(),cell)
+            val items=selected.values.map {it.second};if(items.isEmpty())return
+            val minX=items.minOf {it.cellX};val minY=items.minOf {it.cellY}
+            val grid=InvariantDeviceProfile.INSTANCE.get(launcher)
+            val positions=items.map {Rect(cell[0]+it.cellX-minX,cell[1]+it.cellY-minY,cell[0]+it.cellX-minX+it.spanX,cell[1]+it.cellY-minY+it.spanY)}
+            val occupied=mutableListOf<Rect>();val children=page.shortcutsAndWidgets
+            for(n in 0 until children.childCount) {val other=children.getChildAt(n).tag as? ItemInfo ?: continue;if(other.id !in selected)occupied.add(Rect(other.cellX,other.cellY,other.cellX+other.spanX,other.cellY+other.spanY))}
+            if(positions.any {it.left<0||it.top<0||it.right>grid.numColumns||it.bottom>grid.numRows||occupied.any {other->Rect.intersects(it,other)}} || positions.indices.any {a->positions.indices.any {b->a<b&&Rect.intersects(positions[a],positions[b])}}) {Toast.makeText(launcher,"Make room for this selection",Toast.LENGTH_SHORT).show();return}
+            transaction {db->items.forEachIndexed {n,item->val values=ContentValues();values.put("screen",target);values.put("cellX",positions[n].left);values.put("cellY",positions[n].top);check(db.update("favorites",values,"_id=?",arrayOf(item.id.toString()))==1)}}
+        }
         fun d(value: Int)=(value*launcher.resources.displayMetrics.density).toInt()
         fun open() {
             val dark=launcher.getSharedPreferences("dot-style",0).getBoolean("dark",false)
@@ -45,16 +114,16 @@ object DotArrange {
             bar.background=GradientDrawable().apply {setColor(if(dark)0xff252625.toInt() else 0xfff8f8f3.toInt());cornerRadius=d(28).toFloat()}
             count.textSize=13f;count.setTextColor(if(dark)Color.WHITE else Color.BLACK)
             bar.addView(count,LinearLayout.LayoutParams(0,-1,1f))
-            listOf("Move","Folder","Remove","Done").forEachIndexed { index,label ->
-                val button=TextView(launcher).apply {text=label;textSize=12f;gravity=Gravity.CENTER;setTextColor(if(dark)Color.WHITE else Color.BLACK);setOnClickListener {when(index){0->move();1->folder();2->remove();else->close()}}}
-                bar.addView(button,LinearLayout.LayoutParams(d(55),d(48)));actions.add(button)
+            listOf("Move","Style","Folder","Remove","Done").forEachIndexed { index,label ->
+                val button=TextView(launcher).apply {text=label;textSize=12f;gravity=Gravity.CENTER;setTextColor(if(dark)Color.WHITE else Color.BLACK);setOnClickListener {when(index){0->move();1->style();2->folder();3->remove();else->close()}}}
+                bar.addView(button,LinearLayout.LayoutParams(d(47),d(48)));actions.add(button)
             }
             launcher.dragLayer.addView(bar,com.android.launcher3.views.BaseDragLayer.LayoutParams(-1,d(58)).apply {gravity=Gravity.BOTTOM;leftMargin=d(14);rightMargin=d(14);bottomMargin=launcher.deviceProfile.insets.bottom+d(90)})
             launcher.stateManager.addStateListener(this)
             launcher.stateManager.goToState(LauncherState.EDIT_MODE)
             update()
         }
-        fun update() {count.text=if(selected.isEmpty())"Select apps" else "${selected.size} selected";actions.take(3).forEach {it.isEnabled=selected.isNotEmpty();it.alpha=if(it.isEnabled)1f else .4f}}
+        fun update() {count.text=if(selected.isEmpty())"Select items" else "${selected.size} selected";actions.take(4).forEach {it.isEnabled=selected.isNotEmpty();it.alpha=if(it.isEnabled)1f else .4f}}
         fun toggle(view: View,item: ItemInfo) {
             if(selected.remove(item.id)!=null) {badges.remove(item.id)?.let {view.overlay.remove(it)}} else {
                 selected[item.id]=view to item
@@ -66,6 +135,7 @@ object DotArrange {
             };update()
         }
         fun close() {
+            clearDrag()
             selected.forEach {(id,pair)->badges[id]?.let {pair.first.overlay.remove(it)}}
             selected.clear();badges.clear();(bar.parent as? android.view.ViewGroup)?.removeView(bar)
             launcher.stateManager.removeStateListener(this);sessions.remove(launcher)
@@ -108,6 +178,12 @@ object DotArrange {
                     chosen.forEachIndexed {n,item->val cell=placement[n];val values=ContentValues();values.put("screen",target);values.put("cellX",cell.left);values.put("cellY",cell.top);check(db.update("favorites",values,"_id=?",arrayOf(item.id.toString()))==1)}
                 }
             }.setNegativeButton("Cancel",null).show()
+        }
+        fun style() {
+            val item=selected.values.singleOrNull()?.second
+            if(item is FolderInfo) {DotFolderPreview.choose(launcher,item,selected.values.single().first);return}
+            if(item is LauncherAppWidgetInfo && dev.dothome.widgets.WidgetEditor.open(launcher,item)) {close();return}
+            Toast.makeText(launcher,"Select one widget or folder to edit its style",Toast.LENGTH_SHORT).show()
         }
         fun folder() {
             val items=selected.values.map {it.second}

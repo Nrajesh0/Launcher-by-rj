@@ -9,5 +9,6 @@
   <item>dev.dothome.widgets.DotTiles$Usage</item><item>dev.dothome.widgets.DotTiles$Compass</item>
   <item>dev.dothome.widgets.DotTiles$Torch</item><item>dev.dothome.widgets.DotTiles$Bluetooth</item><item>dev.dothome.widgets.DotTiles$Sound</item><item>dev.dothome.widgets.DotTiles$Dnd</item>
   <item>dev.dothome.widgets.DotTiles$Media</item>
+  <item>dev.dothome.widgets.DotTiles$Controls</item>
  </array>
 </resources>

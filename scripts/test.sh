@@ -11,4 +11,4 @@ java -cp "build/tests:$JSON_JAR" LayoutValidatorTest
 java -cp "build/tests:$JSON_JAR" OfflineMigrationTest
 java -cp "build/tests:$JSON_JAR" WorkspaceModelTest
 java -cp "build/tests:$JSON_JAR" BatchMoveTest
-python3 tests/check_offline.py
+python3 tests/check_source.py
