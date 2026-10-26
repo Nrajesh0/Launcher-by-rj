@@ -174,3 +174,11 @@ for file in root.rglob('*Manifest*.xml'):
         if child.get(android+'name','').startswith('app.lawnchair.bugreport.'):
             app.remove(child)
     tree.write(file,encoding='unicode',xml_declaration=True)
+
+# Do not bind an online feed/search overlay hosted by the Google app or a bridge.
+edit(lc+'LawnchairLauncher.kt', '    private val defaultOverlay by unsafeLazy { OverlayCallbackImpl(this) }', '    private val defaultOverlay = object : LauncherOverlayManager {}')
+edit(lc+'LawnchairLauncher.kt', '''        prefs.feedProvider.subscribeChanges(this, defaultOverlay::reconnect)
+        preferenceManager2.enableFeed.get().distinctUntilChanged().onEach { enable ->
+            defaultOverlay.setEnableFeed(enable)
+        }.launchIn(scope = lifecycleScope)
+''', '')

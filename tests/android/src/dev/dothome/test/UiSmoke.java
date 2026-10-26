@@ -205,12 +205,18 @@ public class UiSmoke extends Instrumentation {
 
   void screenshot(String name) throws Exception {
     assertNoSystemError();
-    ParcelFileDescriptor fd =
-        getUiAutomation(UiAutomation.FLAG_DONT_SUPPRESS_ACCESSIBILITY_SERVICES)
-            .executeShellCommand("screencap -p /sdcard/Download/" + name + ".png");
-    try (java.io.InputStream in = new ParcelFileDescriptor.AutoCloseInputStream(fd)) {
-      in.readAllBytes();
-    }
+    android.graphics.Bitmap bitmap=getUiAutomation(UiAutomation.FLAG_DONT_SUPPRESS_ACCESSIBILITY_SERVICES).takeScreenshot();
+    if(bitmap==null)throw new AssertionError("Screenshot was unavailable: "+name);
+    var resolver=getTargetContext().getContentResolver();
+    android.content.ContentValues values=new android.content.ContentValues();
+    values.put(android.provider.MediaStore.MediaColumns.DISPLAY_NAME,name+".png");
+    values.put(android.provider.MediaStore.MediaColumns.MIME_TYPE,"image/png");
+    values.put(android.provider.MediaStore.MediaColumns.RELATIVE_PATH,"Download/DotHomeTest");
+    android.net.Uri uri=resolver.insert(android.provider.MediaStore.Downloads.EXTERNAL_CONTENT_URI,values);
+    if(uri==null)throw new AssertionError("Screenshot document could not be created");
+    try(java.io.OutputStream output=resolver.openOutputStream(uri)) {
+      if(!bitmap.compress(android.graphics.Bitmap.CompressFormat.PNG,100,output))throw new AssertionError("Screenshot encoding failed");
+    } finally {bitmap.recycle();}
   }
 
   boolean hasSystemError(android.view.accessibility.AccessibilityNodeInfo node) {

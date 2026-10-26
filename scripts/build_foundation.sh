@@ -7,7 +7,7 @@ export ANDROID_HOME="${ANDROID_SDK_ROOT:-${ANDROID_HOME:-/workspace/android-sdk}
 export DOT_HOME_SOURCE_COMMIT="$(git log -1 --format=%H -- foundation version.properties build.sh scripts/build_foundation.sh scripts/prepare_foundation.py app/src/main/res/font LICENSES/Geist-OFL.txt)"
 python3 scripts/prepare_foundation.py
 variant="${DOT_BUILD_TYPE:-Release}"
-bash build/foundation/gradlew -p build/foundation "assembleLawnWithQuickstepGithub$variant" --no-daemon --max-workers=2
+bash build/foundation/gradlew -p build/foundation "assembleLawnWithQuickstepGithub$variant" --build-cache --no-daemon --max-workers=2
 version=$(python3 -c 'from pathlib import Path; print(dict(line.split("=",1) for line in Path("version.properties").read_text().splitlines() if "=" in line)["versionName"])')
 if [[ "$variant" == 'Release' ]]; then
   output="build/dot-home-$version-unsigned.apk"
