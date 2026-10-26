@@ -111,7 +111,7 @@ public class FoundationSmoke extends UiSmoke {
     });
     // Free row on the same page. Keep both relative cells together.
     float x=start.exactCenterX(),y=start.exactCenterY(),tx=target.left+target.width()*.38f,ty=target.top+target.height()*.39f;
-    shell("input touchscreen draganddrop "+Math.round(x)+" "+Math.round(y)+" "+Math.round(tx)+" "+Math.round(ty)+" 400");
+    shell("input touchscreen draganddrop "+Math.round(x)+" "+Math.round(y)+" "+Math.round(tx)+" "+Math.round(ty)+" 1200");
     awaitState("NORMAL");
     final int[] cells={-1,-1,-1,-1};
     for(int n=0;n<50;n++) {
