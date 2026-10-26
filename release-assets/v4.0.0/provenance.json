@@ -1,0 +1,275 @@
+{
+  "source_commit": "b94b5e89a3a8830103a1a3a82cac7bc355d08c37",
+  "actions_run_id": 40290916516,
+  "certificate_sha256": "b5b244be833dd77faa0f6bd94ad59367032246d302be40865c3bead78586f8a1",
+  "apk_parts": [
+    {
+      "name": "dot-home-4.0.0.apk.part000",
+      "sha256": "bf42d40fdd59afc507610c562ac5e29ecbe0500d2d9208d48df4670e5231ec8d"
+    },
+    {
+      "name": "dot-home-4.0.0.apk.part001",
+      "sha256": "ff6d8376d911644a40df71856015ac5bf36464556fd72c50b9e93d9e8fbf5460"
+    },
+    {
+      "name": "dot-home-4.0.0.apk.part002",
+      "sha256": "81f10996d2cbd782cd9aa97d7b8747960cdbcf3d23b72ffb399015f98dd0b620"
+    },
+    {
+      "name": "dot-home-4.0.0.apk.part003",
+      "sha256": "9f9b25e25e63879e65801f7036e37f77b40f5cd0283353e83e19893cc2ab705f"
+    },
+    {
+      "name": "dot-home-4.0.0.apk.part004",
+      "sha256": "1704705ef2e53d0eb56921779e5a836f42eca0003ac28c6dac4946f1f0d3bda6"
+    },
+    {
+      "name": "dot-home-4.0.0.apk.part005",
+      "sha256": "6d2fb471de121fa78ace0c428507545e8b693a32940e14296c5c5af6765298af"
+    },
+    {
+      "name": "dot-home-4.0.0.apk.part006",
+      "sha256": "9dd9a8997e6222844cf6dab263dead688fb1aa0f934ee97c417ed4fa7a982281"
+    },
+    {
+      "name": "dot-home-4.0.0.apk.part007",
+      "sha256": "af68dcc0754b81c146c9a62f1c415341df550ff1de70db90a4989a6ae0c5871c"
+    },
+    {
+      "name": "dot-home-4.0.0.apk.part008",
+      "sha256": "04fa7380e2b6d8f712fa0891fe4e9fc37343c617c8f12fc8cd2031fed5ad967c"
+    },
+    {
+      "name": "dot-home-4.0.0.apk.part009",
+      "sha256": "bc58af445182d626276c2b13b652e65ef41906e8145a97b428ee4ca0053ce27f"
+    },
+    {
+      "name": "dot-home-4.0.0.apk.part010",
+      "sha256": "a0ada1f8b031d5d0a9375358e706f339d38b2cec8c60f530df7d7f3a735da53b"
+    },
+    {
+      "name": "dot-home-4.0.0.apk.part011",
+      "sha256": "de50299a894c698fc898ac89b740d1559fc9581eaff7940982c138f6b46d0014"
+    },
+    {
+      "name": "dot-home-4.0.0.apk.part012",
+      "sha256": "80e7d539dd510d51e36d114f95a580901f3708a3fa847ae5ba39172bcfca8407"
+    },
+    {
+      "name": "dot-home-4.0.0.apk.part013",
+      "sha256": "c3824ffb2a356a2dbc5f5aa7b597e64f5c84c9cca02dd03a9e8e9019294d7b90"
+    },
+    {
+      "name": "dot-home-4.0.0.apk.part014",
+      "sha256": "5ddd960135a5d70a51dbb1ab49eae414ed966dbff02fae54303813bed5a6c772"
+    },
+    {
+      "name": "dot-home-4.0.0.apk.part015",
+      "sha256": "6728a382c6576aefc8a10e9b0034c1198fc0bfdbe16e5fdff794c63821cdd871"
+    },
+    {
+      "name": "dot-home-4.0.0.apk.part016",
+      "sha256": "8de3f2b3c474d1b4ac2c0aa40be3fb5a4971f63d55412c002757c224e6e352c0"
+    },
+    {
+      "name": "dot-home-4.0.0.apk.part017",
+      "sha256": "6cfdedd9cc737d50c59f2fb5d403ec1773a93fff97c4cec71c327e764bf098ae"
+    },
+    {
+      "name": "dot-home-4.0.0.apk.part018",
+      "sha256": "a663859e51b40640aad24338da573e520eefdbda38f229fac41bc7ab0b777e68"
+    },
+    {
+      "name": "dot-home-4.0.0.apk.part019",
+      "sha256": "99edcf149331b1a90520007f994400e43ddc00cfe604c3b6af51b3dab1456255"
+    },
+    {
+      "name": "dot-home-4.0.0.apk.part020",
+      "sha256": "8048d28f37178ab0e4e567a5cffe141e5b4cad537130c665bfc8f1b6edc15840"
+    },
+    {
+      "name": "dot-home-4.0.0.apk.part021",
+      "sha256": "ce2c6ca7d09cd5f559491f64fdcae1e20275a761900338ccc76e113bc1402560"
+    },
+    {
+      "name": "dot-home-4.0.0.apk.part022",
+      "sha256": "25c5008142f0a4917ddaf21da47eb210fce92cc8a1c11d69f0c31dfd9e944c2b"
+    },
+    {
+      "name": "dot-home-4.0.0.apk.part023",
+      "sha256": "7931e48f3a4f404dcbc7504bfadd9ed02a031df9584bcf01d2a139956364e70b"
+    },
+    {
+      "name": "dot-home-4.0.0.apk.part024",
+      "sha256": "5ed671da95980764ed1a52edb5737a2a07e61e30cb1280e831b1b34e6875cb94"
+    },
+    {
+      "name": "dot-home-4.0.0.apk.part025",
+      "sha256": "3e341393ffcb5d8643819766322de9030f39d88ef507d3ee0328362cf335a54a"
+    },
+    {
+      "name": "dot-home-4.0.0.apk.part026",
+      "sha256": "92bb5803758cdc3265b159d89c9af4594d76638b4b40d7cdb23af6d8aaf912d4"
+    },
+    {
+      "name": "dot-home-4.0.0.apk.part027",
+      "sha256": "a53c1e6edfca509ec9a85700645333f6641ceb09ca3eacc39398a5212e3bb8d2"
+    },
+    {
+      "name": "dot-home-4.0.0.apk.part028",
+      "sha256": "e4c716a45afebe30bf6ec0d680110c14dee6b50fa0f252a2c1e500fb40ff7feb"
+    },
+    {
+      "name": "dot-home-4.0.0.apk.part029",
+      "sha256": "b2390861e872542f4e69e3cb7bc538b2a4a29b54acd7cf56896643ac38b8e2a0"
+    },
+    {
+      "name": "dot-home-4.0.0.apk.part030",
+      "sha256": "7fe936d0bafe77ac274ccd7faac828333153cf5e26ce216a879408f59e6cfbd3"
+    },
+    {
+      "name": "dot-home-4.0.0.apk.part031",
+      "sha256": "a4687bdd1e4d1fdc2ad375f3b534ebb22b8dac8d54829bf83053ae479cb5f275"
+    },
+    {
+      "name": "dot-home-4.0.0.apk.part032",
+      "sha256": "35a7536659ce49df707d206f0fbfd78bceca1249d0e30b8f971d2aa9d7510526"
+    },
+    {
+      "name": "dot-home-4.0.0.apk.part033",
+      "sha256": "c1b16ba03395807addd7fde392516ec8e846ced3f0b2b15ce5a40011d6784545"
+    },
+    {
+      "name": "dot-home-4.0.0.apk.part034",
+      "sha256": "e8e8b1421e1fa3f7b363b68a11c0c78b6037a9491fd35d33fba368f606c10661"
+    },
+    {
+      "name": "dot-home-4.0.0.apk.part035",
+      "sha256": "f9d8b8c8f39824880c5c2b448a710749e6270a147ccc3100ac5c84294b23c758"
+    },
+    {
+      "name": "dot-home-4.0.0.apk.part036",
+      "sha256": "c709b51ec8755f3f02cdebad8180f7692e5b4589728087e63612177d86e6c2c8"
+    },
+    {
+      "name": "dot-home-4.0.0.apk.part037",
+      "sha256": "772e15f5c5024392f92d154af88733f3def9b019fcd7705c189545efa8bc4737"
+    },
+    {
+      "name": "dot-home-4.0.0.apk.part038",
+      "sha256": "443b2f1a9e3102e55dcd6bd0d4cf18534080e0119d17f7f5513e672b1b539e55"
+    },
+    {
+      "name": "dot-home-4.0.0.apk.part039",
+      "sha256": "619d683c5e7d2f486bc8b0d54d0a53b3ba4abc7259e56931fb15942e02017029"
+    },
+    {
+      "name": "dot-home-4.0.0.apk.part040",
+      "sha256": "c8b551710f08b89507a9eb282ae69ee99bbae565abad8c0d51418293e09bbd31"
+    },
+    {
+      "name": "dot-home-4.0.0.apk.part041",
+      "sha256": "69c61cb7889764dd61e7eec2433503ad15c5f95f94a84f6683383305fd662fff"
+    },
+    {
+      "name": "dot-home-4.0.0.apk.part042",
+      "sha256": "fd61db97f8a1d1d9da071b7c4d70183741767b68dc152650478b9c5bdc4ac424"
+    },
+    {
+      "name": "dot-home-4.0.0.apk.part043",
+      "sha256": "ab71d4cb0694e76090a8083c84e3bc34de838f585827b830a29e73a985a615b9"
+    },
+    {
+      "name": "dot-home-4.0.0.apk.part044",
+      "sha256": "4bb2c7ecb5a11ffecc159135c9704623173d5d0c46ca3405ef725d4e272897c0"
+    },
+    {
+      "name": "dot-home-4.0.0.apk.part045",
+      "sha256": "500240df711663f71c177fc0bf524c340e6b9e8e0a3b9564f000e6e18ecd1dab"
+    },
+    {
+      "name": "dot-home-4.0.0.apk.part046",
+      "sha256": "259fbf3145ce7e875c3100bb8a99c0959b0cebb0676c2a553e5b54d28a7f1e10"
+    },
+    {
+      "name": "dot-home-4.0.0.apk.part047",
+      "sha256": "63b81b9f78d503ff00f1a627b5d143e1cf002c95d88fecebfb39b4367d801bc6"
+    },
+    {
+      "name": "dot-home-4.0.0.apk.part048",
+      "sha256": "d471b164529e4f38cf10e65b261599a63737326455a1f76240bdb5dc8dd35862"
+    },
+    {
+      "name": "dot-home-4.0.0.apk.part049",
+      "sha256": "058f84975e26b4d71f7e5ca2c4cc528e1b719db0a12303035b5bf5a52f3cc8b0"
+    },
+    {
+      "name": "dot-home-4.0.0.apk.part050",
+      "sha256": "96cf599ff3eeb8af3c596363f52c088d34cb421e5ad72e9d54b36d86e82727d8"
+    },
+    {
+      "name": "dot-home-4.0.0.apk.part051",
+      "sha256": "7479d92356db1abb6bcb152f4eb4e4a2431985edf453650dd173312950fd793d"
+    },
+    {
+      "name": "dot-home-4.0.0.apk.part052",
+      "sha256": "a314b193bb6ef16b24727c27360c47bfd03f5d6c3c931c3f6aa81ed8fef69cf8"
+    },
+    {
+      "name": "dot-home-4.0.0.apk.part053",
+      "sha256": "785123c3b529fb1716ce0a0be33a1457360aaf15b92defc6718d6eb023e320b5"
+    },
+    {
+      "name": "dot-home-4.0.0.apk.part054",
+      "sha256": "fe3f532783393b7b971021c3f7afc5b59a04d2661676b0c8f18cdcdf896f1a3c"
+    },
+    {
+      "name": "dot-home-4.0.0.apk.part055",
+      "sha256": "a2c323e47063c325d25fd94af9cd695bef63b8f39f78cdb9da4d6c5d7a3a9aae"
+    },
+    {
+      "name": "dot-home-4.0.0.apk.part056",
+      "sha256": "8ab2db638acc2d79272f60ee25b80a8fb2da7fc1bb1ca01274865d50df0f30a5"
+    },
+    {
+      "name": "dot-home-4.0.0.apk.part057",
+      "sha256": "a713baf1d7f308adbea27b9bc2732dfef6a6058fca86d1b99a52caa52851eba5"
+    },
+    {
+      "name": "dot-home-4.0.0.apk.part058",
+      "sha256": "4fea14e63c00f9259b0ca1cdd19aec165a8af896e785cec6c3909e97bb0c1eeb"
+    },
+    {
+      "name": "dot-home-4.0.0.apk.part059",
+      "sha256": "2d918c78c5237f805763d30db0196fa6935f0d501be4e74a6f3156d96eecb74e"
+    },
+    {
+      "name": "dot-home-4.0.0.apk.part060",
+      "sha256": "c84f5e3479059a9358cc9d4a74c36fb0e278d486110dbdefd92e25eb76fe1419"
+    },
+    {
+      "name": "dot-home-4.0.0.apk.part061",
+      "sha256": "366ff74734dcd5507b447a4953b1085f9292abd0c52ac7215003fec9b10e8d10"
+    },
+    {
+      "name": "dot-home-4.0.0.apk.part062",
+      "sha256": "37b0bedfee842511b80619998296b35082276adad8f36395138065183213186b"
+    },
+    {
+      "name": "dot-home-4.0.0.apk.part063",
+      "sha256": "178b1ae18f64fdeb8be3b6affe696ae3d03fd2a3ccdc73966927668a9c453075"
+    },
+    {
+      "name": "dot-home-4.0.0.apk.part064",
+      "sha256": "c6cf328f8cf33ba32799ae581b194d5eb2031058ac8e6cd8fc5afe9a204bf872"
+    },
+    {
+      "name": "dot-home-4.0.0.apk.part065",
+      "sha256": "251ac38167e35187f06ac268603b15e93f920e2c1799ca12241bf2d2eedc40c5"
+    },
+    {
+      "name": "dot-home-4.0.0.apk.part066",
+      "sha256": "00a8888a1fb1cbf254b2f578ac01d9c2a3372485942c512e05276c553992ef7c"
+    }
+  ]
+}
