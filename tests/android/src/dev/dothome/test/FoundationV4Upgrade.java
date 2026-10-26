@@ -13,7 +13,7 @@ public class FoundationV4Upgrade extends FoundationSmoke {
   }
   java.io.File snapshotFile(){return new java.io.File(home.getFilesDir(),"synthetic-v4-upgrade.json");}
   @Override public void onStart(){Bundle result=new Bundle();try{
-    getUiAutomation(UiAutomation.FLAG_DONT_SUPPRESS_ACCESSIBILITY_SERVICES);launchHomeAsync();SystemClock.sleep(1200);chooseDefaultHome();homeKey();SystemClock.sleep(1000);
+    getUiAutomation(UiAutomation.FLAG_DONT_SUPPRESS_ACCESSIBILITY_SERVICES);launchHomeAsync();SystemClock.sleep(1200);if(!home.getSystemService(android.app.role.RoleManager.class).isRoleHeld(android.app.role.RoleManager.ROLE_HOME))throw new AssertionError("v4 Home role was not retained by the update");homeKey();SystemClock.sleep(1000);
     JSONObject before=new JSONObject(java.nio.file.Files.readString(snapshotFile().toPath())),after=nativeSnapshot();
     if(!before.getJSONArray("rows").toString().equals(after.getJSONArray("rows").toString()))throw new AssertionError("v4 native item positions/identities changed during upgrade");
     for(String name:new String[]{"tiles","folders"}){JSONObject values=before.getJSONObject(name);for(var keys=values.keys();keys.hasNext();){String key=keys.next();if(!values.get(key).equals(after.getJSONObject(name).get(key)))throw new AssertionError("v4 "+name+" state changed: "+key);}}

@@ -28,7 +28,7 @@ public final class ExperienceSmoke extends FoundationSmoke {
     for(String material:new String[]{"Classic","Lucent"})for(boolean dark:new boolean[]{false,true}){
       settings("appearance");visible(material);check(clickSystemText(material),"Material selection failed");
       if(home.getSharedPreferences("dot-style",0).getBoolean("dark",false)!=dark){visible("Dark theme");check(clickSystemText("Dark theme"),"Dark theme selection failed");}
-      SystemClock.sleep(600);screenshot("v5-theme-"+material.toLowerCase()+"-"+(dark?"dark":"light"));homeKey();SystemClock.sleep(500);
+      SystemClock.sleep(600);onUi(()->{syncActivity();check(home!=null&&!home.isDestroyed(),"Home recreation invalidated the visible preview");});screenshot("v5-theme-"+material.toLowerCase()+"-"+(dark?"dark":"light"));homeKey();SystemClock.sleep(500);
       check(original.equals(placement()),"Theme selection changed the layout");screenshot("v5-home-"+material.toLowerCase()+"-"+(dark?"dark":"light"));
     }
     settings("grid");visible("Home screen layout");screenshot("v5-grid-choices");homeKey();check(original.equals(placement()),"Opening grid settings changed layout");
@@ -37,8 +37,9 @@ public final class ExperienceSmoke extends FoundationSmoke {
     View workspace=(View)invoke(home,"getWorkspace");swipe(workspace,.53f,.72f,0,-300,false);awaitState("ALL_APPS");
     View apps=(View)invoke(home,"getAppsView");int[] position=new int[2];onUi(()->apps.getLocationOnScreen(position));
     float x=position[0]+apps.getWidth()*.22f,y=position[1]+apps.getHeight()*.45f;long down=SystemClock.uptimeMillis();
-    for(int n=0;n<8;n++){MotionEvent e=MotionEvent.obtain(down,down+n*20,n==0?MotionEvent.ACTION_DOWN:MotionEvent.ACTION_MOVE,x+n*10,y,0);getUiAutomation(UiAutomation.FLAG_DONT_SUPPRESS_ACCESSIBILITY_SERVICES).injectInputEvent(e,true);e.recycle();}
-    MotionEvent cancel=MotionEvent.obtain(down,down+180,MotionEvent.ACTION_CANCEL,x+70,y,0);getUiAutomation(UiAutomation.FLAG_DONT_SUPPRESS_ACCESSIBILITY_SERVICES).injectInputEvent(cancel,true);cancel.recycle();SystemClock.sleep(350);
+    for(int n=0;n<8;n++){MotionEvent e=MotionEvent.obtain(down,SystemClock.uptimeMillis(),n==0?MotionEvent.ACTION_DOWN:MotionEvent.ACTION_MOVE,x+n*10,y,0);e.setSource(InputDevice.SOURCE_TOUCHSCREEN);check(getUiAutomation(UiAutomation.FLAG_DONT_SUPPRESS_ACCESSIBILITY_SERVICES).injectInputEvent(e,true),"Touch injection failed");e.recycle();SystemClock.sleep(16);}
+    final int[] partial={0};onUi(()->partial[0]=views(home.getWindow().getDecorView(),"dev.dothome.ui.DotHiddenPanel$Panel"));check(partial[0]==1,"Partial hidden gesture never entered its page");
+    MotionEvent cancel=MotionEvent.obtain(down,SystemClock.uptimeMillis(),MotionEvent.ACTION_CANCEL,x+70,y,0);cancel.setSource(InputDevice.SOURCE_TOUCHSCREEN);check(getUiAutomation(UiAutomation.FLAG_DONT_SUPPRESS_ACCESSIBILITY_SERVICES).injectInputEvent(cancel,true),"Cancel injection failed");cancel.recycle();SystemClock.sleep(350);
     final boolean[] open={true};onUi(()->{try{open[0]=(Boolean)cls("dev.dothome.ui.DotHiddenPanel").getMethod("isOpen",cls("app.lawnchair.LawnchairLauncher")).invoke(null,home);}catch(Exception error){throw new RuntimeException(error);}});
     check(!open[0],"Cancelled hidden-page gesture stayed open");awaitState("ALL_APPS");
     swipe(apps,.18f,.45f,200,0,false);visible("Hidden icons");shell("input keyevent KEYCODE_BACK");SystemClock.sleep(350);awaitState("ALL_APPS");homeKey();
@@ -88,6 +89,38 @@ public final class ExperienceSmoke extends FoundationSmoke {
     try{staticCall("dev.dothome.ui.DotBackupMedia","validate",new Class<?>[]{JSONObject.class},new JSONObject().put("../escape.jpg","AA=="));throw new AssertionError("Unsafe backup media name accepted");}catch(java.lang.reflect.InvocationTargetException expected){check(expected.getCause() instanceof java.io.IOException,"Unexpected backup validation failure");}
     prefs.edit().remove("item-"+noteId).remove("item-"+weatherId).commit();new java.io.File(imported.getPath()).delete();new java.io.File(cutout.getPath()).delete();source.delete();
   }
+  void beginExternalWidget(android.appwidget.AppWidgetProviderInfo provider)throws Exception{
+    onUi(()->{try{
+      Class<?> infoType=cls("com.android.launcher3.widget.LauncherAppWidgetProviderInfo");Object info=infoType.getMethod("fromProviderInfo",Context.class,android.appwidget.AppWidgetProviderInfo.class).invoke(null,home,provider);
+      int w=infoType.getField("spanX").getInt(info),h=infoType.getField("spanY").getInt(info);Object workspace=invoke(home,"getWorkspace");int pages=(Integer)invoke(workspace,"getPageCount");
+      for(int n=0;n<pages;n++){int screen=(Integer)api(workspace,"getScreenIdForPageIndex",new Class<?>[]{int.class},n);if(screen<0)continue;Object page=api(workspace,"getScreenWithId",new Class<?>[]{int.class},screen);int[] cell=new int[2];if((Boolean)api(page,"findCellForSpan",new Class<?>[]{int[].class,int.class,int.class},cell,w,h)){
+        api(workspace,"snapToPage",new Class<?>[]{int.class},n);Object pending=cls("com.android.launcher3.widget.PendingAddWidgetInfo").getConstructor(infoType,int.class).newInstance(info,-105);
+        api(home,"addPendingItem",new Class<?>[]{cls("com.android.launcher3.PendingAddItemInfo"),int.class,int.class,int[].class,int.class,int.class},pending,-100,screen,cell,w,h);return;
+      }}throw new AssertionError("No room for external widget fixture");
+    }catch(Exception error){throw new RuntimeException(error);}});
+  }
+  void externalWidget()throws Exception{
+    onUi(()->{try{cls("dev.dothome.widgets.DotWidgetTray").getMethod("show",cls("com.android.launcher3.Launcher")).invoke(null,home);}catch(Exception error){throw new RuntimeException(error);}});visible("Installed apps");clickSystemText("Installed apps");SystemClock.sleep(500);
+    final int[] sheets={0};onUi(()->sheets[0]=views(home.getWindow().getDecorView(),"com.android.launcher3.widget.picker.WidgetsFullSheet"));check(sheets[0]>0,"Installed-app entry did not open the native picker");screenshot("v5-installed-widget-picker");homeKey();
+    android.appwidget.AppWidgetManager manager=android.appwidget.AppWidgetManager.getInstance(home);android.appwidget.AppWidgetProviderInfo provider=null;for(var candidate:manager.getInstalledProviders())if(candidate.provider.getClassName().equals("dev.dothome.test.WidgetProvider"))provider=candidate;check(provider!=null,"External widget fixture missing");
+    Map<Integer,String> before=placement();beginExternalWidget(provider);configureFixture(true);
+    for(int n=0;n<40&&placement().size()==before.size();n++)SystemClock.sleep(100);check(placement().size()==before.size()+1,"Configured external widget not durably placed");
+    int row=-1,widget=-1;SQLiteDatabase db=(SQLiteDatabase)invoke(invoke(invoke(home,"getModel"),"getModelDbController"),"getDb");try(var cursor=db.rawQuery("SELECT _id,appWidgetId FROM favorites WHERE appWidgetProvider LIKE '%WidgetProvider%'",null)){check(cursor.moveToFirst(),"External widget row missing");row=cursor.getInt(0);widget=cursor.getInt(1);}check(manager.getAppWidgetInfo(widget)!=null,"External widget binding missing");visible("Provider widget configured");screenshot("v5-external-widget-configured");
+    Map<Integer,String> placed=placement();beginExternalWidget(provider);configureFixture(false);SystemClock.sleep(400);check(placed.equals(placement()),"Cancelled provider configuration changed the layout");
+    final int remove=row;onUi(()->{View view=nativeItem(remove);check(view!=null,"External widget view missing");try{api(home,"removeItem",new Class<?>[]{View.class,cls("com.android.launcher3.model.data.ItemInfo"),boolean.class,String.class},view,view.getTag(),true,"Synthetic widget test cleanup");}catch(Exception error){throw new RuntimeException(error);}});
+    for(int n=0;n<40&&!before.equals(placement());n++)SystemClock.sleep(100);check(before.equals(placement()),"External widget removal did not restore the layout");check(manager.getAppWidgetInfo(widget)==null,"Removed external widget binding leaked");homeKey();
+  }
+  void calculatorScope()throws Exception{
+    var prefs=home.getSharedPreferences("com.android.launcher3.prefs",0);boolean original=prefs.getBoolean("pref_searchResultCalculator",false);
+    try{
+      settings("search");visible("Calculator");if(!prefs.getBoolean("pref_searchResultCalculator",false))clickSystemText("Calculator");homeKey();
+      View workspace=(View)invoke(home,"getWorkspace");swipe(workspace,.53f,.72f,0,-300,false);awaitState("ALL_APPS");
+      final EditText[] input={null};onUi(()->{int id=home.getResources().getIdentifier("input","id","dev.dothome");input[0]=((View)invoke(home,"getAppsView")).findViewById(id);check(input[0]!=null,"Drawer search input missing");input[0].requestFocus();input[0].setText("6*7");});
+      visible("42");screenshot("v5-offline-calculator");homeKey();settings("search");visible("Calculator");clickSystemText("Calculator");homeKey();
+      workspace=(View)invoke(home,"getWorkspace");swipe(workspace,.53f,.72f,0,-300,false);awaitState("ALL_APPS");onUi(()->{int id=home.getResources().getIdentifier("input","id","dev.dothome");EditText field=((View)invoke(home,"getAppsView")).findViewById(id);field.requestFocus();field.setText("6*7");});SystemClock.sleep(900);
+      check(findSystemText(getUiAutomation(UiAutomation.FLAG_DONT_SUPPRESS_ACCESSIBILITY_SERVICES).getRootInActiveWindow(),"42")==null,"Disabled calculator scope still returned a calculation");homeKey();
+    }finally{prefs.edit().putBoolean("pref_searchResultCalculator",original).commit();}
+  }
   void textAndDeniedStates()throws Exception{
     try{
       shell("settings put system font_scale 1.3");SystemClock.sleep(700);settings("appearance");visible("Theme & Style");screenshot("v5-large-text-theme");homeKey();
@@ -99,7 +132,7 @@ public final class ExperienceSmoke extends FoundationSmoke {
     }finally{shell("settings put system font_scale 1.0");SystemClock.sleep(500);}
   }
   @Override public void onStart(){Bundle result=new Bundle();try{
-    getUiAutomation(UiAutomation.FLAG_DONT_SUPPRESS_ACCESSIBILITY_SERVICES);launchHomeAsync();SystemClock.sleep(800);homeKey();themes();hiddenCancellation();categories();presetUndo();widgetData();textAndDeniedStates();
+    getUiAutomation(UiAutomation.FLAG_DONT_SUPPRESS_ACCESSIBILITY_SERVICES);launchHomeAsync();SystemClock.sleep(800);homeKey();themes();hiddenCancellation();categories();presetUndo();widgetData();externalWidget();calculatorScope();textAndDeniedStates();
     result.putString("stream","PASS: v5 Classic/Lucent light/dark preserve layout; grid preview; hidden cancellation/back; category correction; preset/undo; note and weather drafts; owned photos/cutout/cycle; wallpaper preview; backup path rejection.\n");finish(Activity.RESULT_OK,result);
   }catch(Throwable error){try{screenshot("v5-failure");}catch(Throwable ignored){}result.putString("stream","FAIL: "+android.util.Log.getStackTraceString(error));finish(Activity.RESULT_CANCELED,result);}}
 }

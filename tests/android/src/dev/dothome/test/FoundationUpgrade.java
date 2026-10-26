@@ -15,6 +15,6 @@ public final class FoundationUpgrade extends FoundationSmoke {
     if(!note)throw new AssertionError("Independent note state was lost");
     SystemClock.sleep(1000);final int[] count={0};onUi(()->count[0]=widgetCount((android.view.View)invoke(home,"getWorkspace")));
     if(count[0]!=3)throw new AssertionError("Expected three migrated native widgets, found "+count[0]);
-    screenshot("foundation-upgrade-home");result.putString("stream","PASS: v3-to-v4 install update, three native widgets including legacy controls, note state, dark appearance and recovery copy\n");finish(Activity.RESULT_OK,result);
+    screenshot("foundation-upgrade-home");result.putString("stream","PASS: v3-to-v5 install update, three native widgets including legacy controls, note state, dark appearance and recovery copy\n");finish(Activity.RESULT_OK,result);
   }catch(Throwable error){String diagnostics="";try{diagnostics=systemTree(getUiAutomation(UiAutomation.FLAG_DONT_SUPPRESS_ACCESSIBILITY_SERVICES).getRootInActiveWindow(),0);}catch(Throwable ignored){}result.putString("stream","FAIL: "+android.util.Log.getStackTraceString(error)+diagnostics);finish(Activity.RESULT_CANCELED,result);}}
 }

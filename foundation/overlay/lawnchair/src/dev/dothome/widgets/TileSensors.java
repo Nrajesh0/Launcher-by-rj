@@ -11,11 +11,12 @@ final class TileSensors implements SensorEventListener {
   final SensorManager sensors;
   final CameraManager cameras;
   boolean registered;
+  final String torchId;
   final CameraManager.TorchCallback torch=new CameraManager.TorchCallback() {
-    @Override public void onTorchModeChanged(String id,boolean enabled) {context.torch=enabled;context.getSharedPreferences("dot-style",0).edit().putBoolean("torchActive",enabled).apply();changed.run();}
-    @Override public void onTorchModeUnavailable(String id) {context.torch=false;changed.run();}
+    @Override public void onTorchModeChanged(String id,boolean enabled) {if(torchId!=null&&!torchId.equals(id))return;context.torch=enabled;context.getSharedPreferences("dot-style",0).edit().putBoolean("torchActive",enabled).apply();changed.run();}
+    @Override public void onTorchModeUnavailable(String id) {if(torchId!=null&&!torchId.equals(id))return;context.torch=false;changed.run();}
   };
-  TileSensors(TileContext context,String kind,Runnable changed) {this.context=context;this.kind=kind;this.changed=changed;sensors=context.getSystemService(SensorManager.class);cameras=context.getSystemService(CameraManager.class);}
+  TileSensors(TileContext context,String kind,Runnable changed) {this.context=context;this.kind=kind;this.changed=changed;sensors=context.getSystemService(SensorManager.class);cameras=context.getSystemService(CameraManager.class);String primary=null;if(cameras!=null)try{for(String id:cameras.getCameraIdList())if(Boolean.TRUE.equals(cameras.getCameraCharacteristics(id).get(android.hardware.camera2.CameraCharacteristics.FLASH_INFO_AVAILABLE))){primary=id;break;}}catch(Exception unavailable){}torchId=primary;}
   void start() {
     if(registered)return;registered=true;
     if(kind.equals("compass") && sensors!=null) {

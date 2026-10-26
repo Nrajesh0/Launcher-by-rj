@@ -13,7 +13,7 @@ final class PhotoCollection {
   static Uri importImage(Context context,Uri input) throws Exception {
     Bitmap bitmap=ImageDecoder.decodeBitmap(ImageDecoder.createSource(context.getContentResolver(),input),(decoder,info,source)->{decoder.setAllocator(ImageDecoder.ALLOCATOR_SOFTWARE);decoder.setTargetSampleSize(Math.max(1,(Math.max(info.getSize().getWidth(),info.getSize().getHeight())+1599)/1600));});
     File directory=new File(context.getFilesDir(),"collections");if(!directory.isDirectory()&&!directory.mkdirs())throw new IOException("Photo folder unavailable");
-    File image=new File(directory,UUID.randomUUID()+".webp");try(FileOutputStream out=new FileOutputStream(image)){if(!bitmap.compress(Bitmap.CompressFormat.WEBP_LOSSY,92,out))throw new IOException("Photo could not be saved");}finally{bitmap.recycle();}
+    File image=new File(directory,UUID.randomUUID()+".webp");try(FileOutputStream out=new FileOutputStream(image)){if(!bitmap.compress(Bitmap.CompressFormat.WEBP_LOSSY,92,out))throw new IOException("Photo could not be saved");}catch(IOException failed){image.delete();throw failed;}finally{bitmap.recycle();}
     return Uri.fromFile(image);
   }
   static String uri(JSONObject item){JSONArray images=item.optJSONArray("images");if(images==null||images.length()==0)return item.optString("uri");return images.optString(Math.floorMod(item.optInt("imageIndex"),images.length()),item.optString("uri"));}

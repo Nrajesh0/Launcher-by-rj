@@ -24,6 +24,12 @@ import java.util.concurrent.Executors
 
 /** Launcher-owned settings. No web/update/font-download/privileged-gesture routes. */
 open class DotPreferences : Activity() {
+    companion object {
+        private var foreground=java.lang.ref.WeakReference<DotPreferences>(null)
+        @JvmStatic fun isPreviewActive()=foreground.get()?.let {!it.isFinishing&&!it.isDestroyed}==true
+    }
+    override fun onResume(){super.onResume();foreground=java.lang.ref.WeakReference(this)}
+    override fun onPause(){if(foreground.get()===this)foreground.clear();super.onPause()}
     private val p by lazy { PreferenceManager.getInstance(this) }
     private val p2 by lazy { PreferenceManager2.getInstance(this) }
     private val style by lazy { getSharedPreferences("dot-style", 0) }
@@ -69,6 +75,11 @@ open class DotPreferences : Activity() {
         savedInstanceState?.getBundle("positions")?.let {positions->positions.keySet().forEach {scrollPositions[it]=positions.getInt(it)}}
         window.setDecorFitsSystemWindows(false)
         show(savedInstanceState?.getString("route") ?: intent.getStringExtra("dotRoute") ?: "customisation", false)
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent);setIntent(intent);history.clear();gridChoice=null
+        show(intent.getStringExtra("dotRoute") ?: if(intent.action==Intent.ACTION_APPLICATION_PREFERENCES)"home" else "customisation",false)
     }
 
     override fun onSaveInstanceState(state: Bundle) {
@@ -168,7 +179,16 @@ open class DotPreferences : Activity() {
     private fun applyPalette() {
         val a=appearance
         p2.accentColor.setBlocking(ColorOption.CustomColor(a.accent))
-        LawnchairLauncher.instance?.rootView?.let {dev.dothome.widgets.TileRefresh.sync(it);it.invalidate()}
+        LawnchairLauncher.instance?.let {launcher->
+            fun refresh(view: View){
+                if(view is com.android.launcher3.BubbleTextView)(view.tag as? com.android.launcher3.model.data.ItemInfoWithIcon)?.let {view.applyFromItemInfoWithIcon(it)}
+                if(view is app.lawnchair.qsb.LawnQsbLayout)view.refreshDotAppearance()
+                if(view is ViewGroup)for(n in 0 until view.childCount)refresh(view.getChildAt(n))
+                view.invalidate()
+            }
+            refresh(launcher.workspace);refresh(launcher.hotseat)
+            dev.dothome.widgets.TileRefresh.sync(launcher.rootView)
+        }
     }
 
     private fun search() {
@@ -383,7 +403,11 @@ open class DotPreferences : Activity() {
             for(step in 1..8) postDelayed({if(isAttachedToWindow)invalidate()},step*120L)
         }
         override fun onDraw(canvas: Canvas) {
-            val home = LawnchairLauncher.instance?.rootView ?: return
+            val home = LawnchairLauncher.instance?.rootView
+            if(home==null){
+                val bounds=RectF(0f,0f,width.toFloat(),height.toFloat());val paint=Paint(3);val mask=Path().apply {addRoundRect(bounds,d(22).toFloat(),d(22).toFloat(),Path.Direction.CW)}
+                canvas.save();canvas.clipPath(mask);DotBackdrop.draw(this@DotPreferences,canvas,bounds);paint.color=ink;paint.textAlign=Paint.Align.CENTER;paint.textSize=d(10).toFloat();canvas.drawText("Open Home to preview",width/2f,height/2f,paint);canvas.restore();return
+            }
             if(home.width == 0 || home.height == 0) return
             val scale = minOf(width.toFloat()/home.width, height.toFloat()/home.height)
             val w = home.width*scale; val h = home.height*scale

@@ -37,3 +37,15 @@ edit('src/com/android/launcher3/folder/FolderIcon.java','            Utilities.s
 # Disable autonomous state transitions under the launcher-local reduced motion setting;
 # finger-controlled workspace/drawer transitions still follow the user's gesture.
 edit('src/com/android/launcher3/statemanager/StateManager.java','        animated &= areAnimatorsEnabled();','        animated &= areAnimatorsEnabled() && !dev.dothome.ui.DotAppearance.get(mStatefulContainer).reducedMotion;')
+
+# Search scope switches must control the local result providers, including shortcuts.
+edit('lawnchair/src/app/lawnchair/search/algorithms/LawnchairLocalSearchAlgorithm.kt',
+'''            val appResults = appSearchProvider.search(context, query, apps)
+            val shortcutResults = shortcutSearchProvider.search(context, appResults)''',
+'''            val scope = PreferenceManager.getInstance(context)
+            val candidates = appSearchProvider.search(context, query, apps)
+            val appResults = if (scope.searchResultApps.get()) candidates else emptyList()
+            val shortcutResults = if (scope.searchResultShortcuts.get()) shortcutSearchProvider.search(context, candidates) else emptyList()''')
+
+# Keep the paused Home preview coherent while its Activity recreation is deferred.
+edit('lawnchair/src/app/lawnchair/qsb/LawnQsbLayout.kt','    private fun setUpBackground(themed: Boolean = false) {','    fun refreshDotAppearance() { setUpBackground() }\n\n    private fun setUpBackground(themed: Boolean = false) {')

@@ -12,6 +12,11 @@ import dev.dothome.ui.DotWallpaper
 
 /** Keep the installed Home component while replacing the previous custom Activity engine. */
 class HomeActivity : LawnchairLauncher() {
+    private var previewRecreatePending=false
+    override fun recreate(){
+        if(dev.dothome.ui.DotPreferences.isPreviewActive()){previewRecreatePending=true;return}
+        previewRecreatePending=false;super.recreate()
+    }
     private val unlockReceiver=object: android.content.BroadcastReceiver() {
         override fun onReceive(context: android.content.Context,intent: Intent) {
             if(intent.action==Intent.ACTION_USER_PRESENT) {dev.dothome.widgets.TileRefresh.onUnlock(context);workspace?.let {dev.dothome.widgets.TileRefresh.setActive(it,hasWindowFocus())}}
@@ -96,7 +101,7 @@ class HomeActivity : LawnchairLauncher() {
         workspace?.let { dev.dothome.widgets.TileRefresh.setActive(it,state==com.android.launcher3.LauncherState.NORMAL || state==com.android.launcher3.LauncherState.EDIT_MODE) }
     }
 
-    override fun onResume() { super.onResume();dev.dothome.ui.DotAppearance.invalidate();dev.dothome.ui.DotAppearance.refreshWallpaper(this); updateMaterial(); dev.dothome.migration.DotMigration.start(this) }
+    override fun onResume() { super.onResume();if(previewRecreatePending){previewRecreatePending=false;super.recreate();return};dev.dothome.ui.DotAppearance.invalidate();dev.dothome.ui.DotAppearance.refreshWallpaper(this); updateMaterial(); dev.dothome.migration.DotMigration.start(this) }
 
     override fun onNewIntent(intent: Intent) {
         dev.dothome.widgets.DotWidgetTray.close();dev.dothome.ui.DotCategoryCard.close()
