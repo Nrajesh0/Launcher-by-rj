@@ -43,6 +43,8 @@ object DotArrange {
         var downX=0f;var downY=0f;var downTime=0L
         var dragX=0f;var dragY=0f;var dragging=false
         var ghost: View?=null
+        var placementPreview: View?=null
+        var rawDragX=0f;var rawDragY=0f
         val handler=android.os.Handler(android.os.Looper.getMainLooper())
         val edge=object: Runnable {override fun run() {
             if(!dragging)return
@@ -64,23 +66,41 @@ object DotArrange {
                     downX=event.x;downY=event.y;downTime=event.eventTime
                 }
                 MotionEvent.ACTION_MOVE -> if(touched!=null) {
-                    dragX=event.x;dragY=event.y
+                    dragX=event.x;dragY=event.y;rawDragX=event.rawX;rawDragY=event.rawY
                     if(!dragging && event.eventTime-downTime>=250 && kotlin.math.hypot(event.x-downX,event.y-downY)>d(12)) {
                         val view=touched!!;val item=view.tag as ItemInfo
                         if(item.id !in selected)toggle(view,item)
                         dragging=true
+                        placementPreview=object: View(launcher) {
+                            override fun onDraw(canvas: Canvas) {
+                                val workspace=launcher.workspace;val page=workspace.getScreenWithId(workspace.getScreenIdForPageIndex(workspace.currentPage))?:return
+                                val bounds=Rect();page.getGlobalVisibleRect(bounds);val layer=Rect();launcher.dragLayer.getGlobalVisibleRect(layer)
+                                val anchor=IntArray(2);page.pointToCellExact(((rawDragX-bounds.left)*page.width/bounds.width()).toInt(),((rawDragY-bounds.top)*page.height/bounds.height()).toInt(),anchor)
+                                val plan=plan(page,anchor[0],anchor[1]);val items=selected.values.map {it.second};if(items.isEmpty())return
+                                val minX=items.minOf {it.cellX};val minY=items.minOf {it.cellY};val grid=InvariantDeviceProfile.INSTANCE.get(launcher)
+                                val paint=Paint(3);paint.color=if(plan==null)0xffd71920.toInt() else DotAppearance.get(launcher).ink;paint.style=Paint.Style.STROKE;paint.strokeWidth=d(1).toFloat()
+                                for(item in items){val x=anchor[0]+item.cellX-minX;val y=anchor[1]+item.cellY-minY;val cellW=bounds.width().toFloat()/grid.numColumns;val cellH=bounds.height().toFloat()/grid.numRows;canvas.drawRoundRect(RectF(bounds.left-layer.left+x*cellW+d(3),bounds.top-layer.top+y*cellH+d(3),bounds.left-layer.left+(x+item.spanX)*cellW-d(3),bounds.top-layer.top+(y+item.spanY)*cellH-d(3)),d(14).toFloat(),d(14).toFloat(),paint)}
+                            }
+                        }.also {launcher.dragLayer.addView(it,com.android.launcher3.views.BaseDragLayer.LayoutParams(-1,-1))}
                         ghost=object: View(launcher) {
                             val paint=Paint(Paint.ANTI_ALIAS_FLAG)
                             override fun onDraw(canvas: Canvas) {
-                                paint.color=0xee232523.toInt();canvas.drawRoundRect(0f,0f,width.toFloat(),height.toFloat(),d(22).toFloat(),d(22).toFloat(),paint)
-                                paint.color=Color.WHITE;paint.textSize=d(18).toFloat();paint.textAlign=Paint.Align.CENTER
-                                canvas.drawText("${selected.size} items",width/2f,height/2f+d(6),paint)
+                                val a=DotAppearance.get(launcher)
+                                val entries=selected.values.toList()
+                                entries.take(3).reversed().forEachIndexed {n,pair->
+                                    val offset=(entries.size.coerceAtMost(3)-1-n)*d(6)
+                                    paint.color=a.card;canvas.drawRoundRect(offset.toFloat(),offset.toFloat(),width-d(14).toFloat(),height-d(8).toFloat(),d(18).toFloat(),d(18).toFloat(),paint)
+                                    canvas.save();canvas.translate(offset.toFloat()+d(7),offset.toFloat()+d(7));canvas.scale(.48f,.48f);pair.first.draw(canvas);canvas.restore()
+                                }
+                                paint.color=a.accent;canvas.drawCircle(width-d(12).toFloat(),d(12).toFloat(),d(12).toFloat(),paint)
+                                paint.color=a.onAccent;paint.typeface=launcher.resources.getFont(R.font.geist_medium);paint.textSize=d(12).toFloat();paint.textAlign=Paint.Align.CENTER
+                                canvas.drawText("${selected.size}",width-d(12).toFloat(),d(16).toFloat(),paint)
                             }
                         }.also {launcher.dragLayer.addView(it,com.android.launcher3.views.BaseDragLayer.LayoutParams(d(112),d(72)))}
                         handler.postDelayed(edge,800)
                         touched?.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
                     }
-                    ghost?.let {it.translationX=event.x-it.width/2;it.translationY=event.y-it.height/2}
+                    ghost?.let {it.translationX=event.x-it.width/2;it.translationY=event.y-it.height/2};placementPreview?.invalidate()
                 }
                 MotionEvent.ACTION_UP -> if(touched!=null) {
                     if(dragging)drop(event.rawX,event.rawY) else touched?.let {select(it)}
@@ -90,33 +110,42 @@ object DotArrange {
             }
             return touched!=null || event.actionMasked==MotionEvent.ACTION_UP && (dragging || ghost!=null)
         }
-        fun clearDrag() {handler.removeCallbacks(edge);ghost?.let {(it.parent as? ViewGroup)?.removeView(it)};ghost=null;dragging=false;touched=null}
+        fun clearDrag() {handler.removeCallbacks(edge);ghost?.let {(it.parent as? ViewGroup)?.removeView(it)};ghost=null;placementPreview?.let {(it.parent as? ViewGroup)?.removeView(it)};placementPreview=null;dragging=false;touched=null}
+        fun plan(page: CellLayout,anchorX: Int,anchorY: Int): Map<Int,Rect>? {
+            val items=selected.values.map {it.second};if(items.isEmpty())return null
+            val minX=items.minOf {it.cellX};val minY=items.minOf {it.cellY};val grid=InvariantDeviceProfile.INSTANCE.get(launcher)
+            val result=linkedMapOf<Int,Rect>()
+            fun fits(rect: Rect)=rect.left>=0&&rect.top>=0&&rect.right<=grid.numColumns&&rect.bottom<=grid.numRows&&result.values.none {Rect.intersects(it,rect)}
+            for(item in items){val r=Rect(anchorX+item.cellX-minX,anchorY+item.cellY-minY,anchorX+item.cellX-minX+item.spanX,anchorY+item.cellY-minY+item.spanY);if(!fits(r))return null;result[item.id]=r}
+            val displaced=mutableListOf<ItemInfo>();val children=page.shortcutsAndWidgets
+            for(n in 0 until children.childCount){val item=children.getChildAt(n).tag as? ItemInfo?:continue;if(item.id in selected)continue;val r=Rect(item.cellX,item.cellY,item.cellX+item.spanX,item.cellY+item.spanY);if(fits(r))result[item.id]=r else displaced.add(item)}
+            for(item in displaced.sortedByDescending {it.spanX*it.spanY}){
+                var next: Rect?=null
+                search@ for(y in 0 until grid.numRows)for(x in 0 until grid.numColumns){val r=Rect(x,y,x+item.spanX,y+item.spanY);if(fits(r)){next=r;break@search}}
+                result[item.id]=next?:return null
+            }
+            return result
+        }
         fun drop(rawX: Float,rawY: Float) {
             val workspace=launcher.workspace;val target=workspace.getScreenIdForPageIndex(workspace.currentPage)
-            val page=workspace.getScreenWithId(target) ?: return
-            val bounds=Rect();page.getGlobalVisibleRect(bounds)
+            val page=workspace.getScreenWithId(target)?:return;val bounds=Rect();page.getGlobalVisibleRect(bounds)
             if(!bounds.contains(rawX.toInt(),rawY.toInt()))return
-            val cell=IntArray(2)
-            page.pointToCellExact(((rawX-bounds.left)*page.width/bounds.width()).toInt(),((rawY-bounds.top)*page.height/bounds.height()).toInt(),cell)
-            val items=selected.values.map {it.second};if(items.isEmpty())return
-            val minX=items.minOf {it.cellX};val minY=items.minOf {it.cellY}
-            val grid=InvariantDeviceProfile.INSTANCE.get(launcher)
-            val positions=items.map {Rect(cell[0]+it.cellX-minX,cell[1]+it.cellY-minY,cell[0]+it.cellX-minX+it.spanX,cell[1]+it.cellY-minY+it.spanY)}
-            val occupied=mutableListOf<Rect>();val children=page.shortcutsAndWidgets
-            for(n in 0 until children.childCount) {val other=children.getChildAt(n).tag as? ItemInfo ?: continue;if(other.id !in selected)occupied.add(Rect(other.cellX,other.cellY,other.cellX+other.spanX,other.cellY+other.spanY))}
-            if(positions.any {it.left<0||it.top<0||it.right>grid.numColumns||it.bottom>grid.numRows||occupied.any {other->Rect.intersects(it,other)}} || positions.indices.any {a->positions.indices.any {b->a<b&&Rect.intersects(positions[a],positions[b])}}) {Toast.makeText(launcher,"Make room for this selection",Toast.LENGTH_SHORT).show();return}
-            transaction {db->val committedScreen=if(target<0)db.getNewScreenId() else target;items.forEachIndexed {n,item->val values=ContentValues();values.put("screen",committedScreen);values.put("cellX",positions[n].left);values.put("cellY",positions[n].top);check(db.update("favorites",values,"_id=?",arrayOf(item.id.toString()))==1)}}
+            val cell=IntArray(2);page.pointToCellExact(((rawX-bounds.left)*page.width/bounds.width()).toInt(),((rawY-bounds.top)*page.height/bounds.height()).toInt(),cell)
+            val placement=plan(page,cell[0],cell[1])
+            if(placement==null){Toast.makeText(launcher,"The selection needs more space here",Toast.LENGTH_SHORT).show();return}
+            transaction {db->val screen=if(target<0)db.getNewScreenId() else target;placement.forEach {(id,r)->val values=ContentValues();values.put("screen",screen);values.put("cellX",r.left);values.put("cellY",r.top);check(db.update("favorites",values,"_id=?",arrayOf(id.toString()))==1)}}
         }
+
         fun d(value: Int)=(value*launcher.resources.displayMetrics.density).toInt()
         fun open() {
             val dark=launcher.getSharedPreferences("dot-style",0).getBoolean("dark",false)
             bar.gravity=Gravity.CENTER_VERTICAL;bar.setPadding(d(12),d(4),d(8),d(4))
             bar.background=GradientDrawable().apply {setColor(if(dark)0xff252625.toInt() else 0xfff8f8f3.toInt());cornerRadius=d(28).toFloat()}
-            count.textSize=13f;count.setTextColor(if(dark)Color.WHITE else Color.BLACK)
-            bar.addView(count,LinearLayout.LayoutParams(0,-1,1f))
+            count.textSize=12f;count.typeface=launcher.resources.getFont(R.font.geist_regular);count.setTextColor(DotAppearance.get(launcher).ink)
+            bar.addView(count,LinearLayout.LayoutParams(d(72),-1))
             listOf("Move","Style","Folder","Remove","Done").forEachIndexed { index,label ->
                 val button=TextView(launcher).apply {text=label;textSize=12f;gravity=Gravity.CENTER;setTextColor(if(dark)Color.WHITE else Color.BLACK);setOnClickListener {when(index){0->move();1->style();2->folder();3->remove();else->close()}}}
-                bar.addView(button,LinearLayout.LayoutParams(d(47),d(48)));actions.add(button)
+                button.typeface=launcher.resources.getFont(R.font.geist_regular);button.contentDescription=label;bar.addView(button,LinearLayout.LayoutParams(0,d(48),1f));actions.add(button)
             }
             launcher.dragLayer.addView(bar,com.android.launcher3.views.BaseDragLayer.LayoutParams(-1,d(58)).apply {gravity=Gravity.BOTTOM;leftMargin=d(14);rightMargin=d(14);bottomMargin=launcher.deviceProfile.insets.bottom+d(90)})
             launcher.stateManager.addStateListener(this)
@@ -128,7 +157,7 @@ object DotArrange {
             if(selected.remove(item.id)!=null) {badges.remove(item.id)?.let {view.overlay.remove(it)}} else {
                 selected[item.id]=view to item
                 val badge=object: Drawable() {
-                    override fun draw(canvas: Canvas) {val paint=Paint(Paint.ANTI_ALIAS_FLAG);paint.color=0xffd71920.toInt();val radius=d(10).toFloat();val x=view.width-radius;val y=radius;canvas.drawCircle(x,y,radius,paint);paint.color=Color.WHITE;paint.style=Paint.Style.STROKE;paint.strokeWidth=d(2).toFloat();val tick=Path();tick.moveTo(x-radius*.5f,y);tick.lineTo(x-radius*.15f,y+radius*.35f);tick.lineTo(x+radius*.5f,y-radius*.4f);canvas.drawPath(tick,paint)}
+                    override fun draw(canvas: Canvas) {val paint=Paint(Paint.ANTI_ALIAS_FLAG);paint.color=DotAppearance.get(launcher).accent;val radius=d(10).toFloat();val x=view.width-radius;val y=radius;canvas.drawCircle(x,y,radius,paint);paint.color=Color.WHITE;paint.style=Paint.Style.STROKE;paint.strokeWidth=d(2).toFloat();val tick=Path();tick.moveTo(x-radius*.5f,y);tick.lineTo(x-radius*.15f,y+radius*.35f);tick.lineTo(x+radius*.5f,y-radius*.4f);canvas.drawPath(tick,paint)}
                     override fun setAlpha(value: Int) {};override fun setColorFilter(filter: ColorFilter?) {};override fun getOpacity()=PixelFormat.TRANSLUCENT
                 }
                 badge.setBounds(0,0,view.width,view.height);view.overlay.add(badge);badges[item.id]=badge
@@ -147,8 +176,10 @@ object DotArrange {
             app.model.enqueueModelUpdateTask {_,_,_->
                 try {
                     val db=app.model.modelDbController
+                    val snapshot=DotUndo.capture(db)
                     db.newTransaction().use {tx->write(db);tx.commit()}
-                    launcher.runOnUiThread {close()};app.model.forceReload()
+                    DotUndo.remember(snapshot,db)
+                    launcher.runOnUiThread {close();DotUndo.show(launcher)};app.model.forceReload()
                 } catch(error: Exception) {launcher.runOnUiThread {Toast.makeText(launcher,"Items kept in place; arrangement could not finish",Toast.LENGTH_LONG).show()}}
             }
         }

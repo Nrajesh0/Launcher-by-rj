@@ -36,7 +36,7 @@ run(*git,'reset','--hard',props['commit'],cwd=root)
 run(*git,'clean','-fd',cwd=root)
 run(*git,'reset','--hard',props['systemuiCommit'],cwd=root/'platform_frameworks_libs_systemui')
 run(*git,'clean','-fd',cwd=root/'platform_frameworks_libs_systemui')
-for patch in ('offline.py','experience.py','polish.py','core_features.py'):
+for patch in ('offline.py','experience.py','polish.py','core_features.py','design_system.py'):
     run('python3',str(project/'foundation/patches'/patch),str(root))
 # Resolve only build-time tooling before converting SVG resources.
 run('bash','gradlew','help','--no-daemon','--max-workers=2',cwd=root)

@@ -1,43 +1,58 @@
 package dev.dothome.ui
 import android.content.Context
 import android.graphics.*
+import android.os.Handler
+import android.os.Looper
 import android.view.View
 import java.io.File
+import java.util.WeakHashMap
+import java.util.concurrent.Executors
 
-/** Samples our own saved wallpaper only; no screen capture or storage permission. */
+/** Owned-image sampling. Decode and blur never run in an animation frame. */
 object DotBackdrop {
-    private var key=""
-    private var image: Bitmap?=null
-    private var blur: Bitmap?=null
-    @Synchronized private fun load(context: Context) {
-        val name=context.getSharedPreferences("dot-style",0).getString("wallpaper","glass")!!
-        val file=File(context.filesDir,"wallpaper-local.jpg")
-        val next="$name:${if(name=="local")file.lastModified() else 0}"
-        if(key==next && image!=null)return
-        image=if(name=="local")BitmapFactory.decodeFile(file.path,BitmapFactory.Options().apply {inSampleSize=2}) else null
-        if(image==null)image=DotWallpaper.bitmap(name,540,1200)
-        val mini=Bitmap.createScaledBitmap(image!!,90,200,true)
-        val pixels=IntArray(18000);mini.getPixels(pixels,0,90,0,0,90,200)
-        repeat(3) {
-            val source=pixels.copyOf()
-            for(y in 0 until 200)for(x in 0 until 90) {
-                var r=0;var g=0;var b=0;var count=0
-                for(dy in -3..3)for(dx in -3..3) {val c=source[(y+dy).coerceIn(0,199)*90+(x+dx).coerceIn(0,89)];r+=Color.red(c);g+=Color.green(c);b+=Color.blue(c);count++}
-                pixels[y*90+x]=Color.rgb(r/count,g/count,b/count)
+    @Volatile private var key=""
+    @Volatile private var image: Bitmap?=null
+    @Volatile private var blur: Bitmap?=null
+    private val work=Executors.newSingleThreadExecutor()
+    private val main=Handler(Looper.getMainLooper())
+    private val observers=WeakHashMap<View,Boolean>()
+    private fun load(context: Context) {
+        val app=context.applicationContext
+        val prefs=app.getSharedPreferences("dot-style",0)
+        val name=prefs.getString("wallpaper","glass")!!
+        val file=File(app.filesDir,"wallpaper-local.jpg")
+        val next="$name:${if(name=="local")file.lastModified() else 0}:${prefs.getBoolean("externalWallpaper",false)}"
+        if(key==next)return
+        synchronized(this) {if(key==next)return;key=next;image=null;blur=null}
+        if(prefs.getBoolean("externalWallpaper",false))return
+        work.execute {
+            runCatching {
+                val loaded=if(name=="local")BitmapFactory.decodeFile(file.path,BitmapFactory.Options().apply {inSampleSize=2}) else null
+                val source=loaded?:DotWallpaper.bitmap(name,540,1200)
+                val tiny=Bitmap.createScaledBitmap(source,90,200,true)
+                val frosted=LocalWallpaperEffects.atmosphere(tiny)
+                if(tiny!==source && tiny!==frosted)tiny.recycle()
+                main.post {if(key==next){image=source;blur=frosted;synchronized(observers){observers.keys.toList().forEach {it.invalidate()}}}}
             }
         }
-        blur=Bitmap.createBitmap(pixels,90,200,Bitmap.Config.ARGB_8888);key=next
     }
     @JvmStatic fun draw(context: Context,canvas: Canvas,destination: RectF) {
-        load(context);image?.let {canvas.drawBitmap(it,null,destination,Paint(3))}
+        load(context);val source=image
+        if(source!=null)canvas.drawBitmap(source,null,destination,Paint(3))
+        else {val paint=Paint(3);paint.color=DotAppearance.get(context).background;canvas.drawRect(destination,paint)}
     }
     @JvmStatic fun glass(view: View,canvas: Canvas) {
+        synchronized(observers){observers[view]=true}
         load(view.context)
+        if(view.context.getSharedPreferences("dot-style",0).getBoolean("externalWallpaper",false))return
         val position=IntArray(2);view.getLocationOnScreen(position)
         val screen=view.resources.displayMetrics
         blur?.let {
-            val source=Rect((position[0]*it.width/screen.widthPixels).coerceIn(0,it.width-1),(position[1]*it.height/screen.heightPixels).coerceIn(0,it.height-1),((position[0]+view.width)*it.width/screen.widthPixels).coerceIn(1,it.width),((position[1]+view.height)*it.height/screen.heightPixels).coerceIn(1,it.height))
-            canvas.drawBitmap(it,source,RectF(0f,0f,view.width.toFloat(),view.height.toFloat()),Paint(3))
+            val left=(position[0]*it.width/screen.widthPixels).coerceIn(0,it.width-1)
+            val top=(position[1]*it.height/screen.heightPixels).coerceIn(0,it.height-1)
+            val right=((position[0]+view.width)*it.width/screen.widthPixels).coerceIn(left+1,it.width)
+            val bottom=((position[1]+view.height)*it.height/screen.heightPixels).coerceIn(top+1,it.height)
+            canvas.drawBitmap(it,Rect(left,top,right,bottom),RectF(0f,0f,view.width.toFloat(),view.height.toFloat()),Paint(3))
         }
     }
 }

@@ -42,7 +42,11 @@ final class PhotoView extends View {
         () -> {
           Drawable loaded = null;
           try {
-            loaded = a.scaledImage(Uri.parse(item.optString("uri")));
+            loaded = a.scaledImage(Uri.parse(PhotoCollection.uri(item)));
+            if(item.optBoolean("wallpaper") && !item.optString("wallpaperEffect","none").equals("none") && loaded!=null){
+              Bitmap source=Bitmap.createBitmap(Math.max(1,loaded.getIntrinsicWidth()),Math.max(1,loaded.getIntrinsicHeight()),Bitmap.Config.ARGB_8888);Canvas canvas=new Canvas(source);loaded.setBounds(0,0,source.getWidth(),source.getHeight());loaded.draw(canvas);
+              Bitmap effect=dev.dothome.ui.LocalWallpaperEffects.apply(source,item.optString("wallpaperEffect"));if(effect!=source)source.recycle();loaded=new android.graphics.drawable.BitmapDrawable(a.getResources(),effect);
+            }
           } catch (Exception unavailable) {
           }
           Drawable result = loaded;
@@ -78,6 +82,13 @@ final class PhotoView extends View {
       canvas.clipPath(mask);
     }
     image.setBounds(Math.round(x), Math.round(y), Math.round(x + dw), Math.round(y + dh));
+    if(style==2 && item.optBoolean("stickerOutline",true)) {
+      // Dilate the image alpha with neighbouring silhouettes, retaining transparent edges.
+      android.graphics.PorterDuffColorFilter white=new android.graphics.PorterDuffColorFilter(Color.WHITE,android.graphics.PorterDuff.Mode.SRC_IN);
+      image.setColorFilter(white);float stroke=a.dp(2.5f);
+      for(int n=0;n<12;n++){double angle=n*Math.PI/6;canvas.save();canvas.translate((float)Math.cos(angle)*stroke,(float)Math.sin(angle)*stroke);image.draw(canvas);canvas.restore();}
+      image.clearColorFilter();
+    }
     image.draw(canvas);
     canvas.restore();
   }

@@ -38,10 +38,10 @@ open class DotTile(private val context: Context, val kind: String, val face: Int
         private var item=TileContext.load(context,id,tile.kind,tile.face)
         private val refresh=object: Runnable { override fun run() { if(windowVisibility==VISIBLE && isShown && hasWindowFocus() && getGlobalVisibleRect(android.graphics.Rect())) { adapter.foreground=true;adapter.sync(); render(); sensors.start(); handler.postDelayed(this,if(tile.kind=="media") 1000 else 30000) } else {adapter.foreground=false;sensors.stop()} } }
         private fun render() {
-            item.put("w",if(width>height*1.4f) 4 else tile.columns); item.put("h",tile.rows)
+            item.put("w",(host.tag as? ItemInfo)?.spanX ?: tile.columns); item.put("h",(host.tag as? ItemInfo)?.spanY ?: tile.rows)
             adapter.page=item.optInt("page",0)
             val media=if(tile.kind=="media")TileMedia.read(context) else null
-            val nextSignature=item.toString()+(media?.let {"${it.title}:${it.artist}:${it.playing}:${it.controller?.packageName}:${it.artwork?.width}x${it.artwork?.height}"} ?: "")
+            val nextSignature=item.toString()+(media?.let {"${it.title}:${it.artist}:${it.playing}:${it.controller?.packageName}:${it.artwork?.generationId}"} ?: "")
             if(childCount>0 && signature==nextSignature) { invalidateArtwork(); return }
             signature=nextSignature
             removeAllViews()
@@ -68,7 +68,7 @@ open class DotTile(private val context: Context, val kind: String, val face: Int
                 }
                 addView(controls,LayoutParams(-1,adapter.dp(48f),android.view.Gravity.BOTTOM))
             }
-            setOnClickListener { TileActions.tap(context,id,item); if(tile.kind=="torch") { handler.removeCallbacks(refresh);handler.post(refresh) } }
+            setOnClickListener { TileActions.tap(context,id,item); if(tile.kind in setOf("torch","sound","dnd")) { handler.removeCallbacks(refresh);handler.postDelayed(refresh,120) } }
         }
         override fun onAttachedToWindow() {
             super.onAttachedToWindow()
@@ -109,6 +109,14 @@ object DotTiles {
     class Battery(context: Context): DotTile(context,"battery",2,"Battery · Dots",2,1)
     class BatteryRing(context: Context): DotTile(context,"battery",0,"Battery · Ring")
     class Focus(context: Context): DotTile(context,"breathing",0,"Focus")
+    class AwayCompact(context: Context): DotTile(context,"away",0,"Away time · Compact",2,1)
+    class AwaySmall(context: Context): DotTile(context,"away",0,"Away time · Small",1,1)
+    class Weather(context: Context): DotTile(context,"weather",0,"Weather · Local")
+    class WeatherCompact(context: Context): DotTile(context,"weather",0,"Weather · Compact",2,1)
+    class Steps(context: Context): DotTile(context,"steps",0,"Pedometer")
+    class StepsSmall(context: Context): DotTile(context,"steps",0,"Pedometer · Small",1,1)
+    class Headphones(context: Context): DotTile(context,"headphones",0,"Audio devices")
+    class UsageSmall(context: Context): DotTile(context,"usage",0,"Screen time · Small",1,1)
     class Away(context: Context): DotTile(context,"away",0,"Away time")
     class Photo(context: Context): DotTile(context,"photo",0,"Photos")
     class Sticker(context: Context): DotTile(context,"photo",2,"Photos · Sticker")

@@ -19,9 +19,21 @@ final class TileActions {
         case "clock": home.startActivity(new Intent(AlarmClock.ACTION_SHOW_ALARMS)); break;
         case "date": home.startActivity(new Intent(Intent.ACTION_VIEW,CalendarContract.CONTENT_URI)); break;
         case "bluetooth": home.startActivity(new Intent(Settings.ACTION_BLUETOOTH_SETTINGS)); break;
-        case "sound": home.startActivity(new Intent(Settings.ACTION_SOUND_SETTINGS)); break;
-        case "dnd": home.startActivity(new Intent("android.settings.ZEN_MODE_SETTINGS")); break;
-        case "usage": case "away": home.startActivity(new Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS)); break;
+        case "sound": {
+          android.media.AudioManager audio=context.getSystemService(android.media.AudioManager.class);
+          try{audio.setRingerMode(audio.getRingerMode()==android.media.AudioManager.RINGER_MODE_NORMAL?android.media.AudioManager.RINGER_MODE_VIBRATE:android.media.AudioManager.RINGER_MODE_NORMAL);}catch(SecurityException needsAccess){home.startActivity(new Intent(Settings.ACTION_SOUND_SETTINGS));}break;
+        }
+        case "dnd": {
+          NotificationManager notifications=context.getSystemService(NotificationManager.class);
+          if(!notifications.isNotificationPolicyAccessGranted()){home.startActivity(new Intent(Settings.ACTION_NOTIFICATION_POLICY_ACCESS_SETTINGS));break;}
+          notifications.setInterruptionFilter(notifications.getCurrentInterruptionFilter()==NotificationManager.INTERRUPTION_FILTER_ALL?NotificationManager.INTERRUPTION_FILTER_PRIORITY:NotificationManager.INTERRUPTION_FILTER_ALL);break;
+        }
+        case "steps": {
+          if(context.checkSelfPermission(android.Manifest.permission.ACTIVITY_RECOGNITION)!=PackageManager.PERMISSION_GRANTED)home.requestPermissions(new String[]{android.Manifest.permission.ACTIVITY_RECOGNITION},23);
+          else home.startActivity(new Intent(context,TileConfiguration.class).putExtra("itemId",id).putExtra("initial",item.toString()));break;
+        }
+        case "headphones": home.startActivity(new Intent(Settings.ACTION_BLUETOOTH_SETTINGS));break;
+        case "usage": case "away": case "breathing": home.startActivity(new Intent(context,TileDetails.class).putExtra("itemId",id).putExtra("initial",item.toString())); break;
         case "agenda":
           if(context.checkSelfPermission(android.Manifest.permission.READ_CALENDAR)!=PackageManager.PERMISSION_GRANTED) home.requestPermissions(new String[]{android.Manifest.permission.READ_CALENDAR},21);
           else home.startActivity(new Intent(Intent.ACTION_VIEW,CalendarContract.CONTENT_URI));

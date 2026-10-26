@@ -31,22 +31,26 @@ open class DotPreferences : Activity() {
     private var route = "customisation"
     private val history = java.util.ArrayDeque<String>()
     private val work = Executors.newSingleThreadExecutor()
+    private val scrollPositions=mutableMapOf<String,Int>()
+    private var currentScroll: ScrollView?=null
     private val backCallback=android.window.OnBackInvokedCallback {onBackPressed()}
     private val dark get() = when (p.launcherTheme.get()) {
         "dark" -> true
         "light" -> false
         else -> resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK == Configuration.UI_MODE_NIGHT_YES
     }
-    private val ink get() = if (dark) Color.rgb(241,241,236) else Color.rgb(24,24,23)
-    private val secondary get() = if (dark) Color.rgb(169,169,161) else Color.rgb(104,104,98)
-    private val paper get() = if (dark) Color.rgb(16,16,16) else Color.rgb(245,245,241)
-    private val card get() = if (dark) Color.rgb(34,34,33) else Color.WHITE
+    private val appearance get() = DotAppearance.get(this)
+    private val ink get() = appearance.ink
+    private val secondary get() = appearance.secondary
+    private val paper get() = appearance.background
+    private val card get() = appearance.card
     private fun d(value: Float) = (value * resources.displayMetrics.density).toInt()
     private fun d(value: Int) = d(value.toFloat())
     private fun text(value: String, size: Float = 15f, color: Int = ink) = TextView(this).apply {
         text = value; textSize = size; setTextColor(color)
         typeface = resources.getFont(R.font.geist_regular)
         gravity = Gravity.CENTER_VERTICAL
+        includeFontPadding = false
     }
     private fun shape(color: Int, radius: Int = 20) = GradientDrawable().apply {
         setColor(color); cornerRadius = d(radius).toFloat()
@@ -71,6 +75,7 @@ open class DotPreferences : Activity() {
     }
 
     private fun show(next: String, remember: Boolean = true) {
+        currentScroll?.let {scrollPositions[route]=it.scrollY}
         if (remember && next != route) history.addLast(route)
         route = next
         setTheme(if (dark) android.R.style.Theme_Material_NoActionBar else android.R.style.Theme_Material_Light_NoActionBar)
@@ -85,12 +90,12 @@ open class DotPreferences : Activity() {
         header.addView(back, FrameLayout.LayoutParams(d(44), -1, Gravity.START))
         val title = text(when(next) {
             "appearance" -> "Theme & Style"; "wallpaper" -> "Wallpapers"; "grid" -> "Home screen layout"
-            "icons" -> "Icon pack"; "drawer" -> "Apps"; "home" -> "Home settings"; "access" -> "Optional access"; "licenses" -> "Open-source licences"
+            "icons" -> "Icon pack"; "drawer" -> "Apps"; "home" -> "Home settings"; "access" -> "Optional access"; "licenses" -> "Open-source licences"; "search" -> "Search"; "layouts" -> "Starting layouts"
             else -> "Customisation"
         }, 17f).apply { gravity = Gravity.CENTER; setAccessibilityHeading(true) }
         header.addView(title, FrameLayout.LayoutParams(-1, -1).apply { leftMargin = d(48); rightMargin = d(48) })
         root.addView(header, LinearLayout.LayoutParams(-1, d(56)))
-        val scroll = ScrollView(this).apply { isVerticalScrollBarEnabled = false; clipToPadding = false }
+        val scroll = ScrollView(this).apply { isVerticalScrollBarEnabled = false; clipToPadding = false };currentScroll=scroll
         body = LinearLayout(this).apply { orientation = 1; setPadding(0, d(12), 0, d(12)) }
         scroll.addView(body)
         root.addView(scroll, LinearLayout.LayoutParams(-1, 0, 1f))
@@ -99,23 +104,26 @@ open class DotPreferences : Activity() {
             WindowInsetsController.APPEARANCE_LIGHT_STATUS_BARS or WindowInsetsController.APPEARANCE_LIGHT_NAVIGATION_BARS)
         when(next) {
             "appearance" -> appearance(); "drawer" -> drawer(); "wallpaper" -> wallpapers(); "grid" -> grid(); "icons" -> icons()
-            "home" -> home(); "access" -> access(); "licenses" -> licences(); else -> customisation()
+            "home" -> home(); "access" -> access(); "licenses" -> licences(); "search" -> search(); "layouts" -> layouts(); else -> customisation()
         }
+        scroll.post {scroll.scrollTo(0,scrollPositions[next] ?: 0)}
+        if(remember)DotUi.enter(body)
     }
 
     private fun gap(height: Int = 16) { body.addView(View(this), LinearLayout.LayoutParams(1, d(height))) }
     private fun row(title: String, value: String = "", action: (() -> Unit)? = null): LinearLayout {
         val row = LinearLayout(this).apply {
             gravity = Gravity.CENTER_VERTICAL; setPadding(d(18), 0, d(18), 0)
-            background = shape(card, 18)
+            background = DotUi.clickable(this@DotPreferences,card,16f)
         }
-        row.addView(text(title), LinearLayout.LayoutParams(0, -1, 1f))
+        row.addView(text(title,14f).apply {setPadding(0,d(16),d(8),d(16));maxLines=3}, LinearLayout.LayoutParams(0, -2, 1f))
         if (value.isNotEmpty()) row.addView(text(value, 12f, secondary), LinearLayout.LayoutParams(-2, -1))
         if (action != null) {
             row.addView(text("›", 22f, secondary).apply { setPadding(d(12), 0, 0, 0) })
             row.setOnClickListener { action() }; row.isFocusable = true
         }
-        body.addView(row, LinearLayout.LayoutParams(-1, d(58)).apply { bottomMargin = d(2) })
+        row.minimumHeight=d(54)
+        body.addView(row, LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = d(2) })
         return row
     }
 
@@ -133,48 +141,93 @@ open class DotPreferences : Activity() {
     }
 
     private fun preview(height: Int) {
-        body.addView(CurrentHomePreview(), LinearLayout.LayoutParams(-1, d(height)))
+        val home=LawnchairLauncher.instance
+        val pages=home?.workspace?.pageCount ?: 1
+        val strip=LinearLayout(this).apply {gravity=Gravity.CENTER_VERTICAL}
+        val scroll=HorizontalScrollView(this).apply {isHorizontalScrollBarEnabled=false;clipToPadding=false}
+        for(index in 0 until pages.coerceIn(1,6)) {
+            val column=LinearLayout(this).apply {orientation=1;gravity=Gravity.CENTER}
+            column.addView(CurrentHomePreview(index),LinearLayout.LayoutParams(d((height-22)*.46f),d(height-22)))
+            column.addView(text("Page ${index+1}",11f,secondary).apply {gravity=Gravity.CENTER},LinearLayout.LayoutParams(-1,d(22)))
+            strip.addView(column,LinearLayout.LayoutParams(-2,-1).apply {marginStart=d(10);marginEnd=d(10)})
+        }
+        scroll.addView(strip);body.addView(scroll,LinearLayout.LayoutParams(-1,d(height)))
+        if(pages==1)strip.gravity=Gravity.CENTER
+    }
+
+    private fun applyPalette() {
+        val a=appearance
+        p2.accentColor.setBlocking(ColorOption.CustomColor(a.accent))
+        LawnchairLauncher.instance?.rootView?.let {dev.dothome.widgets.TileRefresh.sync(it);it.invalidate()}
+    }
+
+    private fun search() {
+        toggle("Apps",p.searchResultApps.get()) {p.searchResultApps.set(it)}
+        toggle("Calculator",p.searchResultCalculator.get()) {p.searchResultCalculator.set(it)}
+        toggle("Settings",p.searchResultSettingsEntry.get()) {p.searchResultSettingsEntry.set(it)}
+        toggle("App shortcuts",p.searchResultShortcuts.get()) {p.searchResultShortcuts.set(it)}
+        gap()
+        row("Hidden apps in search",when(p2.hiddenAppsInSearch.firstBlocking()) {"on"->"Show";"if_name_typed"->"Exact name only";else->"Hide"}) {
+            val choices=arrayOf("Hide","Exact name only","Show")
+            android.app.AlertDialog.Builder(this).setTitle("Hidden apps in search").setItems(choices) {_,which->p2.hiddenAppsInSearch.setBlocking(arrayOf("off","if_name_typed","on")[which]);show("search",false)}.setNegativeButton("Cancel",null).show()
+        }
     }
 
     private fun customisation() {
         preview(310); gap(20)
-        row("Theme & Style", when(style.getString("material", "classic")) { "translucent" -> "Translucent"; "dynamic" -> "Dynamic"; else -> "Classic" }) { show("appearance") }
+        row("Theme & Style", when(style.getString("material", "classic")) { "translucent" -> "Lucent"; "dynamic" -> "Dynamic"; else -> "Classic" }) { show("appearance") }
         row("Wallpaper") { show("wallpaper") }
         row("Home screen layout", "${p.workspaceColumns.get()} × ${p.workspaceRows.get()}") { show("grid") }
         row("Icon pack", packLabel()) { show("icons") }
+        gap();row("Starting layouts","Add a page") {show("layouts")}
+    }
+
+    private fun layouts() {
+        preview(270);gap()
+        body.addView(text("Add a new page with a complete starting layout. Your current pages and dock stay as they are.",14f,secondary))
+        gap()
+        row("Classic layout","Clocks, weather & controls") {LawnchairLauncher.instance?.let {DotPresets.add(it,false)};finish()}
+        row("Lucent layout","Away, Focus & Collector") {LawnchairLauncher.instance?.let {DotPresets.add(it,true)};finish()}
     }
 
     private fun appearance() {
         preview(320); gap(12)
         val choices = LinearLayout(this).apply { background = shape(if(dark) 0xff262625.toInt() else 0xffe9e9e4.toInt(), 100); setPadding(d(3), d(3), d(3), d(3)) }
-        listOf("translucent" to "Translucent", "classic" to "Classic", "dynamic" to "Dynamic").forEach { (key, label) ->
+        listOf("translucent" to "Lucent", "classic" to "Classic", "dynamic" to "Dynamic").forEach { (key, label) ->
             choices.addView(text(label, 12f).apply {
                 gravity = Gravity.CENTER
                 if (style.getString("material", "classic") == key) background = shape(card, 100)
                 setOnClickListener {
                     style.edit().putString("material", key).apply()
-                    val accent=style.getInt("accent",if(style.getString("wallpaper","glass")=="optic")0xff80b0ba.toInt() else 0xffb4c9b8.toInt())
-                    if(key!="classic" && !style.contains("accent"))style.edit().putInt("accent",accent).apply()
-                    p2.accentColor.setBlocking(if(key == "classic")ColorOption.CustomColor(0xffd71920.toInt()) else if(style.getBoolean("wallpaperApplied",false) && !style.getBoolean("manualAccent",false))ColorOption.WallpaperPrimary else ColorOption.CustomColor(accent))
+                    applyPalette()
                     show("appearance", false)
                 }
             }, LinearLayout.LayoutParams(0, d(42), 1f))
         }
         body.addView(choices); gap(18)
         toggle("Dark theme", dark) {
-            val update=style.edit().putBoolean("dark",it)
-            if(!style.getBoolean("wallpaperApplied",false))update.putString("wallpaper",if(it)"optic" else "glass")
-            update.apply();p.launcherTheme.set(if(it)"dark" else "light");show("appearance",false)
+            style.edit().putBoolean("dark",it).apply();p.launcherTheme.set(if(it)"dark" else "light");applyPalette();show("appearance",false)
         }
-        val colours = LinearLayout(this).apply { gravity = Gravity.CENTER; setPadding(d(8), d(12), d(8), d(12)); background = shape(card, 14) }
+        row("Colour source",if(style.getBoolean("manualAccent",false))"Chosen palette" else "Wallpaper") {
+            style.edit().putBoolean("manualAccent",false).apply();DotAppearance.refreshWallpaper(this);applyPalette();show("appearance",false)
+        }
+        val colours = LinearLayout(this).apply { gravity=Gravity.CENTER;setPadding(d(8),d(12),d(8),d(12));background=shape(card,16) }
         val colourNames=listOf("Sage","Blue","Lime","Terracotta","Lilac","Slate")
-        intArrayOf(0xffbccbbf.toInt(),0xff56a5c7.toInt(),0xff99bd68.toInt(),0xffd7a28d.toInt(),0xffb3a2bf.toInt(),0xff8894ac.toInt()).forEachIndexed { index,color ->
-            colours.addView(View(this).apply {
-                background = shape(color,100).apply {if(style.getInt("accent",0)==color)setStroke(d(2),ink)}; contentDescription = "${colourNames[index]} accent"
-                setOnClickListener { style.edit().putInt("accent",color).putBoolean("manualAccent",true).apply(); p2.accentColor.setBlocking(ColorOption.CustomColor(color)); show("appearance",false) }
-            }, LinearLayout.LayoutParams(d(34), d(34)).apply { leftMargin = d(6); rightMargin = d(6) })
+        intArrayOf(0xff81a98e.toInt(),0xff4b94b8.toInt(),0xff91af4a.toInt(),0xffb9755c.toInt(),0xff9a7cad.toInt(),0xff61728b.toInt()).forEachIndexed { index,colour ->
+            colours.addView(object: View(this) {
+                val paint=Paint(3)
+                init {contentDescription="${colourNames[index]} accent";isFocusable=true;setOnClickListener {style.edit().putInt("accent",colour).putBoolean("manualAccent",true).apply();applyPalette();show("appearance",false)}}
+                override fun onDraw(canvas: Canvas) {
+                    val r=minOf(width,height)*.37f;val cx=width/2f;val cy=height/2f
+                    canvas.save();val path=Path();path.addCircle(cx,cy,r,Path.Direction.CW);canvas.clipPath(path)
+                    paint.color=DotAppearance.tone(colour,.85f,.32f);canvas.drawRect(cx-r,cy-r,cx+r,cy+r,paint)
+                    paint.color=DotAppearance.tone(colour,.35f,.46f);canvas.drawRect(cx-r,cy-r,cx,cy,paint)
+                    paint.color=DotAppearance.tone(colour,.62f,.62f);canvas.drawRect(cx,cy,cx+r,cy+r,paint);canvas.restore()
+                    if(style.getBoolean("manualAccent",false) && style.getInt("accent",0)==colour){paint.color=ink;paint.style=Paint.Style.STROKE;paint.strokeWidth=d(1).toFloat();canvas.drawCircle(cx,cy,r+d(3),paint);paint.style=Paint.Style.FILL}
+                }
+            },LinearLayout.LayoutParams(0,d(48),1f))
         }
-        body.addView(colours, LinearLayout.LayoutParams(-1, d(62)).apply { bottomMargin = d(2) })
+        body.addView(colours,LinearLayout.LayoutParams(-1,d(72)));gap(2)
         row("Icon pack", packLabel()) { show("icons") }
         if(p.iconPackPackage.get().isEmpty() && p.themedIcons.get()) toggle("Apply icons to Home screen only",style.getBoolean("homeOnlyIcons",false)) {style.edit().putBoolean("homeOnlyIcons",it).apply();p.drawerThemedIcons.set(!it)}
     }
@@ -197,11 +250,11 @@ open class DotPreferences : Activity() {
             val key = info.activityInfo.packageName
             row(info.loadLabel(packageManager).toString(), if(p.iconPackPackage.get() == key) "Selected" else "") { p.iconPackPackage.set(key); p.themedIcons.set(false); p.drawerThemedIcons.set(false); show("icons", false) }
         }
-        gap(); body.addView(text("Installed icon packs appear here. Everything is loaded locally.", 13f, secondary))
+        gap(); body.addView(text("Choose a pack installed on this phone.", 13f, secondary))
     }
 
     private fun grid() {
-        preview(300); gap()
+        preview(270); gap()
         listOf(4 to 6,4 to 7,5 to 6,5 to 7).forEach { (columns, rows) ->
             row("$columns × $rows", if(p.workspaceColumns.get() == columns && p.workspaceRows.get() == rows) "Selected" else "") {
                 p.batchEdit { p.workspaceColumns.set(columns); p.workspaceRows.set(rows) }
@@ -222,12 +275,14 @@ open class DotPreferences : Activity() {
         for(columns in listOf(4,5)) row("$columns columns",if(p2.drawerColumns.idpValue(defaultGrid)==columns) "Selected" else "") {kotlinx.coroutines.runBlocking {p2.drawerColumns.set(columns,defaultGrid)};show("drawer",false)}
         gap()
         toggle("App labels",p2.showIconLabelsInDrawer.firstBlocking()) {p2.showIconLabelsInDrawer.setBlocking(it)}
+        row("Search") {show("search")}
+        toggle("Search bar in drawer",!p2.hideAppDrawerSearchBar.firstBlocking()) {p2.hideAppDrawerSearchBar.setBlocking(!it)}
         row("Hidden icons") {startActivity(Intent(this,DotHidden::class.java))}
     }
 
     private fun wallpapers() {
         val grid = GridLayout(this).apply { columnCount = 2 }
-        listOf("glass" to "Glass", "optic" to "Optic", "mist" to "Atmosphere", "graphite" to "Graphite").forEachIndexed { index, (key, label) ->
+        listOf("glass" to "Glass", "optic" to "Optic", "mist" to "Mist", "graphite" to "Graphite").forEachIndexed { index, (key, label) ->
             val cardView = LinearLayout(this).apply { orientation = 1; setPadding(d(4),d(4),d(4),d(4)) }
             cardView.addView(object: View(this) {
                 override fun onDraw(canvas: Canvas) { DotWallpaper.paint(canvas, width, height, key) }
@@ -240,7 +295,8 @@ open class DotPreferences : Activity() {
                         WallpaperManager.getInstance(this).setBitmap(bitmap, null, true, WallpaperManager.FLAG_SYSTEM)
                         bitmap.recycle()
                         p2.darkStatusBar.setBlocking(key!="optic" && key!="graphite")
-                        style.edit().putString("wallpaper", key).putBoolean("wallpaperApplied", true).apply()
+                        style.edit().putString("wallpaper", key).putBoolean("wallpaperApplied", true).putBoolean("externalWallpaper",false).putInt("ownedWallpaperId",WallpaperManager.getInstance(this).getWallpaperId(WallpaperManager.FLAG_SYSTEM)).apply()
+                        DotAppearance.refreshWallpaper(this)
                     }
                     runOnUiThread { Toast.makeText(this, if(result.isSuccess) "Wallpaper applied" else "Wallpaper unavailable", Toast.LENGTH_SHORT).show() }
                 }
@@ -269,6 +325,8 @@ open class DotPreferences : Activity() {
         row("Home screen layout") { show("grid") }
         row("Apps", if(p.drawerList.get()) "Alphabetical" else "Smart categories") { show("drawer") }
         row("Theme & Style") { show("appearance") }
+        row("Search") {show("search")}
+        toggle("Reduce motion",style.getBoolean("reduceMotion",false)) {style.edit().putBoolean("reduceMotion",it).apply()}
         gap()
         toggle("Freeze Home screen layout", p2.lockHomeScreen.firstBlocking()) { p2.lockHomeScreen.setBlocking(it) }
         toggle("App labels in drawer", p2.showIconLabelsInDrawer.firstBlocking()) { p2.showIconLabelsInDrawer.setBlocking(it) }
@@ -294,10 +352,10 @@ open class DotPreferences : Activity() {
     private fun access() {
         row("Media and notification dots") { startActivity(Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS)) }
         row("Usage history") { startActivity(Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS)) }
-        gap(); body.addView(text("Core Home, Apps and arrangement need no runtime grants. Calendar, flashlight and photos ask when you use them.", 14f, secondary))
+        gap(); body.addView(text("Home and app organisation work without extra access. Other features ask only when needed.", 14f, secondary))
     }
 
-    private inner class CurrentHomePreview: View(this@DotPreferences) {
+    private inner class CurrentHomePreview(private val index: Int): View(this@DotPreferences) {
         override fun onAttachedToWindow() {
             super.onAttachedToWindow()
             for(step in 1..8) postDelayed({if(isAttachedToWindow)invalidate()},step*120L)
@@ -313,7 +371,15 @@ open class DotPreferences : Activity() {
             DotBackdrop.draw(this@DotPreferences,canvas,RectF(0f,0f,w,h))
             canvas.scale(scale,scale)
             dev.dothome.widgets.TileRefresh.sync(home)
-            runCatching { home.draw(canvas) }
+            runCatching {
+                val launcher=LawnchairLauncher.instance!!;val workspace=launcher.workspace
+                if(index==workspace.currentPage) home.draw(canvas)
+                else {
+                    val page=workspace.getPageAt(index)
+                    canvas.save();canvas.translate(workspace.left.toFloat()+workspace.paddingLeft,workspace.top.toFloat());page?.draw(canvas);canvas.restore()
+                    canvas.save();canvas.translate(launcher.hotseat.left.toFloat(),launcher.hotseat.top.toFloat());launcher.hotseat.draw(canvas);canvas.restore()
+                }
+            }
             canvas.restore()
         }
     }

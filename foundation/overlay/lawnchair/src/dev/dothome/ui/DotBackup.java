@@ -10,12 +10,12 @@ import java.util.*;
 
 /** User-selected local documents, a validated layout and one atomic restore transaction. */
 public final class DotBackup {
-  private static final Set<String> PREFS=Set.of("dot-style","dot-tiles","dot-folders");
+  private static final Set<String> PREFS=Set.of("dot-style","dot-tiles","dot-folders","dot-categories");
   public static void export(Activity activity,Uri uri) {
     var state=LauncherAppState.getInstance(activity);
     state.getModel().enqueueModelUpdateTask((task,model,apps)->{
       try {
-        JSONObject backup=new JSONObject().put("format","dot-home-native-1");
+        JSONObject backup=new JSONObject().put("format","dot-home-native-2").put("settings",DotSettingsBackup.export(activity));
         var grid=InvariantDeviceProfile.INSTANCE.get(activity);
         backup.put("columns",grid.numColumns).put("rows",grid.numRows);
         JSONArray rows=new JSONArray();
@@ -38,7 +38,7 @@ public final class DotBackup {
         backup.put("items",rows);
         JSONObject settings=new JSONObject();
         for(String name:PREFS)settings.put(name,new JSONObject(activity.getSharedPreferences(name,0).getAll()));
-        backup.put("preferences",settings);
+        backup.put("preferences",settings).put("media",DotBackupMedia.export(activity));
         try(var output=activity.getContentResolver().openOutputStream(uri,"wt")){output.write(backup.toString().getBytes(StandardCharsets.UTF_8));}
         activity.runOnUiThread(()->android.widget.Toast.makeText(activity,"Layout backup saved",android.widget.Toast.LENGTH_SHORT).show());
       }catch(Exception error){message(activity,"Backup could not be saved");}
@@ -48,12 +48,13 @@ public final class DotBackup {
     new Thread(()->{
       try {
         String input;
-        try(var stream=activity.getContentResolver().openInputStream(uri)){byte[] bytes=stream.readNBytes(4*1024*1024+1);if(bytes.length>4*1024*1024)throw new IllegalArgumentException();input=new String(bytes,StandardCharsets.UTF_8);}
+        try(var stream=activity.getContentResolver().openInputStream(uri)){byte[] bytes=stream.readNBytes(36*1024*1024+1);if(bytes.length>36*1024*1024)throw new IllegalArgumentException();input=new String(bytes,StandardCharsets.UTF_8);}
         JSONObject backup=new JSONObject(input);
-        if(!backup.getString("format").equals("dot-home-native-1"))throw new IllegalArgumentException();
+        if(!Set.of("dot-home-native-1","dot-home-native-2").contains(backup.getString("format")))throw new IllegalArgumentException();
         var grid=InvariantDeviceProfile.INSTANCE.get(activity);
         if(backup.getInt("columns")!=grid.numColumns || backup.getInt("rows")!=grid.numRows){message(activity,"Choose the backup's "+backup.getInt("columns")+" × "+backup.getInt("rows")+" grid before restoring");return;}
         JSONArray rows=backup.getJSONArray("items");if(rows.length()>1000)throw new IllegalArgumentException();
+        DotBackupMedia.validate(backup.optJSONObject("media"));
         Set<Integer> ids=new HashSet<>(),folders=new HashSet<>();List<android.graphics.Rect> cells=new ArrayList<>();List<Integer> pages=new ArrayList<>();
         for(int n=0;n<rows.length();n++) {
           JSONObject row=rows.getJSONObject(n);int type=row.getInt("itemType"),id=row.getInt("_id"),container=row.getInt("container");
@@ -95,12 +96,15 @@ public final class DotBackup {
           tx.commit();
         }
         JSONObject preferences=backup.getJSONObject("preferences");
+        DotBackupMedia.restore(activity,DotBackupMedia.validate(backup.optJSONObject("media")),preferences);
         for(String name:PREFS) {
           JSONObject object=preferences.optJSONObject(name);if(object==null)continue;
           var edit=activity.getSharedPreferences(name,0).edit();
           for(var keys=object.keys();keys.hasNext();) {String key=keys.next();Object value=object.get(key);if(value instanceof Boolean)edit.putBoolean(key,(Boolean)value);else if(value instanceof Integer)edit.putInt(key,(Integer)value);else if(value instanceof Number)edit.putLong(key,((Number)value).longValue());else if(value instanceof String)edit.putString(key,(String)value);}
           edit.apply();
         }
+        if(backup.optJSONObject("settings")!=null)DotSettingsBackup.restore(activity,backup.getJSONObject("settings"));
+        DotAppearance.invalidate();
         boolean dark=activity.getSharedPreferences("dot-style",0).getBoolean("dark",false);
         app.lawnchair.preferences.PreferenceManager.getInstance(activity).getLauncherTheme().set(dark?"dark":"light");
         state.getModel().forceReload();message(activity,"Home layout restored");

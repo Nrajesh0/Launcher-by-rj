@@ -17,8 +17,8 @@ import com.patrykmichalik.opto.core.setBlocking
 class DotHidden : Activity() {
     private val prefs by lazy {PreferenceManager2.getInstance(this)}
     private val dark get()=getSharedPreferences("dot-style",0).getBoolean("dark",false)
-    private val ink get()=if(dark)Color.WHITE else 0xff181918.toInt()
-    private val paper get()=if(dark)0xff141514.toInt() else 0xfff7f7f3.toInt()
+    private val ink get()=DotAppearance.get(this).ink
+    private val paper get()=DotAppearance.get(this).background
     private fun d(value: Int)=(value*resources.displayMetrics.density).toInt()
     private fun text(value: String)=TextView(this).apply {text=value;textSize=15f;setTextColor(ink);typeface=resources.getFont(com.android.launcher3.R.font.geist_regular);gravity=Gravity.CENTER}
     private val apps get()=LawnchairLauncher.instance?.appsView?.appsStore?.apps?.sortedBy {it.title.toString().lowercase()} ?: emptyList()
@@ -53,15 +53,23 @@ class DotHidden : Activity() {
         val chosen=prefs.hiddenApps.firstBlocking().toMutableSet()
         val dialog=Dialog(this);val body=LinearLayout(this).apply {orientation=1;setBackgroundColor(paper);setPadding(d(20),d(16),d(20),d(24))}
         val title=text("Hidden icons").apply {textSize=17f};body.addView(title,LinearLayout.LayoutParams(-1,d(48)))
+        val search=EditText(this).apply {setSingleLine(true);hint="Search apps";setTextColor(ink);setHintTextColor(DotAppearance.get(this@DotHidden).secondary);typeface=resources.getFont(com.android.launcher3.R.font.geist_regular)}
+        body.addView(search,LinearLayout.LayoutParams(-1,d(52)))
         val scroll=ScrollView(this);val list=LinearLayout(this).apply {orientation=1}
+        val rows=mutableListOf<View>()
         apps.forEach {app->
             val key=app.toComponentKey().toString()
             val row=LinearLayout(this).apply {gravity=Gravity.CENTER_VERTICAL}
             row.addView(ImageView(this).apply {setImageDrawable(app.newIcon(this@DotHidden))},LinearLayout.LayoutParams(d(40),d(40)))
             row.addView(text(app.title.toString()).apply {gravity=Gravity.CENTER_VERTICAL;setPadding(d(12),0,d(12),0)},LinearLayout.LayoutParams(0,d(56),1f))
             row.addView(CheckBox(this).apply {isChecked=key in chosen;contentDescription=app.title;setOnCheckedChangeListener {_,checked->if(checked)chosen.add(key) else chosen.remove(key)}})
-            list.addView(row)
+            row.tag=app.title.toString().lowercase();rows.add(row);list.addView(row)
         }
+        search.addTextChangedListener(object: android.text.TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?,start: Int,count: Int,after: Int) {}
+            override fun onTextChanged(s: CharSequence?,start: Int,before: Int,count: Int) {val query=s.toString().lowercase();rows.forEach {it.visibility=if(it.tag.toString().contains(query))View.VISIBLE else View.GONE}}
+            override fun afterTextChanged(s: android.text.Editable?) {}
+        })
         scroll.addView(list);body.addView(scroll,LinearLayout.LayoutParams(-1,0,1f))
         body.addView(text("Done").apply {setOnClickListener {prefs.hiddenApps.setBlocking(chosen);dialog.dismiss();show()}},LinearLayout.LayoutParams(-1,d(52)))
         dialog.setContentView(body);dialog.window?.setLayout(-1,(resources.displayMetrics.heightPixels*.82f).toInt());dialog.window?.setGravity(Gravity.BOTTOM);dialog.show();dialog.window?.setLayout(-1,(resources.displayMetrics.heightPixels*.82f).toInt())

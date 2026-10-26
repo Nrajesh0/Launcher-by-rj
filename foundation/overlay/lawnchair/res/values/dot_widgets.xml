@@ -10,5 +10,6 @@
   <item>dev.dothome.widgets.DotTiles$Torch</item><item>dev.dothome.widgets.DotTiles$Bluetooth</item><item>dev.dothome.widgets.DotTiles$Sound</item><item>dev.dothome.widgets.DotTiles$Dnd</item>
   <item>dev.dothome.widgets.DotTiles$Media</item>
   <item>dev.dothome.widgets.DotTiles$Controls</item>
+  <item>dev.dothome.widgets.DotTiles$AwayCompact</item><item>dev.dothome.widgets.DotTiles$AwaySmall</item><item>dev.dothome.widgets.DotTiles$Weather</item><item>dev.dothome.widgets.DotTiles$WeatherCompact</item><item>dev.dothome.widgets.DotTiles$Steps</item><item>dev.dothome.widgets.DotTiles$StepsSmall</item><item>dev.dothome.widgets.DotTiles$Headphones</item><item>dev.dothome.widgets.DotTiles$UsageSmall</item>
  </array>
 </resources>

@@ -101,6 +101,8 @@ for name in ("geist_regular.ttf", "geist_medium.ttf"):
 licenses = root / "lawnchair/assets/licenses"
 licenses.mkdir(parents=True, exist_ok=True)
 shutil.copy2(project / "LICENSES/Geist-OFL.txt", licenses / "Geist-OFL.txt")
+for name in ("LibreCaslonDisplay-OFL.txt", "SpaceMono-OFL.txt"):
+    shutil.copy2(project / "LICENSES" / name, licenses / name)
 shutil.copy2(root / "LICENSE.txt", licenses / "Launcher3-Lawnchair-Apache-2.0.txt")
 (licenses / "DotHome-NOTICE.txt").write_text("Dot Home adapts Launcher3/Lawnchair; upstream source and patches: https://github.com/Nrajesh0/Launcher-by-rj/tree/rebuild-v4\nPinned Lawnchair source: https://github.com/LawnchairLauncher/lawnchair/tree/505dbc40e6154c05158b5d0271c45f6a885a411b\nModified for offline operation, native Dot Home identity, local icons/widgets, appearance, arrangement and legacy migration. Upstream source notices are retained.\n")
 for file in (project / "foundation/overlay").rglob("*"):
@@ -126,8 +128,12 @@ for action,category in (("android.intent.action.MAIN","android.intent.category.L
     if category: ET.SubElement(query,"category",{a+"name":category})
 ET.SubElement(app,"activity",{a+"name":"dev.dothome.ui.DotHidden",a+"exported":"false",a+"theme":"@android:style/Theme.Material.Light.NoActionBar"})
 ET.SubElement(app,"activity",{a+"name":"dev.dothome.widgets.TileConfiguration",a+"exported":"false",a+"theme":"@style/DotWidgetSheet"})
+ET.SubElement(app,"activity",{a+"name":"dev.dothome.widgets.TileDetails",a+"exported":"false",a+"theme":"@android:style/Theme.Material.Light.NoActionBar"})
+wallpaper=ET.SubElement(app,"service",{a+"name":"dev.dothome.ui.DotAtmosphere",a+"exported":"true",a+"permission":"android.permission.BIND_WALLPAPER",a+"label":"Atmosphere"})
+intent=ET.SubElement(wallpaper,"intent-filter");ET.SubElement(intent,"action",{a+"name":"android.service.wallpaper.WallpaperService"})
+ET.SubElement(wallpaper,"meta-data",{a+"name":"android.service.wallpaper",a+"resource":"@xml/dot_atmosphere"})
 ET.SubElement(app,"activity",{a+"name":"dev.dothome.migration.UnavailableApp",a+"exported":"false",a+"theme":"@android:style/Theme.Material.Light.NoActionBar"})
-for permission in ("android.permission.CAMERA","android.permission.READ_CALENDAR","com.android.alarm.permission.SET_ALARM"):
+for permission in ("android.permission.CAMERA","android.permission.READ_CALENDAR","com.android.alarm.permission.SET_ALARM","android.permission.ACTIVITY_RECOGNITION","android.permission.MODIFY_AUDIO_SETTINGS","android.permission.ACCESS_NOTIFICATION_POLICY"):
     ET.SubElement(doc,"uses-permission",{a+"name":permission})
 ET.register_namespace("android",a[1:-1]);ET.register_namespace("tools","http://schemas.android.com/tools")
 tree.write(file,encoding="unicode",xml_declaration=True)

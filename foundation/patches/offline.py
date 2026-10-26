@@ -133,6 +133,8 @@ allowed = {
     "android.permission.SET_WALLPAPER_HINTS", "android.permission.ACCESS_HIDDEN_PROFILES",
     "android.permission.READ_CALENDAR", "android.permission.CAMERA",
     "com.android.alarm.permission.SET_ALARM",
+    "android.permission.ACTIVITY_RECOGNITION", "android.permission.MODIFY_AUDIO_SETTINGS",
+    "android.permission.ACCESS_NOTIFICATION_POLICY",
 }
 blocked_components = ("LawnchairAccessibilityService", "UploaderService", "SleepDeviceAdmin", "TouchInteractionService", "AppWidgetsRestoredReceiver")
 for file in root.rglob("*Manifest*.xml"):

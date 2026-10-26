@@ -26,8 +26,11 @@ final class TileContext extends ContextWrapper {
   boolean foreground;
   int card=0xffeeeeea, bg=0xfff4f4ef;
   int page, battery, accent = 0xff98b9a5, muted = 0xff6a6b64;
-  boolean charging, torch;
+  boolean charging, torch, dnd;
+  int ringer=2;
   float heading;
+  int sensorAccuracy=-1,steps=-1;
+  boolean compassAvailable=true;
   AwayTimeStats away = AwayTimeStats.unavailable();
   String agenda = "Connect calendar", usage = "Enable history";
 
@@ -47,9 +50,9 @@ final class TileContext extends ContextWrapper {
       settings.put("material", prefs.getString("material", "classic"));
       settings.put("reduceMotion", prefs.getBoolean("reduceMotion", false));
     } catch (Exception ignored) {}
-    accent = prefs.getInt("accent", prefs.getString("material", "classic").equals("classic") ? 0xffd71920 : 0xff98b9a5);
-    muted = dark() ? 0xffa9aaa1 : 0xff65685e;
-    card=dark()?0xff252625:0xffe4e5dc; bg=dark()?0xff101110:0xfff4f4ef;
+    var appearance=dev.dothome.ui.DotAppearance.get(this);
+    accent=appearance.accent;muted=appearance.secondary;card=appearance.card;bg=appearance.background;
+    try {settings.put("reduceMotion",appearance.reducedMotion);}catch(Exception ignored){}
     Intent state = registerReceiver(null, new IntentFilter(Intent.ACTION_BATTERY_CHANGED));
     if(state != null) {
       battery = state.getIntExtra(BatteryManager.EXTRA_LEVEL,0)*100/Math.max(1,state.getIntExtra(BatteryManager.EXTRA_SCALE,100));
@@ -57,6 +60,9 @@ final class TileContext extends ContextWrapper {
       charging = status==BatteryManager.BATTERY_STATUS_CHARGING || status==BatteryManager.BATTERY_STATUS_FULL;
     }
     away=history; agenda=nextEvent; usage=totalUsage;
+    dnd=getSystemService(NotificationManager.class).getCurrentInterruptionFilter()!=NotificationManager.INTERRUPTION_FILTER_ALL;
+    ringer=getSystemService(android.media.AudioManager.class).getRingerMode();
+    var stepPrefs=getSharedPreferences("dot-steps",0);if(java.time.LocalDate.now().toString().equals(stepPrefs.getString("day","")))steps=stepPrefs.getInt("count",-1);
     long now=SystemClock.elapsedRealtime();
     if(now-refreshed<30000) return;
     refreshed=now;

@@ -29,7 +29,7 @@ final class TileArtwork extends View {
   void text(Canvas c, String value, float x, float y, float size, int color, boolean mono) {
     p.setColor(color);
     p.setStyle(Paint.Style.FILL);
-    p.setTypeface(mono ? Typeface.create("monospace", 0) : TileTypography.medium(a));
+    p.setTypeface(mono ? TileTypography.mono(a) : TileTypography.regular(a));
     p.setTextSize(size);
     c.drawText(value, x, y, p);
   }
@@ -51,8 +51,9 @@ final class TileArtwork extends View {
     String type = item.optString("type");
     boolean inverted = style == 1 && !type.equals("clock") && !type.equals("battery");
     paper = TileTheme.widgetSurface(a);
-    ink = a.dark() ? 0xfff0f0e9 : 0xff151813;
-    secondary = a.dark() ? 0xffb8bbb0 : 0xff66705f;
+    var appearance=dev.dothome.ui.DotAppearance.get(a);
+    ink = appearance.ink;
+    secondary = appearance.secondary;
     if (inverted) {
       paper = a.dark() ? 0xfff0f2eb : 0xff202120;
       ink = a.dark() ? 0xff151813 : 0xfff0f0e9;
@@ -69,9 +70,9 @@ final class TileArtwork extends View {
     boolean control =
         Arrays.asList("torch", "bluetooth", "sound", "dnd").contains(type)
             || (type.equals("photo") && item.optInt("w", 1) == 1 && item.optInt("h", 1) == 1);
-    if (type.equals("torch") && !preview && a.torch) {
-      paper = 0xff8eb65b;
-      ink = 0xfff8f7ee;
+    if (!preview && ((type.equals("torch") && a.torch)||(type.equals("dnd") && a.dnd)||(type.equals("sound") && a.ringer!=android.media.AudioManager.RINGER_MODE_NORMAL))) {
+      paper = appearance.activeControl;
+      ink = appearance.onAccent;
     }
     p.setStyle(Paint.Style.FILL);
     p.setColor(paper);
@@ -348,47 +349,24 @@ final class TileArtwork extends View {
         if(preview) text(c,"‹       Ⅱ       ›",pad,h-pad,Math.min(w*.095f,h*.2f),ink,false);
         break;
       }
-      case "away":
-        text(c, "Away time", pad, pad + size * .4f, Math.min(size, a.dp(12)), secondary, false);
-        AwayTimeStats stats = a.away;
-        String longest =
-            preview
-                ? "3h 19m"
-                : stats.available ? AwayTimeStats.duration(stats.longest) : "No history";
-        text(c, longest, pad, h * .47f, Math.min(w * .18f, h * .23f), ink, false);
-        text(
-            c,
-            "Screen-off breaks · 7 days",
-            pad,
-            h * .62f,
-            Math.min(a.dp(10), w * .06f),
-            secondary,
-            false);
-        long max = 1;
-        for (long total : stats.daily) max = Math.max(max, total);
-        for (int n = 0; n < 7; n++) {
-          float ratio =
-              preview
-                  ? new float[] {.4f, .65f, .5f, .8f, .35f, .9f, .6f}[n]
-                  : stats.available ? stats.daily[n] / (float) max : 0;
-          float bw = (w - pad * 2) / 10;
-          p.setColor(ink);
-          p.setAlpha(stats.available || preview ? 180 : 50);
-          float left = pad + n * (w - pad * 2) / 7;
-          c.drawRoundRect(
-              new RectF(left, h - pad - h * .2f * ratio - 2, left + bw, h - pad),
-              bw / 2,
-              bw / 2,
-              p);
-        }
-        p.setAlpha(255);
-        break;
+      case "away": {
+        AwayTimeStats stats=a.away;
+        String value=preview?"3h 19m":stats.available?AwayTimeStats.duration(stats.longest):"Set up";
+        if(h<w*.7f || item.optInt("w")==1){
+          serif(c,value,pad,h*.52f,Math.min(w*.20f,h*.40f),ink);
+          text(c,"Away",pad,h*.80f,Math.min(a.dp(11),h*.20f),secondary,false);
+        }else{
+          float barY=h*.14f,barH=h*.16f,barW=(w-pad*2)/7f;
+          long max=1;for(long v:stats.daily)max=Math.max(max,v);
+          for(int n=0;n<7;n++){float ratio=preview?new float[]{.4f,.7f,.5f,.8f,.4f,.9f,.6f}[n]:stats.available?stats.daily[n]/(float)max:0;p.setColor(dev.dothome.ui.DotAppearance.alpha(a.accent,60+(int)(195*ratio)));c.drawRoundRect(new RectF(pad+n*barW,barY,pad+(n+1)*barW-a.dp(3),barY+barH),a.dp(2),a.dp(2),p);}
+          text(c,"Away",pad,h*.67f,Math.min(a.dp(11),h*.14f),secondary,false);
+          serif(c,value,pad,h*.87f,Math.min(w*.20f,h*.20f),ink);
+        }break;
+      }
       case "breathing":
-        float progress =
-            preview || a.settings.optBoolean("reduceMotion", false)
-                ? .5f
-                : (float) ((Math.sin(System.currentTimeMillis() / 2600.0) + 1) / 2);
-        text(c, "Focus", pad, pad + size * .45f, Math.min(size, a.dp(10)), secondary, false);
+        BreathingSession session=new BreathingSession(item,System.currentTimeMillis());
+        float progress=preview || appearance.reducedMotion || item.optLong("breathStarted")==0?.5f:session.expansion;
+        text(c, BreathingSession.NAMES[session.mode], pad, pad + size * .45f, Math.min(size, a.dp(10)), secondary, false);
         p.setColor(ink);
         p.setStyle(Paint.Style.STROKE);
         p.setStrokeWidth(a.dp(.8f));
@@ -410,8 +388,30 @@ final class TileArtwork extends View {
       case "dnd":
         drawControl(c, type, w / 2, h / 2, u * .24f, ink);
         break;
+      case "weather": {
+        String temperature=preview?"21":item.optString("temperature");
+        String condition=item.optString("condition","Sunny");
+        if(h<w*.7f){serif(c,temperature.isEmpty()?"Set weather":temperature+"°",pad,h*.65f,Math.min(w*.23f,h*.55f),ink);weather(c,condition,w*.79f,h*.48f,h*.25f,ink);}
+        else {weather(c,condition,w*.5f,h*.35f,u*.22f,ink);serif(c,temperature.isEmpty()?"—":temperature+"°",pad,h*.78f,u*.28f,ink);text(c,item.optString("location",preview?"Local weather":"Enter weather"),pad,h-pad,Math.min(a.dp(12),w*.075f),secondary,false);}
+        break;
+      }
+      case "steps": {
+        String count=preview?"4200":a.steps>=0?String.valueOf(a.steps):"—";
+        serif(c,count,pad,h*.56f,Math.min(w*.29f,h*.42f),ink);
+        text(c,"Steps",pad,h*.78f,Math.min(a.dp(12),h*.16f),secondary,false);
+        if(h>w*.7f){int goal=Math.max(1,item.optInt("stepGoal",6000));p.setColor(appearance.outline);c.drawRoundRect(new RectF(pad,h*.86f,w-pad,h*.89f),a.dp(3),a.dp(3),p);p.setColor(a.accent);c.drawRoundRect(new RectF(pad,h*.86f,pad+(w-pad*2)*Math.min(1f,(preview?4200:Math.max(0,a.steps))/(float)goal),h*.89f),a.dp(3),a.dp(3),p);}break;
+      }
+      case "headphones": {
+        String connected="No audio device";
+        if(preview)connected="Headphones";
+        else for(android.media.AudioDeviceInfo device:a.getSystemService(android.media.AudioManager.class).getDevices(android.media.AudioManager.GET_DEVICES_OUTPUTS))if(device.getType()==android.media.AudioDeviceInfo.TYPE_BLUETOOTH_A2DP||device.getType()==android.media.AudioDeviceInfo.TYPE_BLE_HEADSET||device.getType()==android.media.AudioDeviceInfo.TYPE_WIRED_HEADPHONES){connected=device.getProductName().toString();break;}
+        p.setColor(ink);p.setStyle(Paint.Style.STROKE);p.setStrokeWidth(u*.055f);r.set(w*.28f,h*.16f,w*.72f,h*.62f);c.drawArc(r,180,180,false,p);c.drawLine(w*.28f,h*.39f,w*.28f,h*.63f,p);c.drawLine(w*.72f,h*.39f,w*.72f,h*.63f,p);p.setStyle(Paint.Style.FILL);
+        paragraph(c,connected,pad,h*.70f,w-pad*2,h*.15f,Math.min(a.dp(12),w*.08f),ink);
+        text(c,"Battery not available",pad,h-pad,Math.min(a.dp(9),w*.065f),secondary,false);break;
+      }
       case "compass":
         float degrees = preview ? 315 : a.heading;
+        if(!preview && !a.compassAvailable){paragraph(c,"Compass unavailable",pad,h*.35f,w-pad*2,h*.4f,size,ink);break;}
         float rad = u * .29f;
         p.setColor(ink);
         p.setStyle(Paint.Style.STROKE);
@@ -456,7 +456,8 @@ final class TileArtwork extends View {
                             : "Tap to configure";
         text(c, label, pad, pad + size * .7f, Math.min(size, a.dp(11)), secondary, true);
         float valueSize = Math.min(a.dp(22), Math.min(w * .12f, h * .27f));
-        text(c, fit(value, valueSize, w - pad * 2), pad, h * .66f, valueSize, ink, false);
+        if(type.equals("notes") || type.equals("agenda")) paragraph(c,value,pad,h*.26f,w-pad*2,h*.65f-pad,valueSize,ink);
+        else text(c, fit(value, valueSize, w - pad * 2), pad, h * .66f, valueSize, ink, false);
         if (type.equals("countdown") && h > a.dp(100))
           text(
               c,
@@ -474,18 +475,38 @@ final class TileArtwork extends View {
         && getGlobalVisibleRect(new Rect())) {
       int delay =
           type.equals("breathing") && !a.settings.optBoolean("reduceMotion", false)
-              ? 40
+              ? 0
               : type.equals("clock") || (type.equals("timer") && item.optLong("timerStart") > 0)
                   ? 1000
                   : type.equals("compass") ? 120 : 0;
-      if (delay > 0) postInvalidateDelayed(delay);
+      if(type.equals("breathing") && item.optLong("breathStarted")>0 && !appearance.reducedMotion) postInvalidateOnAnimation();
+      else if (delay > 0) postInvalidateDelayed(delay);
     }
+  }
+
+  void weather(Canvas canvas,String condition,float cx,float cy,float radius,int colour) {
+    p.setColor(colour);float step=radius/5;
+    for(int y=-5;y<=5;y++)for(int x=-6;x<=6;x++){
+      boolean cloud=(x*x/36f+y*y/10f<1&&y>=-1)||((x+2)*(x+2)+(y+1)*(y+1)<8)||((x-1)*(x-1)+(y+2)*(y+2)<12);
+      boolean sun=x*x+y*y<=13;
+      boolean dot=condition.equals("Sunny")||condition.equals("Clear night")?sun:cloud;
+      if(condition.equals("Clear night")&&(x-2)*(x-2)+(y+2)*(y+2)<12)dot=false;
+      if((condition.equals("Rain")||condition.equals("Snow"))&&y>2&&y<6&&((x+y)%4==0))dot=true;
+      if(dot)canvas.drawCircle(cx+x*step,cy+y*step,step*.36f,p);
+    }
+  }
+
+  void paragraph(Canvas c,String value,float x,float y,float width,float height,float size,int colour) {
+    if(width<1 || height<1)return;
+    android.text.TextPaint paint=new android.text.TextPaint(3);paint.setColor(colour);paint.setTextSize(size);paint.setTypeface(TileTypography.regular(a));
+    android.text.StaticLayout layout=android.text.StaticLayout.Builder.obtain(value,0,value.length(),paint,Math.max(1,(int)width)).setIncludePad(false).setMaxLines(Math.max(1,(int)(height/(size*1.25f)))).setEllipsize(android.text.TextUtils.TruncateAt.END).setLineSpacing(0,1.15f).build();
+    c.save();c.translate(x,y);c.clipRect(0,0,width,height);layout.draw(c);c.restore();
   }
 
   void serif(Canvas c, String value, float x, float y, float size, int color) {
     p.setStyle(Paint.Style.FILL);
     p.setColor(color);
-    p.setTypeface(Typeface.create("serif", Typeface.NORMAL));
+    p.setTypeface(TileTypography.display(a));
     p.setTextSize(size);
     c.drawText(value, x, y, p);
   }
