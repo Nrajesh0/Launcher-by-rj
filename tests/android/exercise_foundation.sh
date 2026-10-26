@@ -18,34 +18,35 @@ timeout 20s adb logcat -d -s AndroidRuntime DotMigration CustomWidgetManager Dot
 timeout 20s adb pull /sdcard/Download build/ui-test/foundation-screenshots
 grep -q 'PASS: foundation' build/ui-test/foundation-result.txt
 ! grep -q 'FATAL EXCEPTION' build/ui-test/foundation-runtime.txt
-timeout 420s adb shell am instrument -w dev.dothome.test/dev.dothome.test.ExperienceSmoke > build/ui-test/experience-result.txt
-cat build/ui-test/experience-result.txt
-grep -q 'PASS: v5' build/ui-test/experience-result.txt
+
+# The following suites have independent, fresh upgrade fixtures. Collect every
+# failure in one run; any failed assertion still fails the complete release gate.
+checks_failed=false
+run_check() {
+  local seconds="$1" instrument="$2" result="$3" expected="$4"
+  timeout "$seconds" adb shell am instrument -w "dev.dothome.test/dev.dothome.test.$instrument" > "build/ui-test/$result" || checks_failed=true
+  cat "build/ui-test/$result"
+  if ! grep -q "$expected" "build/ui-test/$result"; then checks_failed=true; fi
+}
+run_check 420 ExperienceSmoke experience-result.txt 'PASS: v5'
+timeout 20s adb pull /sdcard/Download/. build/ui-test/foundation-screenshots/
 adb uninstall dev.dothome
 adb install --no-incremental build/ui-test/previous.apk
 adb install -r --no-incremental build/ui-test/tests.apk
-timeout 60s adb shell am instrument -w dev.dothome.test/dev.dothome.test.LegacySeed > build/ui-test/legacy-seed.txt
+run_check 60 LegacySeed legacy-seed.txt 'PASS: synthetic'
 timeout 20s adb logcat -d -s AndroidRuntime > build/ui-test/legacy-seed-runtime.txt
-cat build/ui-test/legacy-seed.txt
-grep -q 'PASS: synthetic' build/ui-test/legacy-seed.txt
 adb install -r --no-incremental build/ui-test/app.apk
-timeout 150s adb shell am instrument -w dev.dothome.test/dev.dothome.test.FoundationUpgrade > build/ui-test/upgrade-result.txt
-cat build/ui-test/upgrade-result.txt
+run_check 150 FoundationUpgrade upgrade-result.txt 'PASS: v3-to-v5'
 timeout 20s adb logcat -d -s AndroidRuntime DotMigration > build/ui-test/upgrade-runtime.txt
+if grep -q 'FATAL EXCEPTION' build/ui-test/upgrade-runtime.txt; then checks_failed=true; fi
 timeout 20s adb pull /sdcard/Download/. build/ui-test/foundation-screenshots/
-grep -q 'PASS: v3-to-v5' build/ui-test/upgrade-result.txt
-! grep -q 'FATAL EXCEPTION' build/ui-test/upgrade-runtime.txt
-
 adb uninstall dev.dothome
 adb install --no-incremental build/ui-test/previous-v4.apk
 adb install -r --no-incremental build/ui-test/tests.apk
-timeout 180s adb shell am instrument -w dev.dothome.test/dev.dothome.test.FoundationV4Seed > build/ui-test/v4-seed-result.txt
-cat build/ui-test/v4-seed-result.txt
-grep -q 'PASS: synthetic v4' build/ui-test/v4-seed-result.txt
+run_check 180 FoundationV4Seed v4-seed-result.txt 'PASS: synthetic v4'
 adb install -r --no-incremental build/ui-test/app.apk
-timeout 120s adb shell am instrument -w dev.dothome.test/dev.dothome.test.FoundationV4Upgrade > build/ui-test/v4-upgrade-result.txt
-cat build/ui-test/v4-upgrade-result.txt
-grep -q 'PASS: v4-to-v5' build/ui-test/v4-upgrade-result.txt
+run_check 120 FoundationV4Upgrade v4-upgrade-result.txt 'PASS: v4-to-v5'
 timeout 20s adb logcat -d -s AndroidRuntime DotMigration > build/ui-test/v4-upgrade-runtime.txt
-! grep -q 'FATAL EXCEPTION' build/ui-test/v4-upgrade-runtime.txt
+if grep -q 'FATAL EXCEPTION' build/ui-test/v4-upgrade-runtime.txt; then checks_failed=true; fi
 timeout 20s adb pull /sdcard/Download/. build/ui-test/foundation-screenshots/
+if "$checks_failed"; then exit 1; fi

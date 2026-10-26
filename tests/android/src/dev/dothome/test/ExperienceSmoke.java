@@ -11,6 +11,9 @@ import java.util.*;
 
 /** v5 checks use synthetic local data and the actual Activity/widget renderers. */
 public final class ExperienceSmoke extends FoundationSmoke {
+  @Override boolean clickSystemText(String value){
+    for(int n=0;n<30;n++){if(super.clickSystemText(value)){SystemClock.sleep(200);return true;}SystemClock.sleep(80);}return false;
+  }
   Class<?> cls(String name)throws Exception{return Class.forName(name,true,getTargetContext().getClassLoader());}
   Map<Integer,String> placement(){
     Map<Integer,String> result=new TreeMap<>();SQLiteDatabase db=(SQLiteDatabase)invoke(invoke(invoke(home,"getModel"),"getModelDbController"),"getDb");
@@ -20,7 +23,7 @@ public final class ExperienceSmoke extends FoundationSmoke {
   }
   void check(boolean condition,String message){if(!condition)throw new AssertionError(message);}
   void settings(String route)throws Exception{
-    getTargetContext().startActivity(new Intent().setClassName("dev.dothome","app.lawnchair.ui.preferences.PreferenceActivity").putExtra("dotRoute",route).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));SystemClock.sleep(550);
+    onUi(()->home.startActivity(new Intent().setClassName("dev.dothome","app.lawnchair.ui.preferences.PreferenceActivity").putExtra("dotRoute",route)));SystemClock.sleep(550);
   }
   int views(View view,String name){int count=view.getClass().getName().equals(name)?1:0;if(view instanceof ViewGroup group)for(int n=0;n<group.getChildCount();n++)count+=views(group.getChildAt(n),name);return count;}
   void themes()throws Exception{
@@ -63,7 +66,7 @@ public final class ExperienceSmoke extends FoundationSmoke {
   }
   Activity editor(long id,JSONObject item)throws Exception{
     ActivityMonitor monitor=addMonitor("dev.dothome.widgets.TileConfiguration",null,false);
-    getTargetContext().startActivity(new Intent().setClassName("dev.dothome","dev.dothome.widgets.TileConfiguration").putExtra("itemId",id).putExtra("initial",item.toString()).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
+    onUi(()->home.startActivity(new Intent().setClassName("dev.dothome","dev.dothome.widgets.TileConfiguration").putExtra("itemId",id).putExtra("initial",item.toString())));
     Activity result=waitForMonitorWithTimeout(monitor,5000);removeMonitor(monitor);check(result!=null,"Widget editor did not open");SystemClock.sleep(300);return result;
   }
   EditText draft(Activity activity,String field)throws Exception{var f=activity.getClass().getDeclaredField(field);f.setAccessible(true);return (EditText)f.get(activity);}
@@ -125,7 +128,7 @@ public final class ExperienceSmoke extends FoundationSmoke {
     try{
       shell("settings put system font_scale 1.3");SystemClock.sleep(700);settings("appearance");visible("Theme & Style");screenshot("v5-large-text-theme");homeKey();
       ActivityMonitor monitor=addMonitor("dev.dothome.widgets.TileDetails",null,false);
-      getTargetContext().startActivity(new Intent().setClassName("dev.dothome","dev.dothome.widgets.TileDetails").putExtra("itemId",900004L).putExtra("initial",new JSONObject().put("type","away").toString()).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
+      String initial=new JSONObject().put("type","away").toString();onUi(()->home.startActivity(new Intent().setClassName("dev.dothome","dev.dothome.widgets.TileDetails").putExtra("itemId",900004L).putExtra("initial",initial)));
       Activity details=waitForMonitorWithTimeout(monitor,5000);removeMonitor(monitor);check(details!=null,"History detail screen did not open");visible("Allow usage history");screenshot("v5-denied-history");
       onUi(()->details.getWindow().getDecorView().setLayoutDirection(View.LAYOUT_DIRECTION_RTL));SystemClock.sleep(200);screenshot("v5-rtl-owned-screen");shell("input keyevent KEYCODE_BACK");homeKey();
       for(String permission:new String[]{android.Manifest.permission.CAMERA,android.Manifest.permission.READ_CALENDAR,android.Manifest.permission.ACTIVITY_RECOGNITION})check(home.checkSelfPermission(permission)!=android.content.pm.PackageManager.PERMISSION_GRANTED,"Optional permission unexpectedly granted: "+permission);
@@ -134,5 +137,5 @@ public final class ExperienceSmoke extends FoundationSmoke {
   @Override public void onStart(){Bundle result=new Bundle();try{
     getUiAutomation(UiAutomation.FLAG_DONT_SUPPRESS_ACCESSIBILITY_SERVICES);launchHomeAsync();SystemClock.sleep(800);homeKey();themes();hiddenCancellation();categories();presetUndo();widgetData();externalWidget();calculatorScope();textAndDeniedStates();
     result.putString("stream","PASS: v5 Classic/Lucent light/dark preserve layout; grid preview; hidden cancellation/back; category correction; preset/undo; note and weather drafts; owned photos/cutout/cycle; wallpaper preview; backup path rejection.\n");finish(Activity.RESULT_OK,result);
-  }catch(Throwable error){try{screenshot("v5-failure");}catch(Throwable ignored){}result.putString("stream","FAIL: "+android.util.Log.getStackTraceString(error));finish(Activity.RESULT_CANCELED,result);}}
+  }catch(Throwable error){try{screenshot("v5-failure");}catch(Throwable ignored){}String diagnostics="";try{diagnostics=systemTree(getUiAutomation(UiAutomation.FLAG_DONT_SUPPRESS_ACCESSIBILITY_SERVICES).getRootInActiveWindow(),0);}catch(Throwable ignored){}result.putString("stream","FAIL: "+android.util.Log.getStackTraceString(error)+diagnostics);finish(Activity.RESULT_CANCELED,result);}}
 }
