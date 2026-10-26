@@ -69,7 +69,10 @@ class HomeActivity : LawnchairLauncher() {
 
     override fun onResume() { super.onResume(); updateMaterial(); dev.dothome.migration.DotMigration.start(this) }
 
-    override fun onNewIntent(intent: Intent) { super.onNewIntent(intent); setIntent(intent) }
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent); setIntent(intent)
+        workspace?.postDelayed({if(!isDestroyed)dev.dothome.widgets.TileRefresh.setActive(workspace,isInState(com.android.launcher3.LauncherState.NORMAL) || isInState(com.android.launcher3.LauncherState.EDIT_MODE))},500)
+    }
 
     private fun updateMaterial() {
         val style = getSharedPreferences("dot-style", 0)

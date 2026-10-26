@@ -75,6 +75,9 @@ open class DotTile(private val context: Context, val kind: String, val face: Int
             post {
                 id=(host.tag as? ItemInfo)?.id?.toLong() ?: -1L
                 item=TileContext.load(context,id,tile.kind,tile.face)
+                // Bind static artwork even on an off-screen page. Visibility
+                // controls updates and sensors, not whether the tile exists.
+                render()
                 setActive(isShown && hasWindowFocus())
             }
         }
