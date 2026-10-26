@@ -10,8 +10,13 @@ import com.android.launcher3.model.data.*;
 public final class DotFolderPreview {
   public static boolean covered(View view,FolderInfo info) {return !view.getContext().getSharedPreferences("dot-folders",0).getString("cover-"+info.id,"").isEmpty();}
   public static void choose(android.content.Context context,FolderInfo info,View view) {
-    String[] names={"App previews","Dot grid","Flower","Orbit","Cross"};
-    new android.app.AlertDialog.Builder(context).setTitle("Folder cover").setItems(names,(dialog,index)->{context.getSharedPreferences("dot-folders",0).edit().putString("cover-"+info.id,index==0?"":names[index]).apply();view.invalidate();}).setNegativeButton("Cancel",null).show();
+    String[] names={"App previews","Dot grid","Flower","Orbit","Cross",expanded(info)?"Shrink":"Enlarge"};
+    new android.app.AlertDialog.Builder(context).setTitle("Folder style").setItems(names,(dialog,index)->{
+      if(index==5) {
+        var launcher=Launcher.getLauncher(context);DotArrange.end(launcher);
+        var shortcut=DotItemActions.SIZE.getShortcut(launcher,info,view);if(shortcut!=null)shortcut.onClick(view);
+      } else {context.getSharedPreferences("dot-folders",0).edit().putString("cover-"+info.id,index==0?"":names[index]).apply();view.invalidate();}
+    }).setNegativeButton("Cancel",null).show();
   }
   public static boolean expanded(FolderInfo info) { return info.spanX>1 && info.spanY>1; }
   private static float label(View view) { return view.getResources().getDisplayMetrics().density*24; }

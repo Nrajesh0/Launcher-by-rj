@@ -96,6 +96,7 @@ public class FoundationSmoke extends UiSmoke {
     screenshot("foundation-batch-moved");
     groupDrag(ids,screens[0]);
     backupRoundTrip();
+    folderRoundTrip(ids,screens[0]);
   }
   void groupDrag(int[] ids,int screen) throws Exception {
     onUi(()->{Object workspace=invoke(home,"getWorkspace");int index=(Integer)api(workspace,"getPageIndexForScreenId",new Class<?>[]{int.class},screen);api(workspace,"snapToPage",new Class<?>[]{int.class},index);});
@@ -135,6 +136,29 @@ public class FoundationSmoke extends UiSmoke {
     SystemClock.sleep(1500);homeKey();document.delete();
     final int[] art={0};onUi(()->art[0]=artworkCount((View)invoke(home,"getWorkspace")));
     if(art[0]<8)throw new AssertionError("Backup restore lost built-in widget artwork");
+  }
+  View folderOnPage(int screen) {
+    android.view.ViewGroup page=(android.view.ViewGroup)api(invoke(home,"getWorkspace"),"getScreenWithId",new Class<?>[]{int.class},screen);
+    if(page==null)return null;
+    return folderChild(page);
+  }
+  View folderChild(View view) {
+    if(view.getTag()!=null && view.getTag().getClass().getName().equals("com.android.launcher3.model.data.FolderInfo"))return view;
+    if(view instanceof android.view.ViewGroup group)for(int n=0;n<group.getChildCount();n++){View result=folderChild(group.getChildAt(n));if(result!=null)return result;}
+    return null;
+  }
+  void folderRoundTrip(int[] ids,int screen) throws Exception {
+    onUi(()->{Object workspace=invoke(home,"getWorkspace");int index=(Integer)api(workspace,"getPageIndexForScreenId",new Class<?>[]{int.class},screen);api(workspace,"snapToPage",new Class<?>[]{int.class},index);});
+    SystemClock.sleep(800);longPressBlank();visible("Arrange");clickSystemText("Arrange");awaitState("EDIT_MODE");
+    final View[] views=new View[2];onUi(()->{views[0]=nativeItem(ids[0]);views[1]=nativeItem(ids[1]);});tapView(views[0]);tapView(views[1]);visible("2 selected");
+    if(!clickSystemText("Folder"))throw new AssertionError("Folder action did not respond");visible("Folder name");if(!clickSystemText("Create"))throw new AssertionError("Folder creation did not respond");awaitState("NORMAL");
+    final View[] folder={null};for(int n=0;n<50;n++){onUi(()->folder[0]=folderOnPage(screen));if(folder[0]!=null)break;SystemClock.sleep(100);}
+    if(folder[0]==null)throw new AssertionError("Native folder was not bound");
+    longPressBlank();visible("Arrange");clickSystemText("Arrange");awaitState("EDIT_MODE");onUi(()->folder[0]=folderOnPage(screen));tapView(folder[0]);visible("1 selected");if(!clickSystemText("Style"))throw new AssertionError("Folder style did not respond");
+    visible("Enlarge");if(!clickSystemText("Enlarge"))throw new AssertionError("Folder enlarge did not respond");awaitState("NORMAL");
+    final boolean[] expanded={false};
+    for(int n=0;n<50;n++) {onUi(()->{try{View view=folderOnPage(screen);if(view!=null){Object item=view.getTag();expanded[0]=item.getClass().getField("spanX").getInt(item)==2 && item.getClass().getField("spanY").getInt(item)==2 && ((java.util.Collection<?>)invoke(item,"getContents")).size()==2;}}catch(Exception error){throw new RuntimeException(error);}});if(expanded[0])break;SystemClock.sleep(100);}
+    if(!expanded[0])throw new AssertionError("Expanded folder did not preserve both apps");screenshot("foundation-expanded-folder");
   }
   View firstTile(View view) {
     if(view.getClass().getName().equals("dev.dothome.widgets.TileArtwork"))return view;
