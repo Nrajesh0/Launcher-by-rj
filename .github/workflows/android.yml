@@ -105,10 +105,12 @@ jobs:
             adb shell am start -W -a android.intent.action.MAIN -c android.intent.category.HOME
             adb shell cmd overlay enable-exclusive --category com.android.internal.systemui.navbar.gestural
             adb shell wm density 280
+            adb shell input keyevent KEYCODE_WAKEUP
+            adb shell wm dismiss-keyguard
             adb logcat -c
             adb install -r --no-incremental build/ui-test/app.apk
             adb install -r --no-incremental build/ui-test/tests.apk
-            nohup adb logcat -v threadtime -s AndroidRuntime DotMigration DotFoundation AppWidgetHostView > build/ui-test/runtime-live.txt 2>&1 < /dev/null &
+            nohup adb logcat -v threadtime -s AndroidRuntime ActivityManager ActivityTaskManager libc art Zygote DotMigration DotFoundation AppWidgetHostView > build/ui-test/runtime-live.txt 2>&1 < /dev/null &
             nohup bash tests/android/watch_screenshots.sh > build/ui-test/capture-status.txt 2>&1 < /dev/null &
             timeout 240s adb shell am instrument -w dev.dothome.test/dev.dothome.test.FoundationSmoke > build/ui-test/foundation-result.txt || echo RUNNER_ERROR_OR_TIMEOUT >> build/ui-test/foundation-result.txt
             adb shell screencap -p /sdcard/Download/foundation-last-screen.png
@@ -136,7 +138,7 @@ jobs:
         run: |
           free -m
           df -h "$GITHUB_WORKSPACE"
-          sudo dmesg --ctime | rg -i 'qemu|segfault|oom|killed process' | tail -20 || true
+          sudo dmesg --ctime | grep -Ei 'qemu|segfault|oom|killed process' | tail -20 || true
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -145,6 +147,7 @@ jobs:
             build/ui-test/foundation-result.txt
             build/ui-test/foundation-runtime.txt
             build/ui-test/runtime-live.txt
+            build/ui-test/capture-status.txt
             build/ui-test/upgrade-result.txt
             build/ui-test/upgrade-runtime.txt
             build/ui-test/legacy-seed.txt
