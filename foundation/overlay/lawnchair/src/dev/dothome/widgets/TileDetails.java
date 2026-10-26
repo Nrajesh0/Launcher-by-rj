@@ -78,9 +78,9 @@ public final class TileDetails extends Activity {
   }
   private void pause(){long started=item.optLong("breathStarted");if(started>0)put("breathElapsed",item.optLong("breathElapsed")+Math.max(0,System.currentTimeMillis()-started));put("breathStarted",0);}
   private final class BreathCanvas extends View {
-    final Paint p=new Paint(3);BreathCanvas(){super(TileDetails.this);setContentDescription("Breathing guide");}
+    final Paint p=new Paint(3);BreathCanvas(){super(TileDetails.this);setContentDescription("Breathing guide");setAccessibilityLiveRegion(View.ACCESSIBILITY_LIVE_REGION_POLITE);}
     @Override protected void onDraw(Canvas c){var a=DotAppearance.get(getContext());BreathingSession session=new BreathingSession(item,System.currentTimeMillis());float cx=getWidth()/2f,cy=getHeight()*.43f,r=Math.min(getWidth(),getHeight())*(.20f+.12f*(a.reducedMotion?.5f:session.expansion));p.setColor(a.surface);c.drawCircle(cx,cy,r,p);p.setStyle(Paint.Style.STROKE);p.setStrokeWidth(d(.8f));p.setColor(a.ink);for(int n=1;n<10;n++){RectF oval=new RectF(cx-r*n/10,cy-r,cx+r*n/10,cy+r);c.drawOval(oval,p);}p.setStyle(Paint.Style.FILL);p.setTypeface(TileTypography.regular(getContext()));p.setTextSize(d(22));p.setTextAlign(Paint.Align.CENTER);c.drawText(item.optLong("breathStarted")>0?session.label:"Ready when you are",cx,getHeight()*.88f,p);
-      if(resumed&&item.optLong("breathStarted")>0){if(lastPhase!=session.phase){lastPhase=session.phase;if(item.optBoolean("breathHaptics",true)&&!a.reducedMotion){Vibrator vibrator=getSystemService(Vibrator.class);if(vibrator!=null&&vibrator.hasVibrator())vibrator.vibrate(VibrationEffect.createOneShot(32,VibrationEffect.DEFAULT_AMPLITUDE));}}if(a.reducedMotion)postInvalidateDelayed(1000);else postInvalidateOnAnimation();}
+      if(resumed&&item.optLong("breathStarted")>0){if(lastPhase!=session.phase){lastPhase=session.phase;setContentDescription(session.label);if(item.optBoolean("breathHaptics",true)&&!a.reducedMotion){Vibrator vibrator=getSystemService(Vibrator.class);if(vibrator!=null&&vibrator.hasVibrator())vibrator.vibrate(VibrationEffect.createOneShot(32,VibrationEffect.DEFAULT_AMPLITUDE));}}if(a.reducedMotion)postInvalidateDelayed(1000);else postInvalidateOnAnimation();}
     }
   }
   private final class HistoryChart extends View {

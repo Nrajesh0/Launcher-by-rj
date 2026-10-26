@@ -30,3 +30,10 @@ edit('src/com/android/launcher3/allapps/BaseAllAppsAdapter.java','''            
 for token in ("PopupColorPrimary","PopupShadeFirst","PopupShadeSecond","PopupShadeThird"):
  edit('src/com/android/launcher3/popup/ArrowPopup.java',f'ColorTokens.{token}.resolveColor(context)','dev.dothome.ui.DotAppearance.get(context).card')
 edit('src/com/android/launcher3/popup/ArrowPopup.java','        colorAnimator.setDuration(0).start();','        dev.dothome.ui.DotUi.popup(viewGroup);\n        colorAnimator.setDuration(0).start();')
+
+# Preserve native notification-dot state/animation over the custom expanded/cover renderer.
+edit('src/com/android/launcher3/folder/FolderIcon.java','            dev.dothome.ui.DotFolderPreview.draw(canvas, this, mInfo);\n            return;','            dev.dothome.ui.DotFolderPreview.draw(canvas, this, mInfo);\n            drawDot(canvas);\n            return;')
+edit('src/com/android/launcher3/folder/FolderIcon.java','            Utilities.scaleRectAboutCenter(iconBounds, iconScale);','            Utilities.scaleRectAboutCenter(iconBounds, iconScale);\n            if (dev.dothome.ui.DotFolderPreview.expanded(mInfo) || dev.dothome.ui.DotFolderPreview.covered(this,mInfo)) dev.dothome.ui.DotFolderPreview.bounds(this,iconBounds);')
+# Disable autonomous state transitions under the launcher-local reduced motion setting;
+# finger-controlled workspace/drawer transitions still follow the user's gesture.
+edit('src/com/android/launcher3/statemanager/StateManager.java','        animated &= areAnimatorsEnabled();','        animated &= areAnimatorsEnabled() && !dev.dothome.ui.DotAppearance.get(mStatefulContainer).reducedMotion;')

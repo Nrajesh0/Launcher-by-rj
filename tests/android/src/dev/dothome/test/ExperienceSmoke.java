@@ -20,7 +20,7 @@ public final class ExperienceSmoke extends FoundationSmoke {
   }
   void check(boolean condition,String message){if(!condition)throw new AssertionError(message);}
   void settings(String route)throws Exception{
-    getTargetContext().startActivity(new Intent().setClassName("dev.dothome","dev.dothome.ui.DotPreferences").putExtra("dotRoute",route).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));SystemClock.sleep(550);
+    getTargetContext().startActivity(new Intent().setClassName("dev.dothome","app.lawnchair.ui.preferences.PreferenceActivity").putExtra("dotRoute",route).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));SystemClock.sleep(550);
   }
   int views(View view,String name){int count=view.getClass().getName().equals(name)?1:0;if(view instanceof ViewGroup group)for(int n=0;n<group.getChildCount();n++)count+=views(group.getChildAt(n),name);return count;}
   void themes()throws Exception{
@@ -77,6 +77,8 @@ public final class ExperienceSmoke extends FoundationSmoke {
     java.io.File source=new java.io.File(home.getCacheDir(),"synthetic-photo.png");Bitmap image=Bitmap.createBitmap(120,120,Bitmap.Config.ARGB_8888);Canvas c=new Canvas(image);c.drawColor(Color.WHITE);Paint p=new Paint();p.setColor(Color.BLUE);c.drawRect(30,30,90,90,p);try(var out=new java.io.FileOutputStream(source)){image.compress(Bitmap.CompressFormat.PNG,100,out);}image.recycle();
     android.net.Uri imported=(android.net.Uri)staticCall("dev.dothome.widgets.PhotoCollection","importImage",new Class<?>[]{Context.class,android.net.Uri.class},home,android.net.Uri.fromFile(source));
     android.net.Uri cutout=(android.net.Uri)staticCall("dev.dothome.widgets.PhotoCollection","removePlainBackground",new Class<?>[]{Context.class,android.net.Uri.class,int.class},home,imported,35);Bitmap result=BitmapFactory.decodeFile(cutout.getPath());check(Color.alpha(result.getPixel(0,0))==0&&Color.alpha(result.getPixel(60,60))==255,"Plain-background cutout erased subject or retained corner");result.recycle();
+    Bitmap effectSource=BitmapFactory.decodeFile(imported.getPath());
+    for(String effect:new String[]{"glass","atmosphere"}){Bitmap effected=(Bitmap)staticCall("dev.dothome.ui.LocalWallpaperEffects","apply",new Class<?>[]{Bitmap.class,String.class},effectSource,effect);check(effected.getWidth()==effectSource.getWidth()&&effected.getHeight()==effectSource.getHeight()&&!effected.sameAs(effectSource),"Local wallpaper effect did not alter the image: "+effect);check(!effectSource.isRecycled(),"Effect recycled its caller-owned source");effected.recycle();}effectSource.recycle();
     JSONObject photo=new JSONObject().put("type","photo").put("uri",imported.toString()).put("images",new JSONArray().put(imported.toString()).put(cutout.toString())).put("imageIndex",0);
     check((Boolean)staticCall("dev.dothome.widgets.PhotoCollection","cycle",new Class<?>[]{JSONObject.class,int.class},photo,1),"Collection did not advance");check(photo.getString("uri").equals(cutout.toString()),"Collection displayed wrong image");
     Activity wallpaper=editor(900003,new JSONObject().put("type","photo").put("wallpaper",true).put("uri",imported.toString()));
@@ -86,8 +88,18 @@ public final class ExperienceSmoke extends FoundationSmoke {
     try{staticCall("dev.dothome.ui.DotBackupMedia","validate",new Class<?>[]{JSONObject.class},new JSONObject().put("../escape.jpg","AA=="));throw new AssertionError("Unsafe backup media name accepted");}catch(java.lang.reflect.InvocationTargetException expected){check(expected.getCause() instanceof java.io.IOException,"Unexpected backup validation failure");}
     prefs.edit().remove("item-"+noteId).remove("item-"+weatherId).commit();new java.io.File(imported.getPath()).delete();new java.io.File(cutout.getPath()).delete();source.delete();
   }
+  void textAndDeniedStates()throws Exception{
+    try{
+      shell("settings put system font_scale 1.3");SystemClock.sleep(700);settings("appearance");visible("Theme & Style");screenshot("v5-large-text-theme");homeKey();
+      ActivityMonitor monitor=addMonitor("dev.dothome.widgets.TileDetails",null,false);
+      getTargetContext().startActivity(new Intent().setClassName("dev.dothome","dev.dothome.widgets.TileDetails").putExtra("itemId",900004L).putExtra("initial",new JSONObject().put("type","away").toString()).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
+      Activity details=waitForMonitorWithTimeout(monitor,5000);removeMonitor(monitor);check(details!=null,"History detail screen did not open");visible("Allow usage history");screenshot("v5-denied-history");
+      onUi(()->details.getWindow().getDecorView().setLayoutDirection(View.LAYOUT_DIRECTION_RTL));SystemClock.sleep(200);screenshot("v5-rtl-owned-screen");shell("input keyevent KEYCODE_BACK");homeKey();
+      for(String permission:new String[]{android.Manifest.permission.CAMERA,android.Manifest.permission.READ_CALENDAR,android.Manifest.permission.ACTIVITY_RECOGNITION})check(home.checkSelfPermission(permission)!=android.content.pm.PackageManager.PERMISSION_GRANTED,"Optional permission unexpectedly granted: "+permission);
+    }finally{shell("settings put system font_scale 1.0");SystemClock.sleep(500);}
+  }
   @Override public void onStart(){Bundle result=new Bundle();try{
-    getUiAutomation(UiAutomation.FLAG_DONT_SUPPRESS_ACCESSIBILITY_SERVICES);launchHomeAsync();SystemClock.sleep(800);homeKey();themes();hiddenCancellation();categories();presetUndo();widgetData();
+    getUiAutomation(UiAutomation.FLAG_DONT_SUPPRESS_ACCESSIBILITY_SERVICES);launchHomeAsync();SystemClock.sleep(800);homeKey();themes();hiddenCancellation();categories();presetUndo();widgetData();textAndDeniedStates();
     result.putString("stream","PASS: v5 Classic/Lucent light/dark preserve layout; grid preview; hidden cancellation/back; category correction; preset/undo; note and weather drafts; owned photos/cutout/cycle; wallpaper preview; backup path rejection.\n");finish(Activity.RESULT_OK,result);
   }catch(Throwable error){try{screenshot("v5-failure");}catch(Throwable ignored){}result.putString("stream","FAIL: "+android.util.Log.getStackTraceString(error));finish(Activity.RESULT_CANCELED,result);}}
 }

@@ -96,7 +96,7 @@ open class DotPreferences : Activity() {
             view.setPadding(d(20), bars.top, d(20), bars.bottom + d(12)); insets
         }
         val header = FrameLayout(this)
-        val back = text("‹", 30f).apply { gravity = Gravity.CENTER; contentDescription = "Back"; setOnClickListener { onBackPressed() } }
+        val back = text(if(resources.configuration.layoutDirection==View.LAYOUT_DIRECTION_RTL)"›" else "‹", 30f).apply { gravity = Gravity.CENTER; contentDescription = "Back"; setOnClickListener { onBackPressed() } }
         header.addView(back, FrameLayout.LayoutParams(d(44), -1, Gravity.START))
         val title = text(when(next) {
             "appearance" -> "Theme & Style"; "wallpaper" -> "Wallpapers"; "grid" -> "Home screen layout"

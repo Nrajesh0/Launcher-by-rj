@@ -33,6 +33,7 @@ public final class DotFolderPreview {
 
   public static boolean expanded(FolderInfo info) { return info.spanX>1 && info.spanY>1; }
   private static float label(View view) { return view instanceof com.android.launcher3.folder.FolderIcon icon && !icon.getTextVisible()?0:view.getResources().getDisplayMetrics().density*24; }
+  public static void bounds(View view,Rect out){float size=Math.min(view.getWidth(),view.getHeight()-label(view));int left=Math.round((view.getWidth()-size)/2);out.set(left,0,left+Math.round(size),Math.round(size));}
   public static void draw(Canvas canvas,View view,FolderInfo info) {
     boolean dark=view.getContext().getSharedPreferences("dot-style",0).getBoolean("dark",false);
     float density=view.getResources().getDisplayMetrics().density;
@@ -40,6 +41,7 @@ public final class DotFolderPreview {
     paint.setColor(DotAppearance.get(view.getContext()).surface);
     float size=Math.min(view.getWidth(),view.getHeight()-label(view));
     float left=(view.getWidth()-size)/2;
+    if(DotAppearance.get(view.getContext()).glass){canvas.save();Path mask=new Path();mask.addRoundRect(new RectF(left,0,left+size,size),density*20,density*20,Path.Direction.CW);canvas.clipPath(mask);DotBackdrop.glass(view,canvas);canvas.restore();}
     canvas.drawRoundRect(new RectF(left,0,left+size,size),density*20,density*20,paint);
     String cover=view.getContext().getSharedPreferences("dot-folders",0).getString("cover-"+info.id,"");
     if(!cover.isEmpty()) {
@@ -54,7 +56,7 @@ public final class DotFolderPreview {
         paint.setColor(dark?0xffebede6:0xff242622);paint.setTextSize(density*15);paint.setTextAlign(Paint.Align.CENTER);
         canvas.drawText("+"+(entries.size()-8),x,y+density*5,paint);
       } else if(entries.get(n) instanceof ItemInfoWithIcon entry) {
-        Drawable icon=entry.newIcon(view.getContext());icon.setBounds((int)(x-r),(int)(y-r),(int)(x+r),(int)(y+r));icon.draw(canvas);
+        Drawable icon=entry.newIcon(view.getContext(),app.lawnchair.preferences.PreferenceManager.getInstance(view.getContext()).getThemedIcons().get()?com.android.launcher3.icons.BitmapInfo.FLAG_THEMED:0);icon.setBounds((int)(x-r),(int)(y-r),(int)(x+r),(int)(y+r));icon.draw(canvas);
       }
     }
     }

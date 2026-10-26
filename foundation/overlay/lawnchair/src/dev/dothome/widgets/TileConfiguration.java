@@ -70,7 +70,8 @@ public final class TileConfiguration extends Activity {
     body=new LinearLayout(this);body.setOrientation(1);body.setPadding(d(22),d(16),d(22),d(22));body.setBackgroundColor(paper);
     android.graphics.drawable.GradientDrawable sheet=new android.graphics.drawable.GradientDrawable();sheet.setColor(paper);sheet.setCornerRadii(new float[]{d(30),d(30),d(30),d(30),0,0,0,0});body.setBackground(sheet);
     ScrollView scroll=new ScrollView(this);scroll.setFillViewport(true);scroll.addView(body);setContentView(scroll);
-    getWindow().setGravity(Gravity.BOTTOM);getWindow().setLayout(-1,(int)(getResources().getDisplayMetrics().heightPixels*(item.optBoolean("wallpaper")?.94f:item.optString("type").equals("clock")?.67f:.82f)));
+    float fraction=item.optBoolean("wallpaper")?.94f:switch(item.optString("type")){case "clock"->.67f;case "photo"->.88f;case "notes","countdown"->.65f;case "timer","compass"->.60f;case "steps"->.75f;case "weather"->.82f;default->.58f;};
+    getWindow().setGravity(Gravity.BOTTOM);getWindow().setLayout(-1,(int)(getResources().getDisplayMetrics().heightPixels*fraction));
     body.setOnApplyWindowInsetsListener((view,insets)->{ var bars=insets.getInsets(WindowInsets.Type.systemBars());view.setPadding(d(22),d(12),d(22),bars.bottom+d(18));return insets; });
     String type=item.optString("type");
     LinearLayout header=new LinearLayout(this);header.setGravity(Gravity.CENTER_VERTICAL);

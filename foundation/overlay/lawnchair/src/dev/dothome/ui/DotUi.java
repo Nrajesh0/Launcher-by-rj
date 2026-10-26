@@ -30,7 +30,7 @@ public final class DotUi {
     DotAppearance appearance=DotAppearance.get(a);LinearLayout root=column(a);root.setBackgroundColor(appearance.background);
     root.setOnApplyWindowInsetsListener((v,insets)->{var b=insets.getInsets(WindowInsets.Type.systemBars()|WindowInsets.Type.displayCutout());v.setPadding(dp(a,20),b.top,dp(a,20),b.bottom);return insets;});
     LinearLayout header=new LinearLayout(a);header.setGravity(Gravity.CENTER_VERTICAL);
-    TextView close=button(a,"‹",back);close.setTextSize(30);close.setContentDescription("Back");header.addView(close,new LinearLayout.LayoutParams(dp(a,48),dp(a,56)));
+    TextView close=button(a,a.getResources().getConfiguration().getLayoutDirection()==View.LAYOUT_DIRECTION_RTL?"›":"‹",back);close.setTextSize(30);close.setContentDescription("Back");header.addView(close,new LinearLayout.LayoutParams(dp(a,48),dp(a,56)));
     TextView heading=text(a,title,17);heading.setGravity(Gravity.CENTER);heading.setAccessibilityHeading(true);header.addView(heading,new LinearLayout.LayoutParams(0,dp(a,56),1));header.addView(new View(a),new LinearLayout.LayoutParams(dp(a,48),1));root.addView(header);
     a.setContentView(root);bars(a);return root;
   }

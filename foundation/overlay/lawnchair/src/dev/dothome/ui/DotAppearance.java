@@ -25,7 +25,7 @@ public final class DotAppearance {
     reducedMotion=p.getBoolean("reduceMotion",false) ||
       Settings.Global.getFloat(context.getContentResolver(),Settings.Global.ANIMATOR_DURATION_SCALE,1f)==0f;
     int seed=p.getBoolean("manualAccent",false)?p.getInt("accent",0xff6d9a80):p.getInt("wallpaperAccent",0xff7fa88d);
-    accent=classic?0xffd71920:tone(seed,dark?.78f:.38f,.64f);
+    accent=classic&&!p.getBoolean("manualAccent",false)?0xffd71920:tone(seed,dark?.78f:.38f,.64f);
     onAccent=luminance(accent)>.47?0xff111512:0xfffafbf7;
     ink=dark?0xfff2f3ed:0xff171b18;
     secondary=classic?(dark?0xffadafa7:0xff60685e):tone(seed,dark?.72f:.35f,.13f);
@@ -36,7 +36,7 @@ public final class DotAppearance {
     outline=alpha(ink,dark?42:28);
     iconBackground=classic?(dark?0xff20221f:0xfff7f8f3):tone(seed,dark?.16f:.94f,.17f);
     iconForeground=classic?ink:tone(seed,dark?.90f:.15f,.29f);
-    activeControl=classic?0xffd71920:accent;
+    activeControl=accent;
   }
   public static DotAppearance get(Context context){
     DotAppearance value=cached;if(value!=null)return value;
