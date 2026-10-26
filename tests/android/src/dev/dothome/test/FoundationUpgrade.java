@@ -6,8 +6,7 @@ import android.os.*;
 public final class FoundationUpgrade extends FoundationSmoke {
   @Override public void onStart(){Bundle result=new Bundle();try {
     getUiAutomation(UiAutomation.FLAG_DONT_SUPPRESS_ACCESSIBILITY_SERVICES);
-    home=startActivitySync(new Intent().setClassName("dev.dothome","dev.dothome.HomeActivity").addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
-    waitForIdleSync();SystemClock.sleep(1200);chooseDefaultHome();homeKey();
+    launchHomeAsync();SystemClock.sleep(1200);chooseDefaultHome();homeKey();
     for(int n=0;n<80&&!home.getSharedPreferences("dot-style",0).getBoolean("legacyImported",false);n++)SystemClock.sleep(100);
     if(!home.getSharedPreferences("dot-style",0).getBoolean("legacyImported",false))throw new AssertionError("Upgrade import did not finish");
     if(!new java.io.File(home.getFilesDir(),"pre-foundation-layout.json").isFile())throw new AssertionError("Legacy recovery copy is missing");

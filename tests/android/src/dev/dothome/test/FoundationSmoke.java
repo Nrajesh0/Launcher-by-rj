@@ -16,6 +16,14 @@ public class FoundationSmoke extends UiSmoke {
       if(current!=null && !current.isDestroyed()) home=current;
     } catch(Exception error) { throw new RuntimeException(error); }
   }
+  void launchHomeAsync() {
+    getTargetContext().startActivity(new Intent().setClassName("dev.dothome","dev.dothome.HomeActivity").addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
+    for(int n=0;n<150;n++) {
+      try {syncActivity();if(home!=null && !home.isDestroyed())return;}catch(RuntimeException notReady){}
+      SystemClock.sleep(100);
+    }
+    throw new AssertionError("Home Activity was not created after asynchronous launch");
+  }
   Object invoke(Object target,String method) {
     try { return target.getClass().getMethod(method).invoke(target); }
     catch(Exception error) { throw new RuntimeException(method,error); }
@@ -204,8 +212,7 @@ public class FoundationSmoke extends UiSmoke {
     Bundle result=new Bundle();
     try {
       getUiAutomation(UiAutomation.FLAG_DONT_SUPPRESS_ACCESSIBILITY_SERVICES);
-      home=startActivitySync(new Intent().setClassName("dev.dothome","dev.dothome.HomeActivity").addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
-      waitForIdleSync();SystemClock.sleep(1200);
+      launchHomeAsync();SystemClock.sleep(1200);
       chooseDefaultHome();homeKey();
       for(int n=0;n<50 && !home.getSharedPreferences("dot-style",0).getBoolean("legacyImported",false);n++)SystemClock.sleep(100);
       if(!home.getSharedPreferences("dot-style",0).getBoolean("legacyImported",false))throw new AssertionError("Native workspace migration/default transaction did not complete");
