@@ -41,7 +41,7 @@ open class DotTile(private val context: Context, val kind: String, val face: Int
             item.put("w",if(width>height*1.4f) 4 else tile.columns); item.put("h",tile.rows)
             adapter.page=item.optInt("page",0)
             val media=if(tile.kind=="media")TileMedia.read(context) else null
-            val nextSignature=item.toString()+(media?.let {"${it.title}:${it.artist}:${it.playing}:${it.controller?.packageName}:${System.identityHashCode(it.artwork)}"} ?: "")
+            val nextSignature=item.toString()+(media?.let {"${it.title}:${it.artist}:${it.playing}:${it.controller?.packageName}:${it.artwork?.width}x${it.artwork?.height}"} ?: "")
             if(childCount>0 && signature==nextSignature) { invalidateArtwork(); return }
             signature=nextSignature
             removeAllViews()

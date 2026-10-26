@@ -64,7 +64,10 @@ public final class TileConfiguration extends Activity {
     header.addView(label(item.optBoolean("wallpaper")?"Wallpaper":type.equals("photo")?"Photos":"Widget style",19),new LinearLayout.LayoutParams(0,d(50),1));
     TextView done=label("Done",15);done.setOnClickListener(v->{if(photo!=null){put("cropX",photo.cropX);put("cropY",photo.cropY);put("cropScale",photo.scale);}finishEdit();});header.addView(done,new LinearLayout.LayoutParams(-2,d(50)));body.addView(header);
     if(type.equals("photo") && !item.optString("uri").isEmpty()) {
-      photo=new PhotoView(adapter,item,true);body.addView(photo,new LinearLayout.LayoutParams(-1,item.optBoolean("wallpaper")?(int)(getResources().getDisplayMetrics().heightPixels*.48f):d(300)));
+      photo=new PhotoView(adapter,item,true);
+      var metrics=getResources().getDisplayMetrics();int previewHeight=item.optBoolean("wallpaper")?(int)(metrics.heightPixels*.48f):d(300);
+      LinearLayout.LayoutParams preview=new LinearLayout.LayoutParams(item.optBoolean("wallpaper")?Math.round(previewHeight*metrics.widthPixels/(float)metrics.heightPixels):-1,previewHeight);preview.gravity=Gravity.CENTER_HORIZONTAL;
+      body.addView(photo,preview);
       body.addView(label("Drag to position · pinch to zoom",12));
       action("Apply crop",()->{put("cropX",photo.cropX);put("cropY",photo.cropY);put("cropScale",photo.scale);finishEdit();});
     } else body.addView(new TileArtwork(adapter,item,true),new LinearLayout.LayoutParams(-1,d(210)));
@@ -104,9 +107,11 @@ public final class TileConfiguration extends Activity {
       }
       faces.addView(choices);body.addView(faces);
     }
+    if(!type.equals("photo")) {
     LinearLayout tones=new LinearLayout(this);int[] colors={paper,0xffeeeede,0xff181a1c,0xffb7ca9c,0xffcc292d};
     for(int n=0;n<colors.length;n++) {final int tone=n;View swatch=new View(this);android.graphics.drawable.GradientDrawable chip=new android.graphics.drawable.GradientDrawable();chip.setColor(colors[n]);chip.setShape(1);chip.setStroke(d(item.optInt("tone")==n?2:1),ink);swatch.setBackground(chip);swatch.setContentDescription(new String[]{"Default","Ivory","Charcoal","Sage","Red"}[n]+" widget colour");swatch.setOnClickListener(v->{put("tone",tone);show();});tones.addView(swatch,new LinearLayout.LayoutParams(d(36),d(36)){{setMargins(d(8),d(14),d(8),d(14));}});}
     body.addView(tones);
+    }
     if(!type.equals("photo") && !type.equals("clock")) action(item.optInt("style")==1?"Use light surface":"Invert surface",()->{put("style",item.optInt("style")==1?0:1);show();});
     action("Cancel",this::finish);
   }
