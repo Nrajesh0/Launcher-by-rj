@@ -31,8 +31,18 @@ public final class DotMigration {
     var prefs=launcher.getSharedPreferences("dot-style",0);
     if(prefs.getBoolean(MARKER,false)||!running.compareAndSet(false,true)) return;
     LauncherAppState app=LauncherAppState.getInstance(launcher);
-    app.getModel().enqueueModelUpdateTask((task,model,apps)->{
+    // Native model-update tasks are intentionally discarded during a reload.
+    // Initial binding can overlap the Home-role dialog/recreation, so queue on
+    // the model executor directly and release/retry the guard until it is ready.
+    com.android.launcher3.util.Executors.MODEL_EXECUTOR.execute(()->{
       try {
+        if(!app.getModel().isModelLoaded()) {
+          new Handler(Looper.getMainLooper()).postDelayed(()->{
+            Launcher current=Launcher.ACTIVITY_TRACKER.getCreatedActivity();
+            if(current!=null && !current.isDestroyed() && current.isStarted()) start(current);
+          },250);
+          return;
+        }
         ModelDbController db=app.getModel().getModelDbController();
         db.getDb().execSQL("CREATE TABLE IF NOT EXISTS dot_migration (name TEXT PRIMARY KEY)");
         try(var cursor=db.getDb().rawQuery("SELECT name FROM dot_migration WHERE name=?",new String[]{MARKER})) {
@@ -86,6 +96,7 @@ public final class DotMigration {
           transaction.commit();
         }
         prefs.edit().putBoolean(MARKER,true).commit();
+        android.util.Log.i("DotMigration","Workspace import committed: "+values.size()+" native items");
         LegacySettings.apply(launcher,settings);
         app.getModel().forceReload();
       } catch(Exception failure) {

@@ -67,7 +67,7 @@ class HomeActivity : LawnchairLauncher() {
         workspace?.let { dev.dothome.widgets.TileRefresh.setActive(it,state==com.android.launcher3.LauncherState.NORMAL || state==com.android.launcher3.LauncherState.EDIT_MODE) }
     }
 
-    override fun onResume() { super.onResume(); updateMaterial() }
+    override fun onResume() { super.onResume(); updateMaterial(); dev.dothome.migration.DotMigration.start(this) }
 
     override fun onNewIntent(intent: Intent) { super.onNewIntent(intent); setIntent(intent) }
 
