@@ -70,7 +70,7 @@ jobs:
     needs: build
     runs-on: ubuntu-latest
     env:
-      ANDROID_AVD_HOME: ${{ runner.temp }}/dot-home-avd
+      ANDROID_AVD_HOME: ${{ github.workspace }}/build/test-avd
     timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
