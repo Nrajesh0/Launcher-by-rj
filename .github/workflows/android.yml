@@ -68,14 +68,14 @@ jobs:
         id: emulator-image
         uses: actions/cache@v4
         with:
-          path: ${{ env.ANDROID_HOME }}/system-images/android-36/default/x86_64
-          key: foundation-android36-default-x86_64-v1
+          path: ${{ env.ANDROID_HOME }}/system-images/android-36/google_apis/x86_64
+          key: foundation-android36-google-apis-x86_64-v1
       - name: Install and verify emulator image
         id: install-image
         timeout-minutes: 20
         run: |
           for attempt in 1 2 3; do
-            if timeout 480s sdkmanager 'system-images;android-36;default;x86_64' && test -s "$ANDROID_HOME/system-images/android-36/default/x86_64/system.img"; then
+            if timeout 480s sdkmanager 'system-images;android-36;google_apis;x86_64' && test -s "$ANDROID_HOME/system-images/android-36/google_apis/x86_64/system.img"; then
               exit 0
             fi
             echo "System image installation attempt $attempt failed; retrying the SDK download."
@@ -86,8 +86,8 @@ jobs:
         if: steps.emulator-image.outputs.cache-hit != 'true' && steps.install-image.outcome == 'success'
         uses: actions/cache/save@v4
         with:
-          path: ${{ env.ANDROID_HOME }}/system-images/android-36/default/x86_64
-          key: foundation-android36-default-x86_64-v1
+          path: ${{ env.ANDROID_HOME }}/system-images/android-36/google_apis/x86_64
+          key: foundation-android36-google-apis-x86_64-v1
       - name: Exercise native launcher interactions
         timeout-minutes: 12
         uses: reactivecircus/android-emulator-runner@v2
@@ -95,13 +95,14 @@ jobs:
           emulator-build: 15507667 # Android Emulator 36.6.11 stable, from the official archive
           api-level: 36
           arch: x86_64
-          target: default
+          target: google_apis
           profile: pixel_6
-          ram-size: 2048M
+          ram-size: 4096M
           disable-animations: false
           emulator-options: -no-window -gpu swiftshader -feature -Vulkan -noaudio -no-boot-anim -no-snapshot -camera-back none -skin 720x1600 -prop qemu.sf.lcd_density=280
           script: |
-            adb shell am force-stop com.android.launcher3
+            adb shell settings put global device_provisioned 1
+            adb shell settings put secure user_setup_complete 1
             adb shell am start -W -a android.intent.action.MAIN -c android.intent.category.HOME
             adb shell cmd overlay enable-exclusive --category com.android.internal.systemui.navbar.gestural
             adb shell wm density 280

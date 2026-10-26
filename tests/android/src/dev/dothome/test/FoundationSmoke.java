@@ -219,7 +219,7 @@ public class FoundationSmoke extends UiSmoke {
       final boolean[] dialer={false};
       onUi(()->{
         Object[] apps=(Object[])invoke(invoke(invoke(home,"getAppsView"),"getAppsStore"),"getApps");
-        for(Object app:apps) {android.content.ComponentName component=(android.content.ComponentName)invoke(app,"getTargetComponent");if(component!=null && component.getPackageName().equals("com.android.dialer"))dialer[0]=true;}
+        for(Object app:apps) {android.content.ComponentName component=(android.content.ComponentName)invoke(app,"getTargetComponent");if(component!=null && (component.getPackageName().equals("com.android.dialer") || component.getPackageName().equals("com.google.android.dialer")))dialer[0]=true;}
       });
       if(!dialer[0])throw new AssertionError("Android 16 fixture Dialer is missing from Apps; launcher package visibility is incomplete");
       View workspace=(View)invoke(home,"getWorkspace");
