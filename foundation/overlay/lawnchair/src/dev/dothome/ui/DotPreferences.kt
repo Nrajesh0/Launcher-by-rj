@@ -31,6 +31,7 @@ open class DotPreferences : Activity() {
     private var route = "customisation"
     private val history = java.util.ArrayDeque<String>()
     private val work = Executors.newSingleThreadExecutor()
+    private val backCallback=android.window.OnBackInvokedCallback {onBackPressed()}
     private val dark get() = when (p.launcherTheme.get()) {
         "dark" -> true
         "light" -> false
@@ -53,6 +54,7 @@ open class DotPreferences : Activity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        onBackInvokedDispatcher.registerOnBackInvokedCallback(android.window.OnBackInvokedDispatcher.PRIORITY_DEFAULT,backCallback)
         window.setDecorFitsSystemWindows(false)
         show(savedInstanceState?.getString("route") ?: intent.getStringExtra("dotRoute") ?: "customisation", false)
     }
@@ -62,7 +64,7 @@ open class DotPreferences : Activity() {
         super.onSaveInstanceState(state)
     }
 
-    override fun onDestroy() { work.shutdownNow(); super.onDestroy() }
+    override fun onDestroy() {onBackInvokedDispatcher.unregisterOnBackInvokedCallback(backCallback);work.shutdownNow();super.onDestroy()}
 
     override fun onBackPressed() {
         if (history.isEmpty()) finish() else show(history.removeLast(), false)

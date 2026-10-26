@@ -210,6 +210,7 @@ public class FoundationSmoke extends UiSmoke {
       if(!clickSystemText("Dark theme"))throw new AssertionError("Dark theme row did not respond");
       SystemClock.sleep(500);
       if(!home.getSharedPreferences("dot-style",0).getBoolean("dark",false))throw new AssertionError("Dark theme label did not toggle the setting");
+      shell("input keyevent KEYCODE_BACK");visible("Wallpaper");screenshot("foundation-settings-back");
       homeKey();screenshot("foundation-home-dark");
       longPressBlank();visible("Arrange");if(!clickSystemText("Arrange"))throw new AssertionError("Arrange touch was not accepted");awaitState("EDIT_MODE");
       visible("Select items");visible("Done");screenshot("foundation-arrange");
