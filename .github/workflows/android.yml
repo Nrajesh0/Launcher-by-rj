@@ -161,7 +161,7 @@ jobs:
             timeout 150s adb shell am instrument -w dev.dothome.test/dev.dothome.test.FoundationUpgrade > build/ui-test/upgrade-result.txt
             cat build/ui-test/upgrade-result.txt
             adb logcat -d -s AndroidRuntime DotMigration > build/ui-test/upgrade-runtime.txt
-            adb pull /sdcard/Download/foundation-upgrade-home.png build/ui-test/foundation-screenshots/
+            adb pull /sdcard/Download/. build/ui-test/foundation-screenshots/
             grep -q 'PASS: v3-to-v4' build/ui-test/upgrade-result.txt
             ! grep -q 'FATAL EXCEPTION' build/ui-test/upgrade-runtime.txt
       - name: Diagnose runner failures
