@@ -104,8 +104,11 @@ jobs:
             grep -q 'PASS: foundation' build/ui-test/foundation-result.txt
             ! grep -q 'FATAL EXCEPTION' build/ui-test/foundation-runtime.txt
             adb uninstall dev.dothome
-            adb install build/ui-test/previous.apk
+            adb install --no-incremental build/ui-test/previous.apk
+            adb install -r --no-incremental build/ui-test/tests.apk
             timeout 60s adb shell am instrument -w dev.dothome.test/dev.dothome.test.LegacySeed > build/ui-test/legacy-seed.txt
+            adb logcat -d -s AndroidRuntime > build/ui-test/legacy-seed-runtime.txt
+            cat build/ui-test/legacy-seed.txt
             grep -q 'PASS: synthetic' build/ui-test/legacy-seed.txt
             adb install -r build/ui-test/app.apk
             timeout 150s adb shell am instrument -w dev.dothome.test/dev.dothome.test.FoundationUpgrade > build/ui-test/upgrade-result.txt
@@ -124,5 +127,6 @@ jobs:
             build/ui-test/upgrade-result.txt
             build/ui-test/upgrade-runtime.txt
             build/ui-test/legacy-seed.txt
+            build/ui-test/legacy-seed-runtime.txt
             build/ui-test/foundation-screenshots
             build/foundation/build/reports/problems/problems-report.html
