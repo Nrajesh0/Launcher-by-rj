@@ -96,7 +96,7 @@ jobs:
             adb logcat -c
             adb install -r --no-incremental build/ui-test/app.apk
             adb install -r --no-incremental build/ui-test/tests.apk
-            adb logcat -v threadtime -s AndroidRuntime DotMigration DotFoundation AppWidgetHostView > build/ui-test/runtime-live.txt &
+            nohup adb logcat -v threadtime -s AndroidRuntime DotMigration DotFoundation AppWidgetHostView > build/ui-test/runtime-live.txt 2>&1 < /dev/null &
             timeout 240s adb shell am instrument -w dev.dothome.test/dev.dothome.test.FoundationSmoke > build/ui-test/foundation-result.txt || echo RUNNER_ERROR_OR_TIMEOUT >> build/ui-test/foundation-result.txt
             adb shell screencap -p /sdcard/Download/foundation-last-screen.png
             cat build/ui-test/foundation-result.txt
