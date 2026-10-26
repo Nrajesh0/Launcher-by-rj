@@ -266,8 +266,10 @@ public class FoundationSmoke extends UiSmoke {
       finish(Activity.RESULT_OK,result);
     } catch(Throwable failure) {
       String diagnostics="";
-      try {shell("screencap -p /sdcard/Download/foundation-failure.png");diagnostics=systemTree(getUiAutomation(UiAutomation.FLAG_DONT_SUPPRESS_ACCESSIBILITY_SERVICES).getRootInActiveWindow(),0);}catch(Throwable ignored){}
-      result.putString("stream","FAIL: "+android.util.Log.getStackTraceString(failure)+diagnostics+fixtureCounts());finish(Activity.RESULT_CANCELED,result);
+      try {screenshot("foundation-failure");}catch(Throwable ignored){}
+      try {diagnostics=systemTree(getUiAutomation(UiAutomation.FLAG_DONT_SUPPRESS_ACCESSIBILITY_SERVICES).getRootInActiveWindow(),0);}catch(Throwable ignored){}
+      try {diagnostics+=fixtureCounts();}catch(Throwable ignored){}
+      result.putString("stream","FAIL: "+android.util.Log.getStackTraceString(failure)+diagnostics);finish(Activity.RESULT_CANCELED,result);
     }
   }
 }
