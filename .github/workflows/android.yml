@@ -92,6 +92,7 @@ jobs:
         timeout-minutes: 12
         uses: reactivecircus/android-emulator-runner@v2
         with:
+          emulator-build: 15507667 # Android Emulator 36.6.11 stable, from the official archive
           api-level: 36
           arch: x86_64
           target: default
@@ -108,6 +109,7 @@ jobs:
             adb install -r --no-incremental build/ui-test/app.apk
             adb install -r --no-incremental build/ui-test/tests.apk
             nohup adb logcat -v threadtime -s AndroidRuntime DotMigration DotFoundation AppWidgetHostView > build/ui-test/runtime-live.txt 2>&1 < /dev/null &
+            nohup bash tests/android/watch_screenshots.sh > build/ui-test/capture-status.txt 2>&1 < /dev/null &
             timeout 240s adb shell am instrument -w dev.dothome.test/dev.dothome.test.FoundationSmoke > build/ui-test/foundation-result.txt || echo RUNNER_ERROR_OR_TIMEOUT >> build/ui-test/foundation-result.txt
             adb shell screencap -p /sdcard/Download/foundation-last-screen.png
             cat build/ui-test/foundation-result.txt
@@ -129,6 +131,12 @@ jobs:
             adb pull /sdcard/Download/foundation-upgrade-home.png build/ui-test/foundation-screenshots/
             grep -q 'PASS: v3-to-v4' build/ui-test/upgrade-result.txt
             ! grep -q 'FATAL EXCEPTION' build/ui-test/upgrade-runtime.txt
+      - name: Diagnose runner failures
+        if: always()
+        run: |
+          free -m
+          df -h "$GITHUB_WORKSPACE"
+          sudo dmesg --ctime | rg -i 'qemu|segfault|oom|killed process' | tail -20 || true
       - uses: actions/upload-artifact@v4
         if: always()
         with:
