@@ -33,6 +33,7 @@ open class DotTile(private val context: Context, val kind: String, val face: Int
         private val handler=Handler(Looper.getMainLooper())
         private val sensors=TileSensors(adapter,tile.kind) { invalidateArtwork() }
         private fun invalidateArtwork() { for(n in 0 until childCount) getChildAt(n).invalidate() }
+        private val dataReady=Runnable {adapter.away=TileContext.history;adapter.agenda=TileContext.nextEvent;adapter.usage=TileContext.totalUsage;invalidateArtwork()}
         private var signature=""
         private var id=-1L
         private var item=TileContext.load(context,id,tile.kind,tile.face)
@@ -41,7 +42,7 @@ open class DotTile(private val context: Context, val kind: String, val face: Int
             item.put("w",(host.tag as? ItemInfo)?.spanX ?: tile.columns); item.put("h",(host.tag as? ItemInfo)?.spanY ?: tile.rows)
             adapter.page=item.optInt("page",0)
             val media=if(tile.kind=="media")TileMedia.read(context) else null
-            val nextSignature=item.toString()+(media?.let {"${it.title}:${it.artist}:${it.playing}:${it.controller?.packageName}:${it.artwork?.generationId}"} ?: "")
+            val nextSignature=item.toString()+(media?.let {"${it.title}:${it.artist}:${it.playing}:${it.controller?.packageName}:${it.artwork?.generationId}:${it.actions}"} ?: "")
             if(childCount>0 && signature==nextSignature) { invalidateArtwork(); return }
             signature=nextSignature
             removeAllViews()
@@ -49,29 +50,58 @@ open class DotTile(private val context: Context, val kind: String, val face: Int
             addView(art,LayoutParams(-1,-1))
             contentDescription=tile.label
             if(tile.kind=="controls") {
+                removeAllViews()
                 val grid=android.widget.GridLayout(context).apply {columnCount=2;rowCount=2}
                 arrayOf("bluetooth","sound","torch","dnd").forEachIndexed {index,kind->
-                    grid.addView(android.widget.TextView(context).apply {text=arrayOf("Bluetooth","Sound","Flashlight","Do not disturb")[index];textSize=11f;gravity=android.view.Gravity.CENTER;setTextColor(dev.dothome.ui.DotSurface.ink(context));setOnClickListener {TileActions.tap(context,this@Surface.id,org.json.JSONObject().put("type",kind))}},android.widget.GridLayout.LayoutParams().apply {width=0;height=0;columnSpec=android.widget.GridLayout.spec(index%2,1f);rowSpec=android.widget.GridLayout.spec(index/2,1f)})
+                    val state=org.json.JSONObject().put("type",kind)
+                    grid.addView(TileArtwork(adapter,state,false).apply {contentDescription=arrayOf("Bluetooth settings","Toggle sound","Toggle flashlight","Toggle do not disturb")[index];isFocusable=true;setOnClickListener {TileActions.tap(context,this@Surface.id,state);handler.removeCallbacks(refresh);handler.postDelayed(refresh,120)}},android.widget.GridLayout.LayoutParams().apply {width=0;height=0;columnSpec=android.widget.GridLayout.spec(index%2,1f);rowSpec=android.widget.GridLayout.spec(index/2,1f)})
                 }
                 addView(grid,LayoutParams(-1,-1));setOnClickListener(null);return
             }
             if(tile.kind=="media") {
                 val controls=android.widget.LinearLayout(context).apply { gravity=android.view.Gravity.CENTER }
                 val state=TileMedia.read(context)
-                val icons=intArrayOf(android.R.drawable.ic_media_previous,if(state.playing) android.R.drawable.ic_media_pause else android.R.drawable.ic_media_play,android.R.drawable.ic_media_next)
                 val labels=arrayOf("Previous track",if(state.playing) "Pause" else "Play","Next track")
-                icons.forEachIndexed { index, icon ->
-                    controls.addView(android.widget.ImageButton(context).apply {
-                        setImageResource(icon); contentDescription=labels[index]; imageTintList=android.content.res.ColorStateList.valueOf(if(adapter.dark()) 0xfff0f0ea.toInt() else 0xff191a18.toInt())
-                        background=null; setOnClickListener { state.action(context,index-1); handler.removeCallbacks(refresh);handler.post(refresh) }
+                val tone=item.optInt("tone")
+                val inverted=item.optInt("style")==1
+                val transportInk=if(tone==2||tone==4)0xfff8f6ee.toInt() else if(tone>0)0xff171b18.toInt() else if(inverted){if(adapter.dark())0xff151813.toInt() else 0xfff0f0e9.toInt()}else dev.dothome.ui.DotAppearance.get(context).ink
+                for(index in 0..2) {
+                    controls.addView(TransportView(context,index-1,state.playing,transportInk).apply {
+                        contentDescription=labels[index];isEnabled=state.supports(index-1);alpha=if(isEnabled)1f else .3f
+                        setOnClickListener {state.action(context,index-1);handler.removeCallbacks(refresh);handler.post(refresh)}
                     },android.widget.LinearLayout.LayoutParams(adapter.dp(48f),adapter.dp(48f)))
                 }
                 addView(controls,LayoutParams(-1,adapter.dp(48f),android.view.Gravity.BOTTOM))
             }
             setOnClickListener { TileActions.tap(context,id,item); if(tile.kind in setOf("torch","sound","dnd")) { handler.removeCallbacks(refresh);handler.postDelayed(refresh,120) } }
         }
+        private var photoSwipe=false
+        private var photoX=0f
+        private var photoY=0f
+        override fun dispatchTouchEvent(event: android.view.MotionEvent): Boolean {
+            when(event.actionMasked){
+                android.view.MotionEvent.ACTION_DOWN->{
+                    photoSwipe=tile.kind=="photo" && (item.optJSONArray("images")?.length() ?: 0)>1 && event.y>=height-adapter.dp(48f)
+                    if(photoSwipe){photoX=event.x;photoY=event.y;parent?.requestDisallowInterceptTouchEvent(true)}
+                }
+                android.view.MotionEvent.ACTION_MOVE->if(photoSwipe){
+                    if(kotlin.math.abs(event.y-photoY)>adapter.dp(24f)){photoSwipe=false;parent?.requestDisallowInterceptTouchEvent(false)}
+                    else if(kotlin.math.abs(event.x-photoX)>adapter.dp(12f))return true
+                }
+                android.view.MotionEvent.ACTION_UP->if(photoSwipe){
+                    photoSwipe=false;parent?.requestDisallowInterceptTouchEvent(false)
+                    if(kotlin.math.abs(event.x-photoX)>adapter.dp(40f)){
+                        val cancel=android.view.MotionEvent.obtain(event);cancel.action=android.view.MotionEvent.ACTION_CANCEL;super.dispatchTouchEvent(cancel);cancel.recycle()
+                        if(PhotoCollection.cycle(item,if(event.x<photoX)1 else -1)){TileContext.save(context,id,item);signature="";render()};return true
+                    }
+                }
+                android.view.MotionEvent.ACTION_CANCEL->{photoSwipe=false;parent?.requestDisallowInterceptTouchEvent(false)}
+            }
+            return super.dispatchTouchEvent(event)
+        }
         override fun onAttachedToWindow() {
             super.onAttachedToWindow()
+            TileContext.observe(dataReady)
             post {
                 id=(host.tag as? ItemInfo)?.id?.toLong() ?: -1L
                 item=TileContext.load(context,id,tile.kind,tile.face)
@@ -91,7 +121,7 @@ open class DotTile(private val context: Context, val kind: String, val face: Int
         }
         override fun onVisibilityAggregated(visible: Boolean) { super.onVisibilityAggregated(visible); setActive(visible && hasWindowFocus()) }
         override fun onWindowFocusChanged(focused: Boolean) { super.onWindowFocusChanged(focused); setActive(focused && isShown) }
-        override fun onDetachedFromWindow() { adapter.foreground=false; sensors.stop(); handler.removeCallbacksAndMessages(null); super.onDetachedFromWindow() }
+        override fun onDetachedFromWindow() {TileContext.unobserve(dataReady); adapter.foreground=false; sensors.stop(); handler.removeCallbacksAndMessages(null); super.onDetachedFromWindow() }
         override fun onWindowVisibilityChanged(visibility: Int) {
             super.onWindowVisibilityChanged(visibility)
             setActive(visibility==VISIBLE && hasWindowFocus())

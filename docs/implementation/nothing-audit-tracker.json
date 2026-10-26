@@ -22,9 +22,9 @@
     "current": "Controls, dock discs and widget surfaces use different inset rules.",
     "action": "Calibrate visible sizes independently of cell bounds and touch targets.",
     "milestone": "1",
-    "implementation": "planned",
+    "implementation": "implementing",
     "verification": "pending",
-    "evidence": "",
+    "evidence": "v5 source and preservation changes; latest Android 16/UI/visual gates pending.",
     "remaining_limit": ""
   },
   {
@@ -120,9 +120,9 @@
     "current": "Native engine supports pages and item persistence.",
     "action": "Preserve; verify visual indicators and state after theme changes.",
     "milestone": "0",
-    "implementation": "planned",
+    "implementation": "implementing",
     "verification": "pending",
-    "evidence": "",
+    "evidence": "v5 source and preservation changes; latest Android 16/UI/visual gates pending.",
     "remaining_limit": ""
   },
   {
@@ -134,9 +134,9 @@
     "current": "Actual release-source UI test opens the drawer.",
     "action": "Preserve and tune gesture cancellation/velocity.",
     "milestone": "0",
-    "implementation": "planned",
+    "implementation": "implementing",
     "verification": "pending",
-    "evidence": "",
+    "evidence": "v5 source and preservation changes; latest Android 16/UI/visual gates pending.",
     "remaining_limit": ""
   },
   {
@@ -148,9 +148,9 @@
     "current": "Real role chooser and selection tested.",
     "action": "Preserve role through upgrades, process restarts and Home presses.",
     "milestone": "0",
-    "implementation": "planned",
+    "implementation": "implementing",
     "verification": "pending",
-    "evidence": "",
+    "evidence": "v5 source and preservation changes; latest Android 16/UI/visual gates pending.",
     "remaining_limit": ""
   },
   {
@@ -162,9 +162,9 @@
     "current": "One fixed seed with a large middle gap.",
     "action": "Optional complete reference-inspired presets; never replace user layout.",
     "milestone": "2",
-    "implementation": "planned",
+    "implementation": "implementing",
     "verification": "pending",
-    "evidence": "",
+    "evidence": "v5 source and preservation changes; latest Android 16/UI/visual gates pending.",
     "remaining_limit": ""
   },
   {
@@ -176,9 +176,9 @@
     "current": "Native cell spans and shortcut action are implemented.",
     "action": "Calibrate glyph scaling and transition at both sizes.",
     "milestone": "2",
-    "implementation": "planned",
+    "implementation": "implementing",
     "verification": "pending",
-    "evidence": "",
+    "evidence": "v5 source and preservation changes; latest Android 16/UI/visual gates pending.",
     "remaining_limit": ""
   },
   {
@@ -204,9 +204,9 @@
     "current": "Native lock setting and arrangement guard exist.",
     "action": "Check every mutation path respects freeze.",
     "milestone": "0",
-    "implementation": "planned",
+    "implementation": "implementing",
     "verification": "pending",
-    "evidence": "",
+    "evidence": "v5 source and preservation changes; latest Android 16/UI/visual gates pending.",
     "remaining_limit": ""
   },
   {
@@ -218,9 +218,9 @@
     "current": "Four procedural gradient/arc designs.",
     "action": "Create a stronger local library and measured crops.",
     "milestone": "2",
-    "implementation": "planned",
+    "implementation": "implementing",
     "verification": "pending",
-    "evidence": "",
+    "evidence": "v5 source and preservation changes; latest Android 16/UI/visual gates pending.",
     "remaining_limit": ""
   },
   {
@@ -232,9 +232,9 @@
     "current": "Local document selection plus pinch/position.",
     "action": "Preserve and test revoked links and oversized photos.",
     "milestone": "0",
-    "implementation": "planned",
+    "implementation": "implementing",
     "verification": "pending",
-    "evidence": "",
+    "evidence": "v5 source and preservation changes; latest Android 16/UI/visual gates pending.",
     "remaining_limit": ""
   },
   {
@@ -246,9 +246,9 @@
     "current": "A wallpaper named Glass is not an effect applied to user photos.",
     "action": "Build an actual optional local image-processing effect.",
     "milestone": "2",
-    "implementation": "planned",
+    "implementation": "implementing",
     "verification": "pending",
-    "evidence": "",
+    "evidence": "v5 source and preservation changes; latest Android 16/UI/visual gates pending.",
     "remaining_limit": ""
   },
   {
@@ -260,10 +260,10 @@
     "current": "An Atmosphere-named static preset is not the dynamic effect.",
     "action": "Define a Home-side effect without promising firmware unlock animation.",
     "milestone": "2",
-    "implementation": "planned",
+    "implementation": "implementing",
     "verification": "pending",
-    "evidence": "",
-    "remaining_limit": ""
+    "evidence": "v5 source and preservation changes; latest Android 16/UI/visual gates pending.",
+    "remaining_limit": "Optional visible-only live wallpaper motion, not a firmware unlock animation."
   },
   {
     "id": "A20",
@@ -274,9 +274,9 @@
     "current": "Backdrop cache keys only describe saved/generated wallpaper.",
     "action": "Verify and handle wallpaper changes outside our picker/live wallpapers.",
     "milestone": "2",
-    "implementation": "planned",
+    "implementation": "implementing",
     "verification": "pending",
-    "evidence": "",
+    "evidence": "v5 source and preservation changes; latest Android 16/UI/visual gates pending.",
     "remaining_limit": ""
   },
   {
@@ -344,9 +344,9 @@
     "current": "Four grids and label toggles are exposed.",
     "action": "Placement-aware preview and safe migration of occupied layouts.",
     "milestone": "3",
-    "implementation": "planned",
+    "implementation": "implementing",
     "verification": "pending",
-    "evidence": "",
+    "evidence": "v5 source and preservation changes; latest Android 16/UI/visual gates pending.",
     "remaining_limit": ""
   },
   {
@@ -372,9 +372,9 @@
     "current": "Functional compact popup/native item actions.",
     "action": "Unify typography, row geometry, iconography and motion.",
     "milestone": "3",
-    "implementation": "planned",
+    "implementation": "implementing",
     "verification": "pending",
-    "evidence": "",
+    "evidence": "v5 source and preservation changes; latest Android 16/UI/visual gates pending.",
     "remaining_limit": ""
   },
   {
@@ -386,9 +386,9 @@
     "current": "Native grid with local app search.",
     "action": "Calibrate density, labels, search and scrolling.",
     "milestone": "4",
-    "implementation": "planned",
+    "implementation": "implementing",
     "verification": "pending",
-    "evidence": "",
+    "evidence": "v5 source and preservation changes; latest Android 16/UI/visual gates pending.",
     "remaining_limit": ""
   },
   {
@@ -512,9 +512,9 @@
     "current": "Native engine supports single-item movement and reorder.",
     "action": "Preserve while tuning visual feedback.",
     "milestone": "0",
-    "implementation": "planned",
+    "implementation": "implementing",
     "verification": "pending",
-    "evidence": "",
+    "evidence": "v5 source and preservation changes; latest Android 16/UI/visual gates pending.",
     "remaining_limit": ""
   },
   {
@@ -526,9 +526,9 @@
     "current": "Implemented fixed 3-by-3 preview and child hit testing.",
     "action": "Improve optical layout, overflow, labels, profiles and transitions.",
     "milestone": "4",
-    "implementation": "planned",
+    "implementation": "implementing",
     "verification": "pending",
-    "evidence": "",
+    "evidence": "v5 source and preservation changes; latest Android 16/UI/visual gates pending.",
     "remaining_limit": ""
   },
   {
@@ -596,9 +596,9 @@
     "current": "Real providers, bind/configure, resize and persistence.",
     "action": "Preserve standard provider flows and cancel/reconnect states.",
     "milestone": "0",
-    "implementation": "planned",
+    "implementation": "implementing",
     "verification": "pending",
-    "evidence": "",
+    "evidence": "v5 source and preservation changes; latest Android 16/UI/visual gates pending.",
     "remaining_limit": ""
   },
   {
@@ -638,9 +638,9 @@
     "current": "Real clocks and multiple faces exist.",
     "action": "Reference typography, geometry, motion and supported spans.",
     "milestone": "5",
-    "implementation": "planned",
+    "implementation": "implementing",
     "verification": "pending",
-    "evidence": "",
+    "evidence": "v5 source and preservation changes; latest Android 16/UI/visual gates pending.",
     "remaining_limit": ""
   },
   {
@@ -680,9 +680,9 @@
     "current": "Real dot/ring variants.",
     "action": "Charging design, span variants and calibrated artwork.",
     "milestone": "5",
-    "implementation": "planned",
+    "implementation": "implementing",
     "verification": "pending",
-    "evidence": "",
+    "evidence": "v5 source and preservation changes; latest Android 16/UI/visual gates pending.",
     "remaining_limit": ""
   },
   {
@@ -697,7 +697,7 @@
     "implementation": "implementing",
     "verification": "pending",
     "evidence": "Local source changes; compilation/runtime/visual gates pending.",
-    "remaining_limit": ""
+    "remaining_limit": "Shows public audio route/name. Battery is explicitly unavailable without supported provider data; per-ear/case percentages are never inferred."
   },
   {
     "id": "A51",
@@ -725,7 +725,7 @@
     "implementation": "implementing",
     "verification": "pending",
     "evidence": "Local source changes; compilation/runtime/visual gates pending.",
-    "remaining_limit": ""
+    "remaining_limit": "Local edge-connected plain-background removal, not semantic/ML subject segmentation."
   },
   {
     "id": "A53",
@@ -778,9 +778,9 @@
     "current": "Date countdown plus elapsed count-up.",
     "action": "Differentiate features and implement proper interactive countdown if offered.",
     "milestone": "5",
-    "implementation": "planned",
+    "implementation": "implementing",
     "verification": "pending",
-    "evidence": "",
+    "evidence": "v5 source and preservation changes; latest Android 16/UI/visual gates pending.",
     "remaining_limit": ""
   },
   {
@@ -837,7 +837,7 @@
     "implementation": "implementing",
     "verification": "pending",
     "evidence": "Local source changes; compilation/runtime/visual gates pending.",
-    "remaining_limit": ""
+    "remaining_limit": "Measured steps start at first daily sensor reading; no background service; no reconstruction before first reading or across reboot gaps."
   },
   {
     "id": "A61",
@@ -848,10 +848,10 @@
     "current": "Added local tile surfaces do not implement content pages.",
     "action": "Per-family supported swipes that arbitrate against drawer/page gestures.",
     "milestone": "5",
-    "implementation": "planned",
+    "implementation": "implementing",
     "verification": "pending",
-    "evidence": "",
-    "remaining_limit": ""
+    "evidence": "v5 source and preservation changes; latest Android 16/UI/visual gates pending.",
+    "remaining_limit": "Collection swipe zone is the lower 48dp of a multi-photo tile; remaining Home area retains native paging."
   },
   {
     "id": "A62",
@@ -974,10 +974,10 @@
     "current": "Layout and selected Dot prefs; external links not embedded.",
     "action": "Define complete settings/media portability and reconnect contract.",
     "milestone": "6",
-    "implementation": "planned",
+    "implementation": "implementing",
     "verification": "pending",
-    "evidence": "",
-    "remaining_limit": ""
+    "evidence": "v5 source and preservation changes; latest Android 16/UI/visual gates pending.",
+    "remaining_limit": "External URI grants/widgets need reconnecting. System wallpaper stays selected; owned wallpaper image has an explicit apply route. Model transaction and settings error rollback do not claim power-loss atomicity across Android services."
   },
   {
     "id": "A71",
@@ -988,9 +988,9 @@
     "current": "Original component/package/signing and synthetic migration checks.",
     "action": "Preserve through the redesign.",
     "milestone": "0",
-    "implementation": "planned",
+    "implementation": "implementing",
     "verification": "pending",
-    "evidence": "",
+    "evidence": "v5 source and preservation changes; latest Android 16/UI/visual gates pending.",
     "remaining_limit": ""
   },
   {
@@ -1002,9 +1002,9 @@
     "current": "Published package contract and checks enforce both.",
     "action": "Keep invariant for every future release.",
     "milestone": "0",
-    "implementation": "planned",
+    "implementation": "implementing",
     "verification": "pending",
-    "evidence": "",
+    "evidence": "v5 source and preservation changes; latest Android 16/UI/visual gates pending.",
     "remaining_limit": ""
   },
   {
@@ -1016,9 +1016,9 @@
     "current": "Existing smoke checks are not a full matrix.",
     "action": "Test actual scaling, contrast, semantics and revoked-access states.",
     "milestone": "6",
-    "implementation": "planned",
+    "implementation": "implementing",
     "verification": "pending",
-    "evidence": "",
+    "evidence": "v5 source and preservation changes; latest Android 16/UI/visual gates pending.",
     "remaining_limit": ""
   },
   {

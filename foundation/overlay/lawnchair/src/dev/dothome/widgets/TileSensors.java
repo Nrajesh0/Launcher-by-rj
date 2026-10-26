@@ -24,14 +24,14 @@ final class TileSensors implements SensorEventListener {
       if(sensor!=null)sensors.registerListener(this,sensor,SensorManager.SENSOR_DELAY_UI);
     }
     if(kind.equals("steps")&&sensors!=null&&context.checkSelfPermission(android.Manifest.permission.ACTIVITY_RECOGNITION)==android.content.pm.PackageManager.PERMISSION_GRANTED){Sensor counter=sensors.getDefaultSensor(Sensor.TYPE_STEP_COUNTER);if(counter!=null)try{sensors.registerListener(this,counter,SensorManager.SENSOR_DELAY_NORMAL);}catch(SecurityException denied){context.steps=-1;}}
-    if(kind.equals("torch") && cameras!=null)try {cameras.registerTorchCallback(torch,new Handler(Looper.getMainLooper()));}catch(Exception ignored){}
+    if((kind.equals("torch")||kind.equals("controls")) && cameras!=null)try {cameras.registerTorchCallback(torch,new Handler(Looper.getMainLooper()));}catch(Exception ignored){}
   }
   void stop() { if(!registered)return;registered=false;if(sensors!=null)sensors.unregisterListener(this);if(cameras!=null)try {cameras.unregisterTorchCallback(torch);}catch(Exception ignored){} }
   @Override public void onSensorChanged(SensorEvent event) {
     if(event.sensor.getType()==Sensor.TYPE_STEP_COUNTER){
       var prefs=context.getSharedPreferences("dot-steps",0);String day=java.time.LocalDate.now().toString();int boot=android.provider.Settings.Global.getInt(context.getContentResolver(),android.provider.Settings.Global.BOOT_COUNT,-1);float reading=event.values[0];
-      float baseline=prefs.getFloat("baseline",reading);if(!day.equals(prefs.getString("day",""))||prefs.getInt("boot",-2)!=boot||reading<baseline){baseline=reading;prefs.edit().putString("day",day).putInt("boot",boot).putFloat("baseline",baseline).putLong("since",System.currentTimeMillis()).apply();}
-      context.steps=Math.max(0,Math.round(reading-baseline));prefs.edit().putInt("count",context.steps).apply();changed.run();return;
+      try{org.json.JSONObject state=new org.json.JSONObject(prefs.getString("state","{}"));context.steps=StepCounterState.update(state,day,boot,reading,System.currentTimeMillis());prefs.edit().putString("state",state.toString()).putString("day",day).putInt("count",context.steps).apply();}catch(org.json.JSONException invalid){context.steps=-1;}
+      changed.run();return;
     }
     float[] rotation=new float[9],angles=new float[3];SensorManager.getRotationMatrixFromVector(rotation,event.values);SensorManager.getOrientation(rotation,angles);context.heading=(float)((Math.toDegrees(angles[0])+360)%360);changed.run();
   }

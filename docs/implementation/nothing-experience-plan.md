@@ -182,3 +182,9 @@ Gate: no regressions in launcher-role/navigation/layout persistence; no unnecess
 | --- | --- | --- |
 | 2026-10-26 | Plan created before app implementation | All 74 findings assigned to a milestone. |
 | 2026-10-26 | First implementation batch in progress | Shared appearance/primary glyphs, settings/palettes/previews, history/breathing/collections, category/hidden drawer, folder chooser, group feedback/undo and local data widgets. Local compiler caught a settings radius type mismatch; corrected. Full build/runtime/visual checks pending. No release changed. |
+
+### Second implementation checkpoint
+
+The first v5 source checkpoint `06b8f88` passed Android 16 build and baseline UI/migration CI (`40365860876`). Actual captures were inspected: primary glyphs and serif/date typography render, and the family tray and theme route are usable. That review exposed a left-aligned single Home preview and touching tray cards; both are corrected in the next batch. These checks do not establish visual parity or physical POCO performance.
+
+The second batch adds draft-safe family editors, collection remove/reorder/swipe, sensor rollover state tests, supported custom media transport, backup media staging/error rollback, grid choice previews, predictive-back progress/cancel, profile-aware category icons and expanded v5/native-v4 upgrade instrumentation. Saved wallpaper sources restore to an explicit crop/apply route, keeping the system wallpaper selected. Original optical wallpaper variants and shared popup tokens complete the appearance surfaces. Full latest-source CI remains required.

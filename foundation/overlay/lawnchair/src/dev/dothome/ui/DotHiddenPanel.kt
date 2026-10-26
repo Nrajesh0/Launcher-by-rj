@@ -5,6 +5,7 @@ import android.graphics.Color
 import android.view.*
 import android.widget.*
 import app.lawnchair.LawnchairLauncher
+import app.lawnchair.preferences.PreferenceManager
 import app.lawnchair.preferences2.PreferenceManager2
 import com.patrykmichalik.opto.core.firstBlocking
 import java.util.WeakHashMap
@@ -27,6 +28,8 @@ object DotHiddenPanel {
     private class Panel(val home: LawnchairLauncher): LinearLayout(home) {
         var opened=false
         var start=0f
+        var startY=0f
+        var dragging=false
         init {
             orientation=VERTICAL;setBackgroundColor(DotAppearance.get(home).background);isClickable=true;isFocusable=true
             val b=home.deviceProfile.insets;setPadding(DotUi.dp(home,18f),b.top,DotUi.dp(home,18f),b.bottom)
@@ -41,7 +44,7 @@ object DotHiddenPanel {
                 val scroll=ScrollView(home);val grid=GridLayout(home).apply {columnCount=4}
                 apps.forEachIndexed {index,app->
                     val cell=DotUi.column(home).apply {gravity=Gravity.CENTER;setPadding(0,DotUi.dp(home,16f),0,DotUi.dp(home,12f));contentDescription=app.title;isFocusable=true}
-                    cell.addView(ImageView(home).apply {setImageDrawable(app.newIcon(home));scaleType=ImageView.ScaleType.FIT_CENTER},LayoutParams(DotUi.dp(home,52f),DotUi.dp(home,52f)))
+                    cell.addView(ImageView(home).apply {setImageDrawable(app.newIcon(home,if(PreferenceManager.getInstance(home).drawerThemedIcons.get())com.android.launcher3.icons.BitmapInfo.FLAG_THEMED else 0));scaleType=ImageView.ScaleType.FIT_CENTER},LayoutParams(DotUi.dp(home,52f),DotUi.dp(home,52f)))
                     cell.addView(DotUi.text(home,app.title.toString(),11f).apply {gravity=Gravity.CENTER;maxLines=2},LayoutParams(-1,DotUi.dp(home,40f)))
                     cell.setOnClickListener {home.startActivitySafely(it,app.intent,app)}
                     grid.addView(cell,GridLayout.LayoutParams().apply {width=0;columnSpec=GridLayout.spec(index%4,1f)})
@@ -50,8 +53,9 @@ object DotHiddenPanel {
             }
         }
         override fun onInterceptTouchEvent(event: android.view.MotionEvent): Boolean {
-            if(event.actionMasked==android.view.MotionEvent.ACTION_DOWN)start=event.x
-            return event.actionMasked==android.view.MotionEvent.ACTION_MOVE&&start-event.x>DotUi.dp(home,20f)
+            if(event.actionMasked==android.view.MotionEvent.ACTION_DOWN){start=event.x;startY=event.y;dragging=false}
+            if(event.actionMasked==android.view.MotionEvent.ACTION_MOVE && start-event.x>DotUi.dp(home,20f) && kotlin.math.abs(event.y-startY)<(start-event.x)*.55f)dragging=true
+            return dragging
         }
         override fun onTouchEvent(event: android.view.MotionEvent): Boolean {
             when(event.actionMasked){android.view.MotionEvent.ACTION_MOVE->translationX=minOf(0f,event.x-start);android.view.MotionEvent.ACTION_UP->finish(home,translationX>-width*.25f);android.view.MotionEvent.ACTION_CANCEL->finish(home,true)}

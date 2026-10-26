@@ -11,4 +11,6 @@ java -cp "build/tests:$JSON_JAR" LayoutValidatorTest
 java -cp "build/tests:$JSON_JAR" OfflineMigrationTest
 java -cp "build/tests:$JSON_JAR" WorkspaceModelTest
 java -cp "build/tests:$JSON_JAR" BatchMoveTest
+javac -cp "$JSON_JAR" -d build/tests foundation/overlay/lawnchair/src/dev/dothome/widgets/{BreathingSession,StepCounterState}.java tests/WidgetStateTest.java
+java -cp "build/tests:$JSON_JAR" dev.dothome.widgets.WidgetStateTest
 python3 tests/check_source.py

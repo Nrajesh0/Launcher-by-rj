@@ -18,6 +18,9 @@ timeout 20s adb logcat -d -s AndroidRuntime DotMigration CustomWidgetManager Dot
 timeout 20s adb pull /sdcard/Download build/ui-test/foundation-screenshots
 grep -q 'PASS: foundation' build/ui-test/foundation-result.txt
 ! grep -q 'FATAL EXCEPTION' build/ui-test/foundation-runtime.txt
+timeout 420s adb shell am instrument -w dev.dothome.test/dev.dothome.test.ExperienceSmoke > build/ui-test/experience-result.txt
+cat build/ui-test/experience-result.txt
+grep -q 'PASS: v5' build/ui-test/experience-result.txt
 adb uninstall dev.dothome
 adb install --no-incremental build/ui-test/previous.apk
 adb install -r --no-incremental build/ui-test/tests.apk
@@ -32,3 +35,17 @@ timeout 20s adb logcat -d -s AndroidRuntime DotMigration > build/ui-test/upgrade
 timeout 20s adb pull /sdcard/Download/. build/ui-test/foundation-screenshots/
 grep -q 'PASS: v3-to-v4' build/ui-test/upgrade-result.txt
 ! grep -q 'FATAL EXCEPTION' build/ui-test/upgrade-runtime.txt
+
+adb uninstall dev.dothome
+adb install --no-incremental build/ui-test/previous-v4.apk
+adb install -r --no-incremental build/ui-test/tests.apk
+timeout 180s adb shell am instrument -w dev.dothome.test/dev.dothome.test.FoundationV4Seed > build/ui-test/v4-seed-result.txt
+cat build/ui-test/v4-seed-result.txt
+grep -q 'PASS: synthetic v4' build/ui-test/v4-seed-result.txt
+adb install -r --no-incremental build/ui-test/app.apk
+timeout 120s adb shell am instrument -w dev.dothome.test/dev.dothome.test.FoundationV4Upgrade > build/ui-test/v4-upgrade-result.txt
+cat build/ui-test/v4-upgrade-result.txt
+grep -q 'PASS: v4-to-v5' build/ui-test/v4-upgrade-result.txt
+timeout 20s adb logcat -d -s AndroidRuntime DotMigration > build/ui-test/v4-upgrade-runtime.txt
+! grep -q 'FATAL EXCEPTION' build/ui-test/v4-upgrade-runtime.txt
+timeout 20s adb pull /sdcard/Download/. build/ui-test/foundation-screenshots/

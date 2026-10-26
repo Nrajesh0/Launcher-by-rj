@@ -19,6 +19,10 @@ import org.json.JSONObject;
 final class TileContext extends ContextWrapper {
   static final ExecutorService WORK = Executors.newFixedThreadPool(2);
   static volatile long refreshed;
+  static final java.util.concurrent.CopyOnWriteArrayList<java.lang.ref.WeakReference<Runnable>> observers=new java.util.concurrent.CopyOnWriteArrayList<>();
+  static void observe(Runnable observer){observers.add(new java.lang.ref.WeakReference<>(observer));}
+  static void unobserve(Runnable observer){observers.removeIf(ref->ref.get()==null||ref.get()==observer);}
+  static void notifyReady(){new Handler(Looper.getMainLooper()).post(()->{for(var ref:observers){Runnable observer=ref.get();if(observer!=null)observer.run();else observers.remove(ref);}});}
   static volatile AwayTimeStats history = AwayTimeStats.unavailable();
   static volatile String nextEvent = "Connect calendar", totalUsage = "Enable history";
   final ExecutorService worker = WORK;
@@ -84,6 +88,7 @@ final class TileContext extends ContextWrapper {
           totalUsage=AwayTimeStats.duration(total); history=AwayTimeStats.read(app,end);
         } else { history=AwayTimeStats.unavailable(); totalUsage="Enable history"; }
       } catch(Exception unavailable) { history=AwayTimeStats.unavailable(); totalUsage="History unavailable"; }
+      notifyReady();
     });
   }
 

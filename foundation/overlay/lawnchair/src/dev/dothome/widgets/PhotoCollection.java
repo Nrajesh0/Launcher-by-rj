@@ -18,6 +18,16 @@ final class PhotoCollection {
   }
   static String uri(JSONObject item){JSONArray images=item.optJSONArray("images");if(images==null||images.length()==0)return item.optString("uri");return images.optString(Math.floorMod(item.optInt("imageIndex"),images.length()),item.optString("uri"));}
   static boolean cycle(JSONObject item,int delta){JSONArray images=item.optJSONArray("images");if(images==null||images.length()<2)return false;try{int index=Math.floorMod(item.optInt("imageIndex")+delta,images.length());item.put("imageIndex",index).put("uri",images.getString(index));return true;}catch(JSONException invalid){return false;}}
+  static void move(JSONObject item,int delta){JSONArray images=item.optJSONArray("images");if(images==null||images.length()<2)return;int index=Math.floorMod(item.optInt("imageIndex"),images.length()),next=index+delta;if(next<0||next>=images.length())return;try{Object other=images.get(next);images.put(next,images.get(index));images.put(index,other);item.put("imageIndex",next).put("uri",images.getString(next));}catch(JSONException ignored){}}
+  static void remove(JSONObject item){JSONArray images=item.optJSONArray("images");if(images==null)images=new JSONArray().put(item.optString("uri"));if(images.length()>0)images.remove(Math.floorMod(item.optInt("imageIndex"),images.length()));try{item.put("images",images).put("imageIndex",0).put("uri",images.optString(0,""));}catch(JSONException ignored){}}
+  static void prune(Context context){
+    // A grace period protects an editor's unsaved imports and a recent undo.
+    TileContext.WORK.execute(()->{File directory=new File(context.getFilesDir(),"collections");File[] files=directory.listFiles();if(files==null)return;Set<String> used=new HashSet<>();
+      for(Object value:context.getSharedPreferences("dot-tiles",0).getAll().values())if(value instanceof String text)try{JSONObject item=new JSONObject(text);used.add(item.optString("uri"));JSONArray images=item.optJSONArray("images");if(images!=null)for(int n=0;n<images.length();n++)used.add(images.optString(n));}catch(JSONException ignored){}
+      used.add(context.getSharedPreferences("dot-style",0).getString("backupWallpaper",""));
+      long older=System.currentTimeMillis()-86400000L;for(File file:files)if(file.lastModified()<older&&!used.contains(Uri.fromFile(file).toString()))file.delete();
+    });
+  }
   /** Edge-connected colour removal, explicitly offered for plain backgrounds only. */
   static Uri removePlainBackground(Context context,Uri uri,int tolerance) throws Exception {
     Bitmap source=ImageDecoder.decodeBitmap(ImageDecoder.createSource(context.getContentResolver(),uri),(d,i,s)->{d.setAllocator(ImageDecoder.ALLOCATOR_SOFTWARE);d.setTargetSampleSize(Math.max(1,(Math.max(i.getSize().getWidth(),i.getSize().getHeight())+999)/1000));});

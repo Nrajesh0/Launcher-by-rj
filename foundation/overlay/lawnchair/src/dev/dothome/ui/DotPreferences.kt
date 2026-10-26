@@ -33,7 +33,13 @@ open class DotPreferences : Activity() {
     private val work = Executors.newSingleThreadExecutor()
     private val scrollPositions=mutableMapOf<String,Int>()
     private var currentScroll: ScrollView?=null
-    private val backCallback=android.window.OnBackInvokedCallback {onBackPressed()}
+    private val backCallback=object: android.window.OnBackAnimationCallback {
+        override fun onBackStarted(event: android.window.BackEvent) {}
+        override fun onBackProgressed(event: android.window.BackEvent) {if(!appearance.reducedMotion)window.decorView.translationX=d(24)*event.progress}
+        override fun onBackCancelled() {window.decorView.animate().translationX(0f).setDuration(if(appearance.reducedMotion)0 else 150).start()}
+        override fun onBackInvoked() {window.decorView.translationX=0f;onBackPressed()}
+    }
+    private var gridChoice: Pair<Int,Int>?=null
     private val dark get() = when (p.launcherTheme.get()) {
         "dark" -> true
         "light" -> false
@@ -59,11 +65,15 @@ open class DotPreferences : Activity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         onBackInvokedDispatcher.registerOnBackInvokedCallback(android.window.OnBackInvokedDispatcher.PRIORITY_DEFAULT,backCallback)
+        savedInstanceState?.getStringArrayList("history")?.let {history.addAll(it)}
+        savedInstanceState?.getBundle("positions")?.let {positions->positions.keySet().forEach {scrollPositions[it]=positions.getInt(it)}}
         window.setDecorFitsSystemWindows(false)
         show(savedInstanceState?.getString("route") ?: intent.getStringExtra("dotRoute") ?: "customisation", false)
     }
 
     override fun onSaveInstanceState(state: Bundle) {
+        state.putStringArrayList("history",ArrayList(history));currentScroll?.let {scrollPositions[route]=it.scrollY}
+        val positions=Bundle();scrollPositions.forEach {(key,value)->positions.putInt(key,value)};state.putBundle("positions",positions)
         state.putString("route", route)
         super.onSaveInstanceState(state)
     }
@@ -144,7 +154,7 @@ open class DotPreferences : Activity() {
         val home=LawnchairLauncher.instance
         val pages=home?.workspace?.pageCount ?: 1
         val strip=LinearLayout(this).apply {gravity=Gravity.CENTER_VERTICAL}
-        val scroll=HorizontalScrollView(this).apply {isHorizontalScrollBarEnabled=false;clipToPadding=false}
+        val scroll=HorizontalScrollView(this).apply {isHorizontalScrollBarEnabled=false;clipToPadding=false;isFillViewport=true}
         for(index in 0 until pages.coerceIn(1,6)) {
             val column=LinearLayout(this).apply {orientation=1;gravity=Gravity.CENTER}
             column.addView(CurrentHomePreview(index),LinearLayout.LayoutParams(d((height-22)*.46f),d(height-22)))
@@ -254,17 +264,25 @@ open class DotPreferences : Activity() {
     }
 
     private fun grid() {
-        preview(270); gap()
-        listOf(4 to 6,4 to 7,5 to 6,5 to 7).forEach { (columns, rows) ->
-            row("$columns × $rows", if(p.workspaceColumns.get() == columns && p.workspaceRows.get() == rows) "Selected" else "") {
-                p.batchEdit { p.workspaceColumns.set(columns); p.workspaceRows.set(rows) }
-                InvariantDeviceProfile.INSTANCE.get(this).onPreferencesChanged(this)
-                show("grid", false)
-            }
-        }
-        gap()
-        toggle("App labels", p2.showIconLabelsOnHomeScreen.firstBlocking()) { p2.showIconLabelsOnHomeScreen.setBlocking(it) }
-        toggle("Labels in folders", p2.showIconLabelsOnHomeScreenFolder.firstBlocking()) { p2.showIconLabelsOnHomeScreenFolder.setBlocking(it) }
+        preview(230);gap()
+        val selected=gridChoice ?: (p.workspaceColumns.get() to p.workspaceRows.get())
+        val layouts=GridLayout(this).apply {columnCount=2}
+        listOf(4 to 6,4 to 7,5 to 6,5 to 7).forEachIndexed {index,pair->
+            val (columns,rows)=pair
+            val option=LinearLayout(this).apply {orientation=1;gravity=Gravity.CENTER;setPadding(d(12),d(12),d(12),d(10));background=shape(card,20).apply {if(pair==selected)setStroke(d(2),ink)};contentDescription="$columns by $rows grid";isFocusable=true;setOnClickListener {gridChoice=pair;show("grid",false)}}
+            option.addView(object: View(this){val paint=Paint(3);override fun onDraw(canvas: Canvas){paint.color=secondary;val cell=minOf(width.toFloat()/(columns+1),height.toFloat()/(rows+1));val left=(width-cell*(columns-1))/2;val top=(height-cell*(rows-1))/2;for(y in 0 until rows)for(x in 0 until columns)canvas.drawCircle(left+x*cell,top+y*cell,d(2).toFloat(),paint)}},LinearLayout.LayoutParams(-1,d(105)))
+            option.addView(text("$columns × $rows",14f).apply {gravity=Gravity.CENTER},LinearLayout.LayoutParams(-1,d(32)))
+            layouts.addView(option,GridLayout.LayoutParams().apply {width=0;columnSpec=GridLayout.spec(index%2,1f);setMargins(d(3),d(3),d(3),d(3))})
+        };body.addView(layouts)
+        if(selected!=(p.workspaceColumns.get() to p.workspaceRows.get()))body.addView(DotUi.button(this,"Apply grid") {
+            if(LawnchairLauncher.instance?.let {DotArrange.locked(it)}==true)return@button
+            p.batchEdit {p.workspaceColumns.set(selected.first);p.workspaceRows.set(selected.second)}
+            InvariantDeviceProfile.INSTANCE.get(this).onPreferencesChanged(this);gridChoice=null;show("grid",false)
+        },LinearLayout.LayoutParams(-1,-2))
+        gap();toggle("App labels",p2.showIconLabelsOnHomeScreen.firstBlocking()){p2.showIconLabelsOnHomeScreen.setBlocking(it)}
+        toggle("Labels in folders",p2.showIconLabelsOnHomeScreenFolder.firstBlocking()){p2.showIconLabelsOnHomeScreenFolder.setBlocking(it)}
+        gap();row("Dock","4 apps")
+        toggle("Search bar below dock",p2.hotseatMode.firstBlocking().toString()!="disabled") {p2.hotseatMode.setBlocking(if(it)app.lawnchair.hotseat.LawnchairHotseat else app.lawnchair.hotseat.DisabledHotseat)}
     }
 
     private fun drawer() {
@@ -282,7 +300,7 @@ open class DotPreferences : Activity() {
 
     private fun wallpapers() {
         val grid = GridLayout(this).apply { columnCount = 2 }
-        listOf("glass" to "Glass", "optic" to "Optic", "mist" to "Mist", "graphite" to "Graphite").forEachIndexed { index, (key, label) ->
+        listOf("glass" to "Glass", "optic" to "Optic", "mist" to "Mist", "graphite" to "Graphite", "prism" to "Prism", "noir" to "Noir").forEachIndexed { index, (key, label) ->
             val cardView = LinearLayout(this).apply { orientation = 1; setPadding(d(4),d(4),d(4),d(4)) }
             cardView.addView(object: View(this) {
                 override fun onDraw(canvas: Canvas) { DotWallpaper.paint(canvas, width, height, key) }
@@ -294,7 +312,7 @@ open class DotPreferences : Activity() {
                         val bitmap = DotWallpaper.bitmap(key, 1080, 2400)
                         WallpaperManager.getInstance(this).setBitmap(bitmap, null, true, WallpaperManager.FLAG_SYSTEM)
                         bitmap.recycle()
-                        p2.darkStatusBar.setBlocking(key!="optic" && key!="graphite")
+                        p2.darkStatusBar.setBlocking(key!="optic" && key!="graphite" && key!="noir")
                         style.edit().putString("wallpaper", key).putBoolean("wallpaperApplied", true).putBoolean("externalWallpaper",false).putInt("ownedWallpaperId",WallpaperManager.getInstance(this).getWallpaperId(WallpaperManager.FLAG_SYSTEM)).apply()
                         DotAppearance.refreshWallpaper(this)
                     }
@@ -304,6 +322,10 @@ open class DotPreferences : Activity() {
             grid.addView(cardView, GridLayout.LayoutParams().apply { width=0; columnSpec=GridLayout.spec(index % 2,1f) })
         }
         body.addView(grid); gap()
+        style.getString("backupWallpaper",null)?.let {saved->row("Saved backup image") {
+            val item=org.json.JSONObject().put("type","photo").put("style",0).put("uri",saved).put("wallpaper",true)
+            startActivity(Intent(this,dev.dothome.widgets.TileConfiguration::class.java).putExtra("initial",item.toString()))
+        }}
         row("Choose a local image") { startActivityForResult(Intent(Intent.ACTION_OPEN_DOCUMENT).setType("image/*").addCategory(Intent.CATEGORY_OPENABLE).addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION), 61) }
     }
 

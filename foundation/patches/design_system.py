@@ -25,3 +25,8 @@ edit('src/com/android/launcher3/allapps/BaseAllAppsAdapter.java','''            
                     container.addView(new dev.dothome.ui.DotCategoryCard(mActivityContext, folderInfo));
                 } else container.addView(FolderIcon.inflateFolderAndIcon(R.layout.all_apps_folder_icon, mActivityContext,
                     container, folderInfo));''')
+
+# The native popup keeps its placement/accessibility, with the same owned colour roles.
+for token in ("PopupColorPrimary","PopupShadeFirst","PopupShadeSecond","PopupShadeThird"):
+ edit('src/com/android/launcher3/popup/ArrowPopup.java',f'ColorTokens.{token}.resolveColor(context)','dev.dothome.ui.DotAppearance.get(context).card')
+edit('src/com/android/launcher3/popup/ArrowPopup.java','        colorAnimator.setDuration(0).start();','        dev.dothome.ui.DotUi.popup(viewGroup);\n        colorAnimator.setDuration(0).start();')

@@ -8,7 +8,7 @@ import org.json.*;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
 
-/** User-selected local documents, a validated layout and one atomic restore transaction. */
+/** User-selected local documents, a validated layout, staged images and recoverable settings. */
 public final class DotBackup {
   private static final Set<String> PREFS=Set.of("dot-style","dot-tiles","dot-folders","dot-categories");
   public static void export(Activity activity,Uri uri) {
@@ -45,6 +45,7 @@ public final class DotBackup {
     });
   }
   public static void inspect(Activity activity,Uri uri) {
+    var launcher=app.lawnchair.LawnchairLauncher.Companion.getInstance();if(launcher!=null&&DotArrange.locked(launcher)){message(activity,"Unfreeze Home layout before restoring");return;}
     new Thread(()->{
       try {
         String input;
@@ -55,6 +56,8 @@ public final class DotBackup {
         if(backup.getInt("columns")!=grid.numColumns || backup.getInt("rows")!=grid.numRows){message(activity,"Choose the backup's "+backup.getInt("columns")+" × "+backup.getInt("rows")+" grid before restoring");return;}
         JSONArray rows=backup.getJSONArray("items");if(rows.length()>1000)throw new IllegalArgumentException();
         DotBackupMedia.validate(backup.optJSONObject("media"));
+        if(backup.optJSONObject("settings")!=null)DotSettingsBackup.validate(backup.getJSONObject("settings"));
+        validatePreferences(backup.getJSONObject("preferences"));
         Set<Integer> ids=new HashSet<>(),folders=new HashSet<>();List<android.graphics.Rect> cells=new ArrayList<>();List<Integer> pages=new ArrayList<>();
         for(int n=0;n<rows.length();n++) {
           JSONObject row=rows.getJSONObject(n);int type=row.getInt("itemType"),id=row.getInt("_id"),container=row.getInt("container");
@@ -70,7 +73,7 @@ public final class DotBackup {
           else if(container<0 || !Set.of(0,1,6).contains(type))throw new IllegalArgumentException();
         }
         for(int n=0;n<rows.length();n++){int parent=rows.getJSONObject(n).getInt("container");if(parent>=0&&!folders.contains(parent))throw new IllegalArgumentException();}
-        activity.runOnUiThread(()->new AlertDialog.Builder(activity).setTitle("Restore "+rows.length()+" Home items?").setMessage("This replaces your Home layout. Apps stay installed. Photos keep their local document links; external widgets may ask to reconnect.").setPositiveButton("Restore",(dialog,which)->restore(activity,backup)).setNegativeButton("Cancel",null).show());
+        activity.runOnUiThread(()->new AlertDialog.Builder(activity).setTitle("Restore "+rows.length()+" Home items?").setMessage("This replaces your Home layout. Apps stay installed. Owned photos are restored from the backup. External photos and widgets may need reconnecting. Your current system wallpaper stays selected; a saved wallpaper image can be applied separately.").setPositiveButton("Restore",(dialog,which)->restore(activity,backup)).setNegativeButton("Cancel",null).show());
       }catch(Exception invalid){message(activity,"This layout backup is invalid; Home was kept unchanged");}
     },"dot-backup-read").start();
   }
@@ -90,26 +93,50 @@ public final class DotBackup {
           if(row.getInt("itemType")==4 && android.appwidget.AppWidgetManager.getInstance(activity).getAppWidgetInfo(row.optInt("appWidgetId",-1))==null)value.put("restored",1);
           values.add(value);
         }
-        try(var tx=controller.newTransaction()) {
-          controller.delete("favorites",null,null);
-          for(ContentValues value:values)if(controller.insert("favorites",value)<0)throw new IllegalStateException();
-          tx.commit();
+        JSONObject preferences=new JSONObject(backup.getJSONObject("preferences").toString());
+        validatePreferences(preferences);
+        // WallpaperManager is an independent system service. Keep its current selection;
+        // imported backup images are offered through the crop/apply confirmation instead.
+        JSONObject style=preferences.optJSONObject("dot-style");
+        if(style!=null){var current=activity.getSharedPreferences("dot-style",0).getAll();for(String key:Set.of("wallpaper","wallpaperApplied","externalWallpaper","ownedWallpaperId","observedWallpaperId")){style.remove(key);if(current.containsKey(key))style.put(key,current.get(key));}}
+        JSONObject oldPreferences=new JSONObject();for(String name:PREFS)oldPreferences.put(name,new JSONObject(activity.getSharedPreferences(name,0).getAll()));
+        JSONObject oldSettings=DotSettingsBackup.export(activity),settings=backup.optJSONObject("settings");
+        if(settings!=null)DotSettingsBackup.validate(settings);
+        // All input and media decode bounds are checked before changing the database.
+        try(var media=DotBackupMedia.stage(activity,DotBackupMedia.validate(backup.optJSONObject("media")),preferences);var tx=controller.newTransaction()) {
+          try {
+            controller.delete("favorites",null,null);
+            for(ContentValues value:values)if(controller.insert("favorites",value)<0)throw new IllegalStateException();
+            if(settings!=null)DotSettingsBackup.restore(activity,settings);
+            applyPreferences(activity,preferences);
+            tx.commit();media.accept();
+          }catch(Exception failure){
+            try{DotSettingsBackup.restore(activity,oldSettings);applyPreferences(activity,oldPreferences);}catch(Exception rollback){failure.addSuppressed(rollback);}
+            throw failure;
+          }
         }
-        JSONObject preferences=backup.getJSONObject("preferences");
-        DotBackupMedia.restore(activity,DotBackupMedia.validate(backup.optJSONObject("media")),preferences);
-        for(String name:PREFS) {
-          JSONObject object=preferences.optJSONObject(name);if(object==null)continue;
-          var edit=activity.getSharedPreferences(name,0).edit();
-          for(var keys=object.keys();keys.hasNext();) {String key=keys.next();Object value=object.get(key);if(value instanceof Boolean)edit.putBoolean(key,(Boolean)value);else if(value instanceof Integer)edit.putInt(key,(Integer)value);else if(value instanceof Number)edit.putLong(key,((Number)value).longValue());else if(value instanceof String)edit.putString(key,(String)value);}
-          edit.apply();
-        }
-        if(backup.optJSONObject("settings")!=null)DotSettingsBackup.restore(activity,backup.getJSONObject("settings"));
         DotAppearance.invalidate();
         boolean dark=activity.getSharedPreferences("dot-style",0).getBoolean("dark",false);
         app.lawnchair.preferences.PreferenceManager.getInstance(activity).getLauncherTheme().set(dark?"dark":"light");
-        state.getModel().forceReload();message(activity,"Home layout restored");
-      }catch(Exception error){message(activity,"Restore could not finish");}
+        state.getModel().forceReload();activity.runOnUiThread(()->{var launcher=app.lawnchair.LawnchairLauncher.Companion.getInstance();if(launcher!=null)launcher.recreateIfNotScheduled();});message(activity,"Home layout restored");
+      }catch(Exception error){DotAppearance.invalidate();state.getModel().forceReload();message(activity,"Restore failed; the previous layout was kept");}
     });
+  }
+  private static void validatePreferences(JSONObject source)throws Exception {
+    for(String name:PREFS){JSONObject values=source.optJSONObject(name);if(values==null)continue;if(values.length()>4000)throw new IllegalArgumentException();
+      for(var keys=values.keys();keys.hasNext();){String key=keys.next();Object value=values.get(key);if(name.equals("dot-style")){
+          if(Set.of("dark","manualAccent","reduceMotion","wallpaperApplied","externalWallpaper","homeOnlyIcons","legacyImported","torchActive").contains(key)&&!(value instanceof Boolean))throw new IllegalArgumentException();
+          if(Set.of("accent","wallpaperAccent","ownedWallpaperId","observedWallpaperId").contains(key)&&!(value instanceof Number))throw new IllegalArgumentException();
+          if(Set.of("material","wallpaper","backupWallpaper").contains(key)&&!(value instanceof String))throw new IllegalArgumentException();
+        }else if(!(value instanceof String))throw new IllegalArgumentException();
+        if(key.length()>512||!(value instanceof String||value instanceof Boolean||value instanceof Number)||value instanceof String&&((String)value).length()>1000000)throw new IllegalArgumentException();}
+    }
+  }
+  private static void applyPreferences(Context context,JSONObject source)throws Exception {
+    for(String name:PREFS){JSONObject values=source.optJSONObject(name);if(values==null)continue;var editor=context.getSharedPreferences(name,0).edit().clear();
+      for(var keys=values.keys();keys.hasNext();){String key=keys.next();Object value=values.get(key);if(value instanceof Boolean)editor.putBoolean(key,(Boolean)value);else if(value instanceof Integer)editor.putInt(key,(Integer)value);else if(value instanceof Float||value instanceof Double)editor.putFloat(key,((Number)value).floatValue());else if(value instanceof Number)editor.putLong(key,((Number)value).longValue());else if(value instanceof String)editor.putString(key,(String)value);}
+      if(!editor.commit())throw new java.io.IOException("Settings could not be saved");
+    }
   }
   private static void message(Activity activity,String text){activity.runOnUiThread(()->android.widget.Toast.makeText(activity,text,android.widget.Toast.LENGTH_LONG).show());}
 }

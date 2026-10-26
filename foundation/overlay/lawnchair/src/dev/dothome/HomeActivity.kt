@@ -89,7 +89,7 @@ class HomeActivity : LawnchairLauncher() {
         return super.dispatchTouchEvent(event)
     }
 
-    override fun onDestroy() {dev.dothome.ui.DotHiddenPanel.close(this); unregisterReceiver(unlockReceiver);android.app.WallpaperManager.getInstance(this).removeOnColorsChangedListener(wallpaperListener);dev.dothome.ui.DotArrange.end(this); super.onDestroy() }
+    override fun onDestroy() {dev.dothome.widgets.DotWidgetTray.close();dev.dothome.ui.DotCategoryCard.close();dev.dothome.ui.DotHiddenPanel.close(this); unregisterReceiver(unlockReceiver);android.app.WallpaperManager.getInstance(this).removeOnColorsChangedListener(wallpaperListener);dev.dothome.ui.DotArrange.end(this); super.onDestroy() }
 
     override fun onStateSetStart(state: com.android.launcher3.LauncherState) {
         super.onStateSetStart(state)
@@ -99,7 +99,7 @@ class HomeActivity : LawnchairLauncher() {
     override fun onResume() { super.onResume();dev.dothome.ui.DotAppearance.invalidate();dev.dothome.ui.DotAppearance.refreshWallpaper(this); updateMaterial(); dev.dothome.migration.DotMigration.start(this) }
 
     override fun onNewIntent(intent: Intent) {
-        dev.dothome.widgets.DotWidgetTray.close()
+        dev.dothome.widgets.DotWidgetTray.close();dev.dothome.ui.DotCategoryCard.close()
         dev.dothome.ui.DotHiddenPanel.close(this)
         super.onNewIntent(intent); setIntent(intent)
         workspace?.postDelayed({if(!isDestroyed)dev.dothome.widgets.TileRefresh.setActive(workspace,isInState(com.android.launcher3.LauncherState.NORMAL) || isInState(com.android.launcher3.LauncherState.EDIT_MODE))},500)

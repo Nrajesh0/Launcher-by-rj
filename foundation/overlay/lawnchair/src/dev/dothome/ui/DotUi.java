@@ -17,6 +17,12 @@ public final class DotUi {
   public static android.graphics.drawable.Drawable clickable(Context c,int colour,float radius){DotAppearance a=DotAppearance.get(c);return new RippleDrawable(ColorStateList.valueOf(DotAppearance.alpha(a.ink,26)),shape(c,colour,radius),shape(c,Color.WHITE,radius));}
   public static TextView text(Context c,String value,float size){TextView t=new TextView(c);t.setText(value);t.setTextSize(size);t.setTextColor(DotAppearance.get(c).ink);t.setTypeface(c.getResources().getFont(R.font.geist_regular));t.setGravity(Gravity.CENTER_VERTICAL);t.setIncludeFontPadding(false);return t;}
   public static TextView button(Context c,String value,Runnable action){DotAppearance a=DotAppearance.get(c);TextView t=text(c,value,14);t.setGravity(Gravity.CENTER);t.setMinHeight(dp(c,48));t.setPadding(dp(c,18),dp(c,12),dp(c,18),dp(c,12));t.setBackground(clickable(c,a.card,28));t.setFocusable(true);t.setOnClickListener(v->{v.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK);action.run();});return t;}
+  public static void popup(View view){
+    var a=DotAppearance.get(view.getContext());
+    if(view instanceof TextView text){text.setTextColor(new ColorStateList(new int[][]{new int[]{-android.R.attr.state_enabled},new int[]{}},new int[]{DotAppearance.alpha(a.ink,100),a.ink}));text.setTypeface(view.getResources().getFont(R.font.geist_regular));}
+    if(view instanceof ImageView image)image.setImageTintList(ColorStateList.valueOf(a.ink));
+    if(view instanceof ViewGroup group)for(int n=0;n<group.getChildCount();n++)popup(group.getChildAt(n));
+  }
   public static void enter(View view){if(DotAppearance.get(view.getContext()).reducedMotion)return;view.setAlpha(0);view.setTranslationY(dp(view.getContext(),8));view.animate().alpha(1).translationY(0).setDuration(180).setInterpolator(new android.view.animation.DecelerateInterpolator()).start();}
   public static void bars(Activity activity){DotAppearance a=DotAppearance.get(activity);activity.getWindow().setDecorFitsSystemWindows(false);WindowInsetsController control=activity.getWindow().getDecorView().getWindowInsetsController();if(control!=null)control.setSystemBarsAppearance(a.dark?0:WindowInsetsController.APPEARANCE_LIGHT_STATUS_BARS|WindowInsetsController.APPEARANCE_LIGHT_NAVIGATION_BARS,WindowInsetsController.APPEARANCE_LIGHT_STATUS_BARS|WindowInsetsController.APPEARANCE_LIGHT_NAVIGATION_BARS);}
   public static LinearLayout column(Context c){LinearLayout l=new LinearLayout(c);l.setOrientation(LinearLayout.VERTICAL);return l;}

@@ -85,7 +85,7 @@ final class TileArtwork extends View {
     }
     if (control || (type.equals("clock") && (style == 1 || style == 3)))
       c.drawCircle(w / 2, h / 2, u * (control ? .44f : .46f), p);
-    else if (!(type.equals("photo") && style == 2))
+    else if (!type.equals("controls") && !(type.equals("photo") && style == 2))
       c.drawRoundRect(
           r,
           type.equals("battery") && h < w * .65f ? h / 2 : a.dp(19),
@@ -382,6 +382,8 @@ final class TileArtwork extends View {
         }
         p.setStyle(Paint.Style.FILL);
         break;
+      case "controls":
+        for(int n=0;n<4;n++){float controlX=w*(n%2==0?.25f:.75f),controlY=h*(n<2?.25f:.75f),rad=Math.min(w,h)*.21f;p.setColor(paper);c.drawCircle(controlX,controlY,rad,p);drawControl(c,new String[]{"bluetooth","sound","torch","dnd"}[n],controlX,controlY,rad*.55f,ink);}break;
       case "torch":
       case "bluetooth":
       case "sound":
@@ -393,12 +395,13 @@ final class TileArtwork extends View {
         String condition=item.optString("condition","Sunny");
         if(h<w*.7f){serif(c,temperature.isEmpty()?"Set weather":temperature+"°",pad,h*.65f,Math.min(w*.23f,h*.55f),ink);weather(c,condition,w*.79f,h*.48f,h*.25f,ink);}
         else {weather(c,condition,w*.5f,h*.35f,u*.22f,ink);serif(c,temperature.isEmpty()?"—":temperature+"°",pad,h*.78f,u*.28f,ink);text(c,item.optString("location",preview?"Local weather":"Enter weather"),pad,h-pad,Math.min(a.dp(12),w*.075f),secondary,false);}
+        if(!preview){String updated=item.optLong("weatherUpdated")==0?"Manual entry":new java.text.SimpleDateFormat("dd MMM HH:mm",Locale.getDefault()).format(new Date(item.optLong("weatherUpdated")));if(h<w*.7f)text(c,updated,pad,h-a.dp(5),Math.min(a.dp(8),h*.13f),secondary,false);}
         break;
       }
       case "steps": {
         String count=preview?"4200":a.steps>=0?String.valueOf(a.steps):"—";
         serif(c,count,pad,h*.56f,Math.min(w*.29f,h*.42f),ink);
-        text(c,"Steps",pad,h*.78f,Math.min(a.dp(12),h*.16f),secondary,false);
+        text(c,"Measured steps",pad,h*.78f,Math.min(a.dp(12),h*.16f),secondary,false);
         if(h>w*.7f){int goal=Math.max(1,item.optInt("stepGoal",6000));p.setColor(appearance.outline);c.drawRoundRect(new RectF(pad,h*.86f,w-pad,h*.89f),a.dp(3),a.dp(3),p);p.setColor(a.accent);c.drawRoundRect(new RectF(pad,h*.86f,pad+(w-pad*2)*Math.min(1f,(preview?4200:Math.max(0,a.steps))/(float)goal),h*.89f),a.dp(3),a.dp(3),p);}break;
       }
       case "headphones": {
@@ -428,6 +431,7 @@ final class TileArtwork extends View {
         arrow.close();
         c.drawPath(arrow, p);
         c.restore();
+        if(!preview&&a.sensorAccuracy==android.hardware.SensorManager.SENSOR_STATUS_UNRELIABLE)text(c,"Move in a figure eight",pad,pad+a.dp(10),Math.min(a.dp(10),w*.065f),secondary,false);
         text(c, Math.round(degrees) + "°", pad, h - pad, Math.min(size * 1.5f, w * .2f), ink, true);
         break;
       default:
@@ -446,12 +450,7 @@ final class TileArtwork extends View {
                         : type.equals("countdown")
                             ? (item.optLong("deadline") == 0
                                 ? "Set a date"
-                                : Math.max(
-                                        0,
-                                        (item.optLong("deadline")
-                                                - System.currentTimeMillis()
-                                                + 86399999)
-                                            / 86400000)
+                                : Math.max(0,java.time.temporal.ChronoUnit.DAYS.between(java.time.LocalDate.now(),java.time.Instant.ofEpochMilli(item.optLong("deadline")).atZone(java.time.ZoneId.systemDefault()).toLocalDate()))
                                     + " days")
                             : "Tap to configure";
         text(c, label, pad, pad + size * .7f, Math.min(size, a.dp(11)), secondary, true);

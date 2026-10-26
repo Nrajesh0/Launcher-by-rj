@@ -28,7 +28,7 @@ public final class TileDetails extends Activity {
   };
   @Override public void onCreate(Bundle state){super.onCreate(state);id=getIntent().getLongExtra("itemId",-1);try{item=new JSONObject(getIntent().getStringExtra("initial"));}catch(Exception invalid){item=new JSONObject();}type=item.optString("type","away");getOnBackInvokedDispatcher().registerOnBackInvokedCallback(0,back);}
   @Override protected void onResume(){super.onResume();resumed=true;show();}
-  @Override protected void onPause(){resumed=false;super.onPause();}
+  @Override protected void onPause(){resumed=false;generation++;super.onPause();}
   @Override public void onDestroy(){generation++;getOnBackInvokedDispatcher().unregisterOnBackInvokedCallback(back);super.onDestroy();}
   private int d(float value){return DotUi.dp(this,value);}
   private void put(String key,Object value){try{item.put(key,value);}catch(Exception ignored){}}
@@ -46,10 +46,12 @@ public final class TileDetails extends Activity {
     }
     TextView loading=DotUi.text(this,"Loading local history…",14);body.addView(loading);final int current=++generation;
     TileContext.WORK.execute(()->{
+      try {
       long now=System.currentTimeMillis();AwayTimeStats history=AwayTimeStats.read(this,now);
       Calendar start=Calendar.getInstance();start.set(Calendar.HOUR_OF_DAY,0);start.set(Calendar.MINUTE,0);start.set(Calendar.SECOND,0);start.set(Calendar.MILLISECOND,0);
       ArrayList<UsageStats> apps=new ArrayList<>(getSystemService(UsageStatsManager.class).queryAndAggregateUsageStats(start.getTimeInMillis(),now).values());apps.removeIf(a->a.getTotalTimeInForeground()<=0);apps.sort((a,b)->Long.compare(b.getTotalTimeInForeground(),a.getTotalTimeInForeground()));
       runOnUiThread(()->{if(isDestroyed()||current!=generation)return;body.removeAllViews();if(type.equals("away"))away(history);else usage(apps);});
+      }catch(Exception unavailable){runOnUiThread(()->{if(isDestroyed()||current!=generation)return;body.removeAllViews();row("History unavailable","Try again");action("Usage access",()->startActivity(new Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS)));});}
     });
   }
   private void away(AwayTimeStats history){

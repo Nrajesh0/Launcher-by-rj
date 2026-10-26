@@ -22,6 +22,7 @@ public final class DotUndo {
     var params=new com.android.launcher3.views.BaseDragLayer.LayoutParams(-1,DotUi.dp(launcher,54));params.gravity=Gravity.BOTTOM;params.leftMargin=DotUi.dp(launcher,18);params.rightMargin=DotUi.dp(launcher,18);params.bottomMargin=launcher.getDeviceProfile().getInsets().bottom+DotUi.dp(launcher,88);launcher.getDragLayer().addView(bar,params);notice=bar;DotUi.enter(bar);bar.postDelayed(()->{if(bar.getParent() instanceof ViewGroup parent)parent.removeView(bar);if(notice==bar)notice=null;},7000);
   }
   private static void undo(Launcher launcher){
+    if(DotArrange.locked(launcher))return;
     var app=LauncherAppState.getInstance(launcher);app.getModel().enqueueModelUpdateTask((task,model,apps)->{
       try{var db=app.getModel().getModelDbController();if(before==null||expected.isEmpty()||!signature(capture(db)).equals(expected)){launcher.runOnUiThread(()->Toast.makeText(launcher,"Home changed again; previous layout kept",Toast.LENGTH_SHORT).show());return;}
         List<ContentValues> restore=before;try(var tx=db.newTransaction()){db.delete("favorites",null,null);for(ContentValues row:restore)if(db.insert("favorites",row)<0)throw new IllegalStateException();tx.commit();}before=null;expected=null;app.getModel().forceReload();launcher.runOnUiThread(()->{if(notice!=null&&notice.getParent() instanceof ViewGroup parent)parent.removeView(notice);notice=null;});

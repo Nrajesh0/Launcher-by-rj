@@ -75,7 +75,7 @@ final class PhotoView extends View {
     float x = dw > w ? (w - dw) * cropX : (w - dw) / 2;
     float y = dh > h ? (h - dh) * cropY : (h - dh) / 2;
     canvas.save();
-    if (style != 2) {
+    if (style != 2 && !item.optBoolean("wallpaper")) {
       Path mask = new Path();
       if (style == 1) mask.addCircle(w / 2, h / 2, Math.min(w, h) / 2, Path.Direction.CW);
       else if(!item.optBoolean("wallpaper")) mask.addRoundRect(new RectF(0, 0, w, h), a.dp(20), a.dp(20), Path.Direction.CW);
@@ -91,6 +91,8 @@ final class PhotoView extends View {
     }
     image.draw(canvas);
     canvas.restore();
+    org.json.JSONArray images=item.optJSONArray("images");
+    if(!editing&&images!=null&&images.length()>1&&style!=2){int count=Math.min(7,images.length());float gap=a.dp(10),left=w/2-(count-1)*gap/2;for(int n=0;n<count;n++){paint.setColor(n==Math.floorMod(item.optInt("imageIndex"),count)?Color.WHITE:0x66ffffff);canvas.drawCircle(left+n*gap,h-a.dp(13),a.dp(2.3f),paint);}}
   }
 
   @Override

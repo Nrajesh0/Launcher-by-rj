@@ -18,12 +18,22 @@ public final class TileConfiguration extends Activity {
   TileContext adapter;
   PhotoView photo;
   int ink, paper;
+  EditText draftText,draftCity,draftTemperature,draftGoal;
+  void captureDraft(){
+    if(draftText!=null)put(item.optString("type").equals("countdown")?"name":"text",draftText.getText().toString());
+    if(draftCity!=null)put("location",draftCity.getText().toString());
+    if(draftTemperature!=null)put("temperature",draftTemperature.getText().toString());
+    if(draftGoal!=null)try{put("stepGoal",Math.max(100,Math.min(100000,Integer.parseInt(draftGoal.getText().toString()))));}catch(NumberFormatException ignored){}
+  }
+  final android.window.OnBackAnimationCallback back=new android.window.OnBackAnimationCallback(){public void onBackStarted(android.window.BackEvent event){}public void onBackProgressed(android.window.BackEvent event){if(!DotAppearance.get(TileConfiguration.this).reducedMotion)getWindow().getDecorView().setTranslationX(d(22)*event.getProgress());}public void onBackCancelled(){getWindow().getDecorView().animate().translationX(0).setDuration(150).start();}public void onBackInvoked(){finish();}};
+  @Override public void onDestroy(){getOnBackInvokedDispatcher().unregisterOnBackInvokedCallback(back);PhotoCollection.prune(this);super.onDestroy();}
   int d(int value) { return Math.round(value*getResources().getDisplayMetrics().density); }
   TextView label(String value,int size) { TextView view=new TextView(this);view.setText(value);view.setTextSize(size);view.setTextColor(ink);view.setTypeface(TileTypography.regular(this));view.setIncludeFontPadding(false);view.setGravity(Gravity.CENTER_VERTICAL);return view; }
   TextView action(String value,Runnable run) { TextView view=DotUi.button(this,value,run);view.setGravity(Gravity.CENTER_VERTICAL);body.addView(view,new LinearLayout.LayoutParams(-1,-2));return view; }
   void save() { if(!item.optBoolean("wallpaper"))TileContext.save(this,id,item); }
   void finishEdit() {
-    if(!item.optBoolean("wallpaper")){save();finish();return;}
+    captureDraft();
+    if(!item.optBoolean("wallpaper")){if(item.optString("type").equals("weather")&&!item.optString("temperature").isEmpty())put("weatherUpdated",System.currentTimeMillis());save();finish();return;}
     if(photo==null || photo.image==null){Toast.makeText(this,"Wait for the photo to load",Toast.LENGTH_SHORT).show();return;}
     int w=1080,h=(int)(1080f*getResources().getDisplayMetrics().heightPixels/getResources().getDisplayMetrics().widthPixels);
     android.graphics.Bitmap bitmap=android.graphics.Bitmap.createBitmap(w,h,android.graphics.Bitmap.Config.ARGB_8888);
@@ -43,6 +53,7 @@ public final class TileConfiguration extends Activity {
 
   @Override public void onCreate(Bundle state) {
     super.onCreate(state);
+    getOnBackInvokedDispatcher().registerOnBackInvokedCallback(0,back);
     id=getIntent().getLongExtra("itemId",-1);
     try { item=new JSONObject(getIntent().getStringExtra("initial")); } catch(Exception ignored) { item=new JSONObject(); }
     if(state!=null) try { item=new JSONObject(state.getString("item")); } catch(Exception ignored) {}
@@ -52,8 +63,9 @@ public final class TileConfiguration extends Activity {
     adapter=new TileContext(this);
     show();
   }
-  @Override public void onSaveInstanceState(Bundle out) { out.putString("item",item.toString());super.onSaveInstanceState(out); }
+  @Override public void onSaveInstanceState(Bundle out) { captureDraft();out.putString("item",item.toString());super.onSaveInstanceState(out); }
   void show() {
+    captureDraft();draftText=null;draftCity=null;draftTemperature=null;draftGoal=null;
     adapter.sync();var appearance=DotAppearance.get(this);ink=appearance.ink;paper=appearance.background;
     body=new LinearLayout(this);body.setOrientation(1);body.setPadding(d(22),d(16),d(22),d(22));body.setBackgroundColor(paper);
     android.graphics.drawable.GradientDrawable sheet=new android.graphics.drawable.GradientDrawable();sheet.setColor(paper);sheet.setCornerRadii(new float[]{d(30),d(30),d(30),d(30),0,0,0,0});body.setBackground(sheet);
@@ -82,8 +94,12 @@ public final class TileConfiguration extends Activity {
       org.json.JSONArray images=item.optJSONArray("images");
       int count=images==null?(item.optString("uri").isEmpty()?0:1):images.length();
       if(count>0) {
+        body.addView(label("Swipe along the bottom of a Home photo to change it.",12));
         body.addView(label("Photo "+(item.optInt("imageIndex")+1)+" of "+count,12));
         action("Next photo",()->{PhotoCollection.cycle(item,1);photo=null;show();});
+        action("Move photo earlier",()->{PhotoCollection.move(item,-1);photo=null;show();});
+        action("Move photo later",()->{PhotoCollection.move(item,1);photo=null;show();});
+        action("Remove this photo",()->{PhotoCollection.remove(item);photo=null;show();});
         action(item.optBoolean("rotateOnUnlock")?"Change on unlock · On":"Change on unlock · Off",()->{put("rotateOnUnlock",!item.optBoolean("rotateOnUnlock"));show();});
         if(item.optInt("style")==2){
           action(item.optBoolean("stickerOutline",true)?"White outline · On":"White outline · Off",()->{put("stickerOutline",!item.optBoolean("stickerOutline",true));photo=null;show();});
@@ -99,14 +115,22 @@ public final class TileConfiguration extends Activity {
       for(int n=0;n<names.length;n++) {final int variant=n;TextView choice=label(names[n],13);choice.setGravity(Gravity.CENTER);shapes.addView(choice,new LinearLayout.LayoutParams(0,d(48),1));choice.setOnClickListener(v->{put("style",variant);photo=null;show();});}
       body.addView(shapes);
     } else if(type.equals("weather")) {
-      EditText city=new EditText(this);city.setText(item.optString("location"));city.setHint("Place");city.setTextColor(ink);body.addView(city);
-      EditText temperature=new EditText(this);temperature.setText(item.optString("temperature"));temperature.setHint("Temperature");temperature.setInputType(android.text.InputType.TYPE_CLASS_NUMBER|android.text.InputType.TYPE_NUMBER_FLAG_SIGNED);temperature.setTextColor(ink);body.addView(temperature);
+      EditText city=new EditText(this);draftCity=city;city.setText(item.optString("location"));city.setHint("Place");city.setTextColor(ink);body.addView(city);
+      EditText temperature=new EditText(this);draftTemperature=temperature;temperature.setText(item.optString("temperature"));temperature.setHint("Temperature");temperature.setInputType(android.text.InputType.TYPE_CLASS_NUMBER|android.text.InputType.TYPE_NUMBER_FLAG_SIGNED);temperature.setTextColor(ink);body.addView(temperature);
       String[] conditions={"Sunny","Cloudy","Rain","Snow","Clear night"};
       for(String condition:conditions)action(condition+(item.optString("condition").equals(condition)?" · Selected":""),()->{put("condition",condition);show();});
-      action("Save local weather",()->{put("location",city.getText().toString());put("temperature",temperature.getText().toString());put("weatherUpdated",System.currentTimeMillis());save();finish();});
+      action("Save local weather",()->{put("location",city.getText().toString());put("temperature",temperature.getText().toString());put("weatherUpdated",System.currentTimeMillis());finishEdit();});
       body.addView(label("Entered manually. This app does not fetch weather.",12));
+    } else if(type.equals("steps")) {
+      body.addView(label("Measured steps today",17));
+      EditText goal=new EditText(this);draftGoal=goal;goal.setInputType(android.text.InputType.TYPE_CLASS_NUMBER);goal.setText(String.valueOf(item.optInt("stepGoal",6000)));goal.setTextColor(ink);goal.setHint("Step goal");body.addView(goal);
+      TextView note=label("Counts from the first sensor reading today. The next reading includes steps taken while Home is hidden on the same boot. Steps before first use or across a reboot cannot be reconstructed. No background service runs.",13);note.setPadding(0,d(14),0,d(14));body.addView(note);
+      if(getSystemService(android.hardware.SensorManager.class).getDefaultSensor(android.hardware.Sensor.TYPE_STEP_COUNTER)==null)body.addView(label("Step sensor unavailable on this device",14));
+      else if(checkSelfPermission(android.Manifest.permission.ACTIVITY_RECOGNITION)!=android.content.pm.PackageManager.PERMISSION_GRANTED)action("Allow activity recognition",()->requestPermissions(new String[]{android.Manifest.permission.ACTIVITY_RECOGNITION},23));
+    } else if(type.equals("compass")) {
+      TextView note=label("Move the phone in a figure eight if the direction looks wrong. Keep it away from magnets and metal. This shows magnetic heading; no location access is used.",14);body.addView(note);
     } else if(type.equals("notes")) {
-      EditText input=new EditText(this);input.setText(item.optString("text"));input.setTextColor(ink);input.setTypeface(TileTypography.regular(this));input.setHint("Write a note");body.addView(input,new LinearLayout.LayoutParams(-1,d(120)));
+      EditText input=new EditText(this);draftText=input;input.setText(item.optString("text"));input.setTextColor(ink);input.setTypeface(TileTypography.regular(this));input.setHint("Write a note");body.addView(input,new LinearLayout.LayoutParams(-1,d(120)));
       action("Save note",()->{put("text",input.getText().toString());save();finish();});
     } else if(type.equals("timer")) {
       action(item.optLong("timerStart")>0?"Pause":"Start",()->{
@@ -115,9 +139,9 @@ public final class TileConfiguration extends Activity {
       action("Reset",()->{put("elapsed",0);item.remove("timerStart");save();finish();});
       action("Set a ringing timer in Clock",()->{startActivity(new Intent(android.provider.AlarmClock.ACTION_SET_TIMER));finish();});
     } else if(type.equals("countdown")) {
-      EditText name=new EditText(this);name.setText(item.optString("name","A day to remember"));name.setTextColor(ink);name.setTypeface(TileTypography.regular(this));body.addView(name,new LinearLayout.LayoutParams(-1,d(54)));
+      EditText name=new EditText(this);draftText=name;name.setText(item.optString("name","A day to remember"));name.setTextColor(ink);name.setTypeface(TileTypography.regular(this));body.addView(name,new LinearLayout.LayoutParams(-1,d(54)));
       action("Choose a date",()->{
-        Calendar day=Calendar.getInstance();new DatePickerDialog(this,(picker,y,m,d)->{day.set(y,m,d,0,0,0);day.set(Calendar.MILLISECOND,0);put("deadline",day.getTimeInMillis());put("name",name.getText().toString());save();finish();},day.get(Calendar.YEAR),day.get(Calendar.MONTH),day.get(Calendar.DAY_OF_MONTH)).show();
+        Calendar day=Calendar.getInstance();if(item.optLong("deadline")>0)day.setTimeInMillis(item.optLong("deadline"));new DatePickerDialog(this,(picker,y,m,d)->{day.set(y,m,d,0,0,0);day.set(Calendar.MILLISECOND,0);put("deadline",day.getTimeInMillis());put("name",name.getText().toString());save();finish();},day.get(Calendar.YEAR),day.get(Calendar.MONTH),day.get(Calendar.DAY_OF_MONTH)).show();
       });
     }
     if(type.equals("clock")) {
