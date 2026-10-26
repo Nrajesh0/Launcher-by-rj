@@ -83,25 +83,10 @@ public class UiSmoke extends Instrumentation {
     android.graphics.Rect bounds = new android.graphics.Rect();
     node.getBoundsInScreen(bounds);
     if (bounds.isEmpty()) return false;
-    long down = SystemClock.uptimeMillis();
-    UiAutomation automation =
-        getUiAutomation(UiAutomation.FLAG_DONT_SUPPRESS_ACCESSIBILITY_SERVICES);
-    boolean accepted = true;
-    for (int action : new int[] {MotionEvent.ACTION_DOWN, MotionEvent.ACTION_UP}) {
-      MotionEvent event =
-          MotionEvent.obtain(
-              down,
-              SystemClock.uptimeMillis(),
-              action,
-              bounds.exactCenterX(),
-              bounds.exactCenterY(),
-              0);
-      event.setSource(InputDevice.SOURCE_TOUCHSCREEN);
-      accepted &= automation.injectInputEvent(event, true);
-      event.recycle();
-      SystemClock.sleep(80);
-    }
-    return accepted;
+    try {
+      shell("input touchscreen tap "+bounds.centerX()+" "+bounds.centerY());
+      return true;
+    } catch(Exception error) {throw new RuntimeException("Foreground touch failed",error);}
   }
 
   void chooseDefaultHome() throws Exception {
@@ -280,6 +265,13 @@ public class UiSmoke extends Instrumentation {
           size[1] = origin.getHeight();
         });
     float density = home.getResources().getDisplayMetrics().density;
+    if(!cancel) {
+      int x=Math.round(at[0]+size[0]*fx),y=Math.round(at[1]+size[1]*fy);
+      try {shell("input touchscreen swipe "+x+" "+y+" "+Math.round(x+dxDp*density)+" "+Math.round(y+dyDp*density)+" 240");}
+      catch(Exception error){throw new RuntimeException("Swipe injection failed",error);}
+      SystemClock.sleep(500);
+      return;
+    }
     long down = SystemClock.uptimeMillis();
     for (int n = 0; n <= 12; n++) {
       int action =

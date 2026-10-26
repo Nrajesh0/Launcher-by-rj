@@ -50,10 +50,7 @@ public class FoundationSmoke extends UiSmoke {
     final View[] workspace={null};onUi(()->workspace[0]=(View)invoke(home,"getWorkspace"));
     int[] at=new int[2];onUi(()->workspace[0].getLocationOnScreen(at));
     float x=at[0]+workspace[0].getWidth()*.12f,y=at[1]+workspace[0].getHeight()*.46f;
-    long start=SystemClock.uptimeMillis();
-    MotionEvent down=MotionEvent.obtain(start,start,MotionEvent.ACTION_DOWN,x,y,0);down.setSource(InputDevice.SOURCE_TOUCHSCREEN);getUiAutomation(UiAutomation.FLAG_DONT_SUPPRESS_ACCESSIBILITY_SERVICES).injectInputEvent(down,true);down.recycle();
-    SystemClock.sleep(900);
-    MotionEvent up=MotionEvent.obtain(start,SystemClock.uptimeMillis(),MotionEvent.ACTION_UP,x,y,0);up.setSource(InputDevice.SOURCE_TOUCHSCREEN);getUiAutomation(UiAutomation.FLAG_DONT_SUPPRESS_ACCESSIBILITY_SERVICES).injectInputEvent(up,true);up.recycle();
+    shell("input touchscreen swipe "+Math.round(x)+" "+Math.round(y)+" "+Math.round(x)+" "+Math.round(y)+" 900");
     SystemClock.sleep(500);
   }
   Object api(Object target,String method,Class<?>[] types,Object... args) {
@@ -85,11 +82,7 @@ public class FoundationSmoke extends UiSmoke {
     awaitState("EDIT_MODE");visible("Select items");
     for(int n=0;n<2;n++) {
       final View item=views[n];int[] at=new int[2];onUi(()->item.getLocationOnScreen(at));
-      long downTime=SystemClock.uptimeMillis();
-      for(int action:new int[]{MotionEvent.ACTION_DOWN,MotionEvent.ACTION_UP}) {
-        MotionEvent touch=MotionEvent.obtain(downTime,SystemClock.uptimeMillis(),action,at[0]+item.getWidth()*.5f,at[1]+item.getHeight()*.5f,0);touch.setSource(InputDevice.SOURCE_TOUCHSCREEN);
-        getUiAutomation(UiAutomation.FLAG_DONT_SUPPRESS_ACCESSIBILITY_SERVICES).injectInputEvent(touch,true);touch.recycle();SystemClock.sleep(50);
-      }
+      shell("input touchscreen tap "+Math.round(at[0]+item.getWidth()*.5f)+" "+Math.round(at[1]+item.getHeight()*.5f));
       SystemClock.sleep(250);
     }
     visible("2 selected");screenshot("foundation-batch-selected");
@@ -118,11 +111,7 @@ public class FoundationSmoke extends UiSmoke {
     });
     // Free row on the same page. Keep both relative cells together.
     float x=start.exactCenterX(),y=start.exactCenterY(),tx=target.left+target.width()*.38f,ty=target.top+target.height()*.39f;
-    long down=SystemClock.uptimeMillis();
-    for(int n=0;n<=12;n++) {
-      int action=n==0?MotionEvent.ACTION_DOWN:n==12?MotionEvent.ACTION_UP:MotionEvent.ACTION_MOVE;
-      MotionEvent event=MotionEvent.obtain(down,SystemClock.uptimeMillis(),action,x+(tx-x)*n/12f,y+(ty-y)*n/12f,0);event.setSource(InputDevice.SOURCE_TOUCHSCREEN);getUiAutomation(UiAutomation.FLAG_DONT_SUPPRESS_ACCESSIBILITY_SERVICES).injectInputEvent(event,true);event.recycle();SystemClock.sleep(n==0?400:32);
-    }
+    shell("input touchscreen draganddrop "+Math.round(x)+" "+Math.round(y)+" "+Math.round(tx)+" "+Math.round(ty)+" 400");
     awaitState("NORMAL");
     final int[] cells={-1,-1,-1,-1};
     for(int n=0;n<50;n++) {
@@ -175,10 +164,8 @@ public class FoundationSmoke extends UiSmoke {
   }
   void tapView(View view) throws Exception {
     android.graphics.Rect bounds=new android.graphics.Rect();onUi(()->view.getGlobalVisibleRect(bounds));
-    long down=SystemClock.uptimeMillis();
-    for(int action:new int[]{MotionEvent.ACTION_DOWN,MotionEvent.ACTION_UP}) {
-      MotionEvent touch=MotionEvent.obtain(down,SystemClock.uptimeMillis(),action,bounds.exactCenterX(),bounds.exactCenterY(),0);touch.setSource(InputDevice.SOURCE_TOUCHSCREEN);getUiAutomation(UiAutomation.FLAG_DONT_SUPPRESS_ACCESSIBILITY_SERVICES).injectInputEvent(touch,true);touch.recycle();SystemClock.sleep(80);
-    }
+    shell("input touchscreen tap "+bounds.centerX()+" "+bounds.centerY());
+    SystemClock.sleep(160);
   }
   int artworkCount(View view) {
     int count=view.getClass().getName().equals("dev.dothome.widgets.TileArtwork")?1:0;
