@@ -1,20 +1,15 @@
 #!/usr/bin/env bash
-# Own the emulator lifetime in one shell and preserve its exit code separately
-# from application instrumentation. No emulator private disk/state is exported.
+# Repeat the complete fresh-device fixture only for a proven native emulator
+# SIGSEGV, never for an application failure or an unmet UI assertion.
 set -euo pipefail
-mkdir -p build/ui-test
-(set +e; "$ANDROID_HOME/emulator/emulator" -avd foundation -no-window -gpu swiftshader -feature -Vulkan -noaudio -no-boot-anim -no-snapshot -camera-back none -memory 4096 -cores 2 -skin 720x1600 >build/ui-test/emulator-host.txt 2>&1; echo "$?" >build/ui-test/emulator-exit.txt) &
-emulator_owner=$!
-cleanup() { timeout 10s adb emu kill >/dev/null 2>&1 || true; kill "$emulator_owner" 2>/dev/null || true; }
-trap cleanup EXIT
-booted=false
-for ((attempt=0;attempt<90;attempt++)); do
-  if timeout 5s adb shell getprop sys.boot_completed 2>/dev/null | tr -d '\r' | grep -q '^1$'; then booted=true; break; fi
-  if [ -f build/ui-test/emulator-exit.txt ]; then cat build/ui-test/emulator-exit.txt; tail -60 build/ui-test/emulator-host.txt; exit 1; fi
-  sleep 2
+if bash tests/android/run_emulator_once.sh swangle; then exit 0; fi
+if [[ "$(cat build/ui-test/emulator-exit.txt 2>/dev/null)" != 139 ]]; then exit 1; fi
+if grep -q 'FAIL:' build/ui-test/foundation-result.txt build/ui-test/upgrade-result.txt 2>/dev/null; then exit 1; fi
+if grep -q 'FATAL EXCEPTION' build/ui-test/foundation-runtime.txt build/ui-test/runtime-live.txt 2>/dev/null; then exit 1; fi
+echo 'ANGLE emulator exited on SIGSEGV; repeating all checks on a clean Mesa/llvmpipe device.'
+archive=build/ui-test/renderer-attempt-swangle
+mkdir -p "$archive"
+for evidence in foundation-result.txt foundation-runtime.txt runtime-live.txt capture-status.txt emulator-host.txt emulator-exit.txt upgrade-result.txt upgrade-runtime.txt legacy-seed.txt legacy-seed-runtime.txt foundation-screenshots; do
+  if [[ -e "build/ui-test/$evidence" ]]; then mv "build/ui-test/$evidence" "$archive/"; fi
 done
-$booted || { echo 'Emulator did not boot'; exit 1; }
-# Let first-boot package provisioning finish before starting UI automation.
-timeout 20s adb shell input keyevent 82
-sleep 20
-bash tests/android/exercise_foundation.sh
+bash tests/android/run_emulator_once.sh mesa

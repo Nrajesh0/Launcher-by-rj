@@ -126,7 +126,7 @@ jobs:
       - name: Install pinned emulator
         run: |
           sudo apt-get update -qq
-          sudo apt-get install -y --no-install-recommends libpulse0 libnss3 libx11-xcb1 libxcb-cursor0 libxkbcommon-x11-0 libxcomposite1 libxcursor1 libxi6 libxtst6 libxrandr2 libglu1-mesa
+          sudo apt-get install -y --no-install-recommends libpulse0 libnss3 libx11-xcb1 libxcb-cursor0 libxkbcommon-x11-0 libxcomposite1 libxcursor1 libxi6 libxtst6 libxrandr2 libglu1-mesa libgl1-mesa-dri libglx-mesa0 xvfb xauth
           sdkmanager emulator
           curl --fail --location --retry 3 https://dl.google.com/android/repository/emulator-linux_x64-15507667.zip -o "$RUNNER_TEMP/emulator.zip"
           unzip -q -o "$RUNNER_TEMP/emulator.zip" -d "$ANDROID_HOME"
@@ -135,7 +135,7 @@ jobs:
           echo no | avdmanager create avd --force --name foundation --package 'system-images;android-36;google_apis;x86_64' --device pixel_6
           "$ANDROID_HOME/emulator/emulator" -list-avds | grep -Fx foundation
       - name: Exercise native launcher interactions
-        timeout-minutes: 12
+        timeout-minutes: 20
         run: bash tests/android/run_emulator.sh
       - name: Diagnose runner failures
         if: always()
@@ -154,6 +154,7 @@ jobs:
             build/ui-test/capture-status.txt
             build/ui-test/emulator-host.txt
             build/ui-test/emulator-exit.txt
+            build/ui-test/renderer-attempt-swangle
             build/ui-test/upgrade-result.txt
             build/ui-test/upgrade-runtime.txt
             build/ui-test/legacy-seed.txt
