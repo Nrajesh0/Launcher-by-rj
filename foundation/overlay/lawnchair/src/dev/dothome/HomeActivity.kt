@@ -52,7 +52,10 @@ class HomeActivity : LawnchairLauncher() {
                     startActivity(Intent(this,dev.dothome.ui.DotHidden::class.java));return true
                 }
             }
-            android.view.MotionEvent.ACTION_UP,android.view.MotionEvent.ACTION_CANCEL -> drawerSwipe=false
+            android.view.MotionEvent.ACTION_UP,android.view.MotionEvent.ACTION_CANCEL -> {
+                drawerSwipe=false
+                workspace.postDelayed({if(!isDestroyed)dev.dothome.widgets.TileRefresh.setActive(workspace,isInState(com.android.launcher3.LauncherState.NORMAL) || isInState(com.android.launcher3.LauncherState.EDIT_MODE))},500)
+            }
         }
         return super.dispatchTouchEvent(event)
     }

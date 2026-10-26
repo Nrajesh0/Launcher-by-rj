@@ -36,11 +36,13 @@ open class DotTile(private val context: Context, val kind: String, val face: Int
         private var signature=""
         private var id=-1L
         private var item=TileContext.load(context,id,tile.kind,tile.face)
-        private val refresh=object: Runnable { override fun run() { if(windowVisibility==VISIBLE && isShown) { adapter.sync(); render(); sensors.start(); handler.postDelayed(this,if(tile.kind=="media") 1000 else 30000) } } }
+        private val refresh=object: Runnable { override fun run() { if(windowVisibility==VISIBLE && isShown && hasWindowFocus() && getGlobalVisibleRect(android.graphics.Rect())) { adapter.foreground=true;adapter.sync(); render(); sensors.start(); handler.postDelayed(this,if(tile.kind=="media") 1000 else 30000) } else {adapter.foreground=false;sensors.stop()} } }
         private fun render() {
             item.put("w",if(width>height*1.4f) 4 else tile.columns); item.put("h",tile.rows)
-            val nextSignature=item.toString()
-            if(tile.kind!="media" && childCount>0 && signature==nextSignature) { invalidateArtwork(); return }
+            adapter.page=item.optInt("page",0)
+            val media=if(tile.kind=="media")TileMedia.read(context) else null
+            val nextSignature=item.toString()+(media?.let {"${it.title}:${it.artist}:${it.playing}:${it.controller?.packageName}:${System.identityHashCode(it.artwork)}"} ?: "")
+            if(childCount>0 && signature==nextSignature) { invalidateArtwork(); return }
             signature=nextSignature
             removeAllViews()
             val art: View = if(tile.kind=="photo" && item.optString("uri").isNotEmpty()) PhotoView(adapter,item,false) else TileArtwork(adapter,item,false)
@@ -78,7 +80,7 @@ open class DotTile(private val context: Context, val kind: String, val face: Int
         }
         override fun setActive(active: Boolean) {
             val home=TileActions.activity(context) as? com.android.launcher3.Launcher
-            val allowed=active && (home==null || home.isInState(com.android.launcher3.LauncherState.NORMAL) || home.isInState(com.android.launcher3.LauncherState.EDIT_MODE))
+            val allowed=active && getGlobalVisibleRect(android.graphics.Rect()) && (home==null || home.isInState(com.android.launcher3.LauncherState.NORMAL) || home.isInState(com.android.launcher3.LauncherState.EDIT_MODE))
             handler.removeCallbacks(refresh); adapter.foreground=allowed
             if(allowed && isAttachedToWindow && isShown) {
                 item=TileContext.load(context,id,tile.kind,tile.face); handler.post(refresh)

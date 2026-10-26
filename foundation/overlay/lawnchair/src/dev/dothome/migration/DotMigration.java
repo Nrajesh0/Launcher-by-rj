@@ -148,7 +148,7 @@ public final class DotMigration {
     JSONObject data=new JSONObject().put("schema",2).put("settings",new JSONObject().put("columns",4).put("rows",7).put("pages",2));
     JSONArray items=new JSONArray();String[] types={"clock","date","bluetooth","dnd","battery","breathing","sound","torch"};
     int[][] cells={{0,0,2,2},{2,0,2,2},{0,2,1,1},{1,2,1,1},{0,6,2,1},{2,5,2,2},{0,5,1,1},{1,5,1,1}};
-    for(int n=0;n<types.length;n++)items.put(new JSONObject().put("id","default-"+n).put("type",types[n]).put("page",0).put("x",cells[n][0]).put("y",cells[n][1]).put("w",cells[n][2]).put("h",cells[n][3]).put("style",n==0?1:n==1?2:0));
+    for(int n=0;n<types.length;n++)items.put(new JSONObject().put("id","default-"+n).put("type",types[n]).put("page",0).put("x",cells[n][0]).put("y",cells[n][1]).put("w",cells[n][2]).put("h",cells[n][3]).put("style",n==0?1:n==1||n==4?2:0));
     JSONArray dock=new JSONArray();UserManager users=context.getSystemService(UserManager.class);long serial=users.getSerialNumberForUser(android.os.Process.myUserHandle());
     Intent[] intents={new Intent(Intent.ACTION_DIAL),new Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_APP_MESSAGING),new Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_APP_BROWSER),new Intent(android.provider.MediaStore.INTENT_ACTION_STILL_IMAGE_CAMERA)};
     for(Intent intent:intents) {

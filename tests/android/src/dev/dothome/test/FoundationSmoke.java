@@ -94,6 +94,47 @@ public class FoundationSmoke extends UiSmoke {
     }
     if(screens[0]==0||screens[0]!=screens[1])throw new AssertionError("Batch did not durably move both native items to a new page");
     screenshot("foundation-batch-moved");
+    groupDrag(ids,screens[0]);
+    backupRoundTrip();
+  }
+  void groupDrag(int[] ids,int screen) throws Exception {
+    onUi(()->{Object workspace=invoke(home,"getWorkspace");int index=(Integer)api(workspace,"getPageIndexForScreenId",new Class<?>[]{int.class},screen);api(workspace,"snapToPage",new Class<?>[]{int.class},index);});
+    SystemClock.sleep(800);longPressBlank();visible("Arrange");clickSystemText("Arrange");awaitState("EDIT_MODE");
+    final View[] icons=new View[2];onUi(()->{icons[0]=nativeItem(ids[0]);icons[1]=nativeItem(ids[1]);});
+    tapView(icons[0]);tapView(icons[1]);visible("2 selected");
+    final android.graphics.Rect start=new android.graphics.Rect(),target=new android.graphics.Rect();
+    onUi(()->{
+      icons[0].getGlobalVisibleRect(start);
+      View page=(View)api(invoke(home,"getWorkspace"),"getScreenWithId",new Class<?>[]{int.class},screen);page.getGlobalVisibleRect(target);
+    });
+    // Free row on the same page. Keep both relative cells together.
+    float x=start.exactCenterX(),y=start.exactCenterY(),tx=target.left+target.width()*.38f,ty=target.top+target.height()*.39f;
+    long down=SystemClock.uptimeMillis();
+    for(int n=0;n<=12;n++) {
+      int action=n==0?MotionEvent.ACTION_DOWN:n==12?MotionEvent.ACTION_UP:MotionEvent.ACTION_MOVE;
+      MotionEvent event=MotionEvent.obtain(down,SystemClock.uptimeMillis(),action,x+(tx-x)*n/12f,y+(ty-y)*n/12f,0);event.setSource(InputDevice.SOURCE_TOUCHSCREEN);getUiAutomation(UiAutomation.FLAG_DONT_SUPPRESS_ACCESSIBILITY_SERVICES).injectInputEvent(event,true);event.recycle();SystemClock.sleep(n==0?400:32);
+    }
+    awaitState("NORMAL");
+    final int[] cells={-1,-1,-1,-1};
+    for(int n=0;n<50;n++) {
+      onUi(()->{try{for(int j=0;j<2;j++){View view=nativeItem(ids[j]);if(view!=null){Object item=view.getTag();cells[j*2]=item.getClass().getField("cellX").getInt(item);cells[j*2+1]=item.getClass().getField("cellY").getInt(item);}}}catch(Exception error){throw new RuntimeException(error);}});
+      if(cells[1]>0&&cells[1]==cells[3]&&cells[2]==cells[0]+1)break;SystemClock.sleep(100);
+    }
+    if(cells[1]<=0||cells[1]!=cells[3]||cells[2]!=cells[0]+1)throw new AssertionError("Group drag did not persist relative app placement");
+    screenshot("foundation-group-dragged");
+  }
+  void backupRoundTrip() throws Exception {
+    java.io.File document=new java.io.File(home.getFilesDir(),"synthetic-backup-check.json");
+    Class<?> cls=Class.forName("dev.dothome.ui.DotBackup",true,getTargetContext().getClassLoader());
+    cls.getMethod("export",Activity.class,android.net.Uri.class).invoke(null,home,android.net.Uri.fromFile(document));
+    for(int n=0;n<60&&!document.isFile();n++)SystemClock.sleep(100);
+    if(!document.isFile())throw new AssertionError("Local backup document was not written");
+    SystemClock.sleep(250);
+    onUi(()->{try{cls.getMethod("inspect",Activity.class,android.net.Uri.class).invoke(null,home,android.net.Uri.fromFile(document));}catch(Exception error){throw new RuntimeException(error);}});
+    visible("Restore");screenshot("foundation-restore-confirmation");if(!clickSystemText("Restore"))throw new AssertionError("Restore confirmation did not respond");
+    SystemClock.sleep(1500);homeKey();document.delete();
+    final int[] art={0};onUi(()->art[0]=artworkCount((View)invoke(home,"getWorkspace")));
+    if(art[0]<8)throw new AssertionError("Backup restore lost built-in widget artwork");
   }
   View firstTile(View view) {
     if(view.getClass().getName().equals("dev.dothome.widgets.TileArtwork"))return view;
