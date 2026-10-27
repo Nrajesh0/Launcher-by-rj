@@ -25,6 +25,17 @@ public final class ExperienceSmoke extends FoundationSmoke {
     try{getUiAutomation(UiAutomation.FLAG_DONT_SUPPRESS_ACCESSIBILITY_SERVICES).waitForIdle(100,1200);}catch(java.util.concurrent.TimeoutException animated){}
     SystemClock.sleep(150);
   }
+  @Override void configureFixture(boolean apply)throws Exception {
+    long deadline=SystemClock.uptimeMillis()+60000;
+    while(SystemClock.uptimeMillis()<deadline){
+      if(super.clickSystemText(apply?"Apply test widget":"Cancel test widget")){
+        check(awaitFocus(true),"Provider configuration did not return Home");SystemClock.sleep(350);return;
+      }
+      // Single-pass probes here preserve the absolute deadline even if no dialog opens.
+      super.clickSystemText("Allow");super.clickSystemText("Create");SystemClock.sleep(150);
+    }
+    throw new AssertionError("Provider configuration did not expose its "+(apply?"Apply":"Cancel")+" action within 60 seconds");
+  }
   void phase(String name){Bundle progress=new Bundle();progress.putString("stream","CHECK: "+name+"\n");sendStatus(0,progress);}
   @Override void homeKey()throws Exception {super.homeKey();check(awaitFocus(true),"System Home did not foreground Dot Home");}
   Class<?> cls(String name)throws Exception{return Class.forName(name,true,getTargetContext().getClassLoader());}
