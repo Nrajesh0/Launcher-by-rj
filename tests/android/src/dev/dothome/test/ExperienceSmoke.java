@@ -14,6 +14,18 @@ public final class ExperienceSmoke extends FoundationSmoke {
   @Override boolean clickSystemText(String value){
     for(int n=0;n<30;n++){if(super.clickSystemText(value)){SystemClock.sleep(200);return true;}SystemClock.sleep(80);}return false;
   }
+  // Launcher-owned animations can keep Instrumentation.waitForIdleSync waiting forever.
+  // Wait for the submitted main-thread action, then use a bounded accessibility idle wait;
+  // each operation still has its own foreground/state/data assertion.
+  @Override void onUi(Runnable work){
+    var done=new java.util.concurrent.CountDownLatch(1);var failure=new java.util.concurrent.atomic.AtomicReference<Throwable>();
+    new Handler(Looper.getMainLooper()).post(()->{try{syncActivity();work.run();}catch(Throwable error){failure.set(error);}finally{done.countDown();}});
+    try{if(!done.await(10,java.util.concurrent.TimeUnit.SECONDS))throw new AssertionError("Main-thread operation timed out");}catch(InterruptedException interrupted){Thread.currentThread().interrupt();throw new AssertionError(interrupted);}
+    if(failure.get()!=null)throw new AssertionError("UI-thread operation failed",failure.get());
+    try{getUiAutomation(UiAutomation.FLAG_DONT_SUPPRESS_ACCESSIBILITY_SERVICES).waitForIdle(100,1200);}catch(java.util.concurrent.TimeoutException animated){}
+    SystemClock.sleep(150);
+  }
+  void phase(String name){Bundle progress=new Bundle();progress.putString("stream","CHECK: "+name+"\n");sendStatus(0,progress);}
   @Override void homeKey()throws Exception {super.homeKey();check(awaitFocus(true),"System Home did not foreground Dot Home");}
   Class<?> cls(String name)throws Exception{return Class.forName(name,true,getTargetContext().getClassLoader());}
   Map<Integer,String> placement(){
@@ -107,11 +119,11 @@ public final class ExperienceSmoke extends FoundationSmoke {
     onUi(()->{try{cls("dev.dothome.widgets.DotWidgetTray").getMethod("show",cls("com.android.launcher3.Launcher")).invoke(null,home);}catch(Exception error){throw new RuntimeException(error);}});visible("Installed apps");clickSystemText("Installed apps");SystemClock.sleep(500);
     final int[] sheets={0};onUi(()->sheets[0]=views(home.getWindow().getDecorView(),"com.android.launcher3.widget.picker.WidgetsFullSheet"));check(sheets[0]>0,"Installed-app entry did not open the native picker");screenshot("v5-installed-widget-picker");homeKey();
     android.appwidget.AppWidgetManager manager=android.appwidget.AppWidgetManager.getInstance(home);android.appwidget.AppWidgetProviderInfo provider=null;for(var candidate:manager.getInstalledProviders())if(candidate.provider.getClassName().equals("dev.dothome.test.WidgetProvider"))provider=candidate;check(provider!=null,"External widget fixture missing");
-    Map<Integer,String> before=placement();beginExternalWidget(provider);configureFixture(true);
+    phase("External widget configure");Map<Integer,String> before=placement();beginExternalWidget(provider);configureFixture(true);
     for(int n=0;n<40&&placement().size()==before.size();n++)SystemClock.sleep(100);check(placement().size()==before.size()+1,"Configured external widget not durably placed");
     int row=-1,widget=-1;SQLiteDatabase db=(SQLiteDatabase)invoke(invoke(invoke(home,"getModel"),"getModelDbController"),"getDb");try(var cursor=db.rawQuery("SELECT _id,appWidgetId FROM favorites WHERE appWidgetProvider LIKE '%WidgetProvider%'",null)){check(cursor.moveToFirst(),"External widget row missing");row=cursor.getInt(0);widget=cursor.getInt(1);}check(manager.getAppWidgetInfo(widget)!=null,"External widget binding missing");visible("Provider widget configured");screenshot("v5-external-widget-configured");
-    Map<Integer,String> placed=placement();beginExternalWidget(provider);configureFixture(false);for(int n=0;n<40&&!placed.equals(placement());n++)SystemClock.sleep(100);check(placed.equals(placement()),"Cancelled provider configuration changed the layout: before="+placed+" after="+placement());
-    final int remove=row;onUi(()->{View view=nativeItem(remove);check(view!=null,"External widget view missing");try{api(home,"removeItem",new Class<?>[]{View.class,cls("com.android.launcher3.model.data.ItemInfo"),boolean.class,String.class},view,view.getTag(),true,"Synthetic widget test cleanup");}catch(Exception error){throw new RuntimeException(error);}});
+    phase("External widget cancel");Map<Integer,String> placed=placement();beginExternalWidget(provider);configureFixture(false);for(int n=0;n<40&&!placed.equals(placement());n++)SystemClock.sleep(100);check(placed.equals(placement()),"Cancelled provider configuration changed the layout: before="+placed+" after="+placement());
+    phase("External widget removal");final int remove=row;onUi(()->{View view=nativeItem(remove);check(view!=null,"External widget view missing");try{api(home,"removeItem",new Class<?>[]{View.class,cls("com.android.launcher3.model.data.ItemInfo"),boolean.class,String.class},view,view.getTag(),true,"Synthetic widget test cleanup");}catch(Exception error){throw new RuntimeException(error);}});
     for(int n=0;n<40&&!before.equals(placement());n++)SystemClock.sleep(100);check(before.equals(placement()),"External widget removal did not restore the layout");check(manager.getAppWidgetInfo(widget)==null,"Removed external widget binding leaked");homeKey();
   }
   void calculatorScope()throws Exception{
@@ -148,7 +160,7 @@ public final class ExperienceSmoke extends FoundationSmoke {
     }finally{shell("settings put system font_scale 1.0");SystemClock.sleep(500);}
   }
   @Override public void onStart(){Bundle result=new Bundle();try{
-    getUiAutomation(UiAutomation.FLAG_DONT_SUPPRESS_ACCESSIBILITY_SERVICES);launchHomeAsync();SystemClock.sleep(800);homeKey();themes();hiddenCancellation();categories();presetUndo();widgetData();externalWidget();calculatorScope();selectedDataScopes();textAndDeniedStates();
+    getUiAutomation(UiAutomation.FLAG_DONT_SUPPRESS_ACCESSIBILITY_SERVICES);launchHomeAsync();SystemClock.sleep(800);homeKey();phase("Themes");themes();phase("Hidden gesture");hiddenCancellation();phase("Categories");categories();phase("Preset and undo");presetUndo();phase("Widget data");widgetData();phase("External widget host");externalWidget();phase("Calculator scope");calculatorScope();phase("Selected-data scopes");selectedDataScopes();phase("Large text and denied states");textAndDeniedStates();
     result.putString("stream","PASS: v5 Classic/Lucent light/dark preserve layout; grid preview; hidden cancellation/back; category correction; preset/undo; note and weather drafts; owned photos/cutout/cycle; wallpaper preview; backup path rejection.\n");finish(Activity.RESULT_OK,result);
   }catch(Throwable error){try{screenshot("v5-failure");}catch(Throwable ignored){}String diagnostics="";try{diagnostics=systemTree(getUiAutomation(UiAutomation.FLAG_DONT_SUPPRESS_ACCESSIBILITY_SERVICES).getRootInActiveWindow(),0);}catch(Throwable ignored){}result.putString("stream","FAIL: "+android.util.Log.getStackTraceString(error)+diagnostics);finish(Activity.RESULT_CANCELED,result);}}
 }
