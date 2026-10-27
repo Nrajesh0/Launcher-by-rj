@@ -394,16 +394,16 @@ final class TileArtwork extends View {
         String temperature=item.optString("temperature");
         String condition=item.optString("condition","Sunny");
         if(temperature.isEmpty()) {
-          float size=Math.min(a.dp(16),h*.26f);
+          float weatherTextSize=Math.min(a.dp(16),h*.26f);
           text(c,"Weather",pad,h*.36f,Math.min(a.dp(11),h*.17f),secondary,false);
           p.setTypeface(TileTypography.regular(a));
-          text(c,fit("Set up",size,w-pad*2),pad,h*.68f,size,ink,false);
+          text(c,fit("Set up",weatherTextSize,w-pad*2),pad,h*.68f,weatherTextSize,ink,false);
         } else if(h<w*.7f){
-          String value=temperature+"°";float size=Math.min(w*.23f,h*.55f);
-          p.setTypeface(TileTypography.display(a));p.setTextSize(size);float measured=p.measureText(value);
-          if(measured>w*.60f-pad)size*=Math.max(.3f,(w*.60f-pad)/measured);
-          serif(c,value,pad,h*.65f,size,ink);weather(c,condition,w*.79f,h*.48f,h*.25f,ink);
-        } else {weather(c,condition,w*.5f,h*.35f,u*.22f,ink);serif(c,temperature+"°",pad,h*.78f,u*.28f,ink);p.setTypeface(TileTypography.regular(a));float size=Math.min(a.dp(12),w*.075f);text(c,fit(item.optString("location",preview?"Local weather":"Enter weather"),size,w-pad*2),pad,h-pad,size,secondary,false);}
+          String value=temperature+"°";float weatherTextSize=Math.min(w*.23f,h*.55f);
+          p.setTypeface(TileTypography.display(a));p.setTextSize(weatherTextSize);float measured=p.measureText(value);
+          if(measured>w*.60f-pad)weatherTextSize*=Math.max(.3f,(w*.60f-pad)/measured);
+          serif(c,value,pad,h*.65f,weatherTextSize,ink);weather(c,condition,w*.79f,h*.48f,h*.25f,ink);
+        } else {weather(c,condition,w*.5f,h*.35f,u*.22f,ink);serif(c,temperature+"°",pad,h*.78f,u*.28f,ink);p.setTypeface(TileTypography.regular(a));float weatherTextSize=Math.min(a.dp(12),w*.075f);text(c,fit(item.optString("location",preview?"Local weather":"Enter weather"),weatherTextSize,w-pad*2),pad,h-pad,weatherTextSize,secondary,false);}
         if(!preview){String updated=item.optLong("weatherUpdated")==0?"Manual entry":new java.text.SimpleDateFormat("dd MMM HH:mm",Locale.getDefault()).format(new Date(item.optLong("weatherUpdated")));if(h<w*.7f)text(c,updated,pad,h-a.dp(5),Math.min(a.dp(8),h*.13f),secondary,false);}
         break;
       }
