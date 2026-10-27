@@ -34,6 +34,13 @@ public class FoundationSmoke extends UiSmoke {
       return invoke(invoke(home,"getStateManager"),"getState")==cls.getField(key).get(null);
     } catch(Exception error) { throw new RuntimeException(error); }
   }
+  void committedDrawerSwipe(){
+    final View[] page={null};
+    onUi(()->{ViewGroup workspace=(ViewGroup)invoke(home,"getWorkspace");page[0]=workspace.getChildAt((Integer)invoke(workspace,"getCurrentPage"));if(page[0]==null)throw new AssertionError("Visible workspace page missing");});
+    // The fixture's centre gutter stays clear of widgets. This distance exceeds
+    // the native commit threshold without depending on emulator fling velocity.
+    swipe(page[0],.50f,.91f,0,-500,false);
+  }
   void awaitState(String key) {
     for(int n=0;n<60;n++) { final boolean[] match={false};onUi(()->match[0]=state(key));if(match[0])return;SystemClock.sleep(80); }
     String diagnostic="";
@@ -223,7 +230,7 @@ public class FoundationSmoke extends UiSmoke {
       });
       if(!dialer[0])throw new AssertionError("Android 16 fixture Dialer is missing from Apps; launcher package visibility is incomplete");
       View workspace=(View)invoke(home,"getWorkspace");
-      swipe(workspace,.53f,.72f,0,-300,false);awaitState("ALL_APPS");screenshot("foundation-apps");
+      committedDrawerSwipe();awaitState("ALL_APPS");screenshot("foundation-apps");
       View appsView=(View)invoke(home,"getAppsView");
       swipe(appsView,.18f,.45f,200,0,false);visible("Hidden icons");screenshot("foundation-hidden-icons");
       homeKey();longPressBlank();visible("Customisation");visible("Widgets");visible("Home settings");visible("Arrange");screenshot("foundation-home-menu");

@@ -89,7 +89,7 @@ public final class ExperienceSmoke extends FoundationSmoke {
     settings("grid");visible("Home screen layout");screenshot("v5-grid-choices");homeKey();check(original.equals(placement()),"Opening grid settings changed layout");
   }
   void hiddenCancellation()throws Exception{
-    View workspace=(View)invoke(home,"getWorkspace");swipe(workspace,.53f,.72f,0,-300,false);awaitState("ALL_APPS");
+    View workspace=(View)invoke(home,"getWorkspace");committedDrawerSwipe();awaitState("ALL_APPS");
     View apps=(View)invoke(home,"getAppsView");int[] position=new int[2];onUi(()->apps.getLocationOnScreen(position));
     float x=position[0]+apps.getWidth()*.22f,y=position[1]+apps.getHeight()*.45f;long down=SystemClock.uptimeMillis();
     for(int n=0;n<8;n++){MotionEvent e=MotionEvent.obtain(down,SystemClock.uptimeMillis(),n==0?MotionEvent.ACTION_DOWN:MotionEvent.ACTION_MOVE,x+n*10,y,0);e.setSource(InputDevice.SOURCE_TOUCHSCREEN);check(getUiAutomation(UiAutomation.FLAG_DONT_SUPPRESS_ACCESSIBILITY_SERVICES).injectInputEvent(e,true),"Touch injection failed");e.recycle();SystemClock.sleep(16);}
@@ -101,7 +101,7 @@ public final class ExperienceSmoke extends FoundationSmoke {
   }
   void categories()throws Exception{
     settings("drawer");visible("Smart categories");clickSystemText("Smart categories");SystemClock.sleep(500);homeKey();
-    View workspace=(View)invoke(home,"getWorkspace");swipe(workspace,.53f,.72f,0,-300,false);awaitState("ALL_APPS");SystemClock.sleep(800);
+    View workspace=(View)invoke(home,"getWorkspace");committedDrawerSwipe();awaitState("ALL_APPS");SystemClock.sleep(800);
     final int[] cards={0};onUi(()->cards[0]=views((View)invoke(home,"getAppsView"),"dev.dothome.ui.DotCategoryCard"));check(cards[0]>0,"Category mode did not bind category cards");screenshot("v5-categories");
     Object[] apps=(Object[])invoke(invoke(invoke(home,"getAppsView"),"getAppsStore"),"getApps");Object app=apps[0];String key=invoke(app,"toComponentKey").toString();
     onUi(()->{try{cls("dev.dothome.ui.DotCategories").getMethod("choose",Context.class,cls("com.android.launcher3.model.data.ItemInfoWithIcon")).invoke(null,home,app);}catch(Exception error){throw new RuntimeException(error);}});
@@ -169,10 +169,10 @@ public final class ExperienceSmoke extends FoundationSmoke {
     var prefs=home.getSharedPreferences("com.android.launcher3.prefs",0);boolean original=prefs.getBoolean("pref_searchResultCalculator",false);
     try{
       settings("search");visible("Calculator");if(!prefs.getBoolean("pref_searchResultCalculator",false))clickSystemText("Calculator");homeKey();
-      View workspace=(View)invoke(home,"getWorkspace");swipe(workspace,.50f,.50f,0,-300,false);awaitState("ALL_APPS");
+      View workspace=(View)invoke(home,"getWorkspace");committedDrawerSwipe();awaitState("ALL_APPS");
       final EditText[] input={null};onUi(()->{int id=home.getResources().getIdentifier("input","id","dev.dothome");input[0]=((View)invoke(home,"getAppsView")).findViewById(id);check(input[0]!=null,"Drawer search input missing");input[0].requestFocus();input[0].setText("6*7");});
       visible("42");screenshot("v5-offline-calculator");homeKey();settings("search");visible("Calculator");clickSystemText("Calculator");homeKey();
-      workspace=(View)invoke(home,"getWorkspace");swipe(workspace,.50f,.50f,0,-300,false);awaitState("ALL_APPS");onUi(()->{int id=home.getResources().getIdentifier("input","id","dev.dothome");EditText field=((View)invoke(home,"getAppsView")).findViewById(id);field.requestFocus();field.setText("6*7");});SystemClock.sleep(900);
+      workspace=(View)invoke(home,"getWorkspace");committedDrawerSwipe();awaitState("ALL_APPS");onUi(()->{int id=home.getResources().getIdentifier("input","id","dev.dothome");EditText field=((View)invoke(home,"getAppsView")).findViewById(id);field.requestFocus();field.setText("6*7");});SystemClock.sleep(900);
       check(findSystemText(getUiAutomation(UiAutomation.FLAG_DONT_SUPPRESS_ACCESSIBILITY_SERVICES).getRootInActiveWindow(),"42")==null,"Disabled calculator scope still returned a calculation");homeKey();
     }finally{prefs.edit().putBoolean("pref_searchResultCalculator",original).commit();}
   }
@@ -185,7 +185,7 @@ public final class ExperienceSmoke extends FoundationSmoke {
     staticCall("dev.dothome.ui.DotDocuments","add",new Class<?>[]{Context.class,java.util.List.class},home,java.util.List.of(uri));
     settings("search");visible("Selected documents");if(!home.getSharedPreferences("dot-style",0).getBoolean("searchDocuments",false))clickSystemText("Selected documents");homeKey();
     var found=(java.util.List<?>)staticCall("dev.dothome.ui.DotDocuments","search",new Class<?>[]{Context.class,String.class},home,"rj-selected");check(found.size()==1,"Selected document metadata was not searchable");check(((java.util.List<?>)staticCall("dev.dothome.ui.DotDocuments","search",new Class<?>[]{Context.class,String.class},home,"rj-unselected")).isEmpty(),"Document search scanned an unselected file");
-    View workspace=(View)invoke(home,"getWorkspace");swipe(workspace,.50f,.50f,0,-300,false);awaitState("ALL_APPS");onUi(()->{int id=home.getResources().getIdentifier("input","id","dev.dothome");EditText field=((View)invoke(home,"getAppsView")).findViewById(id);field.requestFocus();field.setText("rj-selected");});visible("rj-selected-fixture.txt");screenshot("v5-selected-document-search");homeKey();
+    View workspace=(View)invoke(home,"getWorkspace");committedDrawerSwipe();awaitState("ALL_APPS");onUi(()->{int id=home.getResources().getIdentifier("input","id","dev.dothome");EditText field=((View)invoke(home,"getAppsView")).findViewById(id);field.requestFocus();field.setText("rj-selected");});visible("rj-selected-fixture.txt");screenshot("v5-selected-document-search");homeKey();
     staticCall("dev.dothome.ui.DotDocuments","retain",new Class<?>[]{Context.class,boolean[].class},home,new boolean[]{false});check(((java.util.List<?>)staticCall("dev.dothome.ui.DotDocuments","search",new Class<?>[]{Context.class,String.class},home,"rj-selected")).isEmpty(),"Removed document stayed in search");home.getSharedPreferences("dot-style",0).edit().putBoolean("searchDocuments",false).commit();selected.delete();unselected.delete();
   }
   void textAndDeniedStates()throws Exception{
