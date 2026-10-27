@@ -131,7 +131,7 @@ allowed = {
     "android.permission.VIBRATE", "android.permission.BIND_APPWIDGET",
     "android.permission.PACKAGE_USAGE_STATS", "android.permission.SET_WALLPAPER",
     "android.permission.SET_WALLPAPER_HINTS", "android.permission.ACCESS_HIDDEN_PROFILES",
-    "android.permission.READ_CALENDAR", "android.permission.CAMERA",
+    "android.permission.READ_CALENDAR", "android.permission.READ_CONTACTS", "android.permission.CAMERA",
     "com.android.alarm.permission.SET_ALARM",
     "android.permission.ACTIVITY_RECOGNITION", "android.permission.MODIFY_AUDIO_SETTINGS",
     "android.permission.ACCESS_NOTIFICATION_POLICY",

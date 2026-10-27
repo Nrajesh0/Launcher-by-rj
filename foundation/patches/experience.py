@@ -133,7 +133,7 @@ wallpaper=ET.SubElement(app,"service",{a+"name":"dev.dothome.ui.DotAtmosphere",a
 intent=ET.SubElement(wallpaper,"intent-filter");ET.SubElement(intent,"action",{a+"name":"android.service.wallpaper.WallpaperService"})
 ET.SubElement(wallpaper,"meta-data",{a+"name":"android.service.wallpaper",a+"resource":"@xml/dot_atmosphere"})
 ET.SubElement(app,"activity",{a+"name":"dev.dothome.migration.UnavailableApp",a+"exported":"false",a+"theme":"@android:style/Theme.Material.Light.NoActionBar"})
-for permission in ("android.permission.CAMERA","android.permission.READ_CALENDAR","com.android.alarm.permission.SET_ALARM","android.permission.ACTIVITY_RECOGNITION","android.permission.MODIFY_AUDIO_SETTINGS","android.permission.ACCESS_NOTIFICATION_POLICY"):
+for permission in ("android.permission.CAMERA","android.permission.READ_CALENDAR","android.permission.READ_CONTACTS","com.android.alarm.permission.SET_ALARM","android.permission.ACTIVITY_RECOGNITION","android.permission.MODIFY_AUDIO_SETTINGS","android.permission.ACCESS_NOTIFICATION_POLICY"):
     ET.SubElement(doc,"uses-permission",{a+"name":permission})
 ET.register_namespace("android",a[1:-1]);ET.register_namespace("tools","http://schemas.android.com/tools")
 tree.write(file,encoding="unicode",xml_declaration=True)

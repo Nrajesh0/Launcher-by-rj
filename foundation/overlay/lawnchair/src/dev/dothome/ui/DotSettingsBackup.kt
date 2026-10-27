@@ -10,7 +10,7 @@ import org.json.JSONObject
 
 /** Typed appearance/organisation settings only; no permissions, roles or online providers. */
 object DotSettingsBackup {
-    private val legacy=setOf("pref_workspaceColumns","pref_workspaceRows","pref_hotseatColumns","pref_iconPackPackage","pref_launcherTheme","prefs_wrapAdaptive","pref_shadowBGIcons","themed_icons","drawer_themed_icons","pref_searchHotseatTranparency","pref_hotseatQsbCornerRadius","pref_searchResultApps","pref_searchResultShortcuts","pref_searchResultCalculator","pref_searchResultSettingsEntry","pref_drawerList","pref_drawerListOrder","pref_hideFolderApps")
+    private val legacy=setOf("pref_workspaceColumns","pref_workspaceRows","pref_hotseatColumns","pref_iconPackPackage","pref_launcherTheme","prefs_wrapAdaptive","pref_shadowBGIcons","themed_icons","drawer_themed_icons","pref_searchHotseatTranparency","pref_hotseatQsbCornerRadius","pref_searchResultApps","pref_searchResultPeople","pref_searchResultShortcuts","pref_searchResultCalculator","pref_searchResultSettingsEntry","pref_drawerList","pref_drawerListOrder","pref_hideFolderApps")
     private val modern=setOf("hidden_apps","hidden_apps_in_search","show_hidden_apps_in_search","hide_app_drawer_search_bar","show_icon_labels_on_home_screen","show_icon_labels_on_home_screen_folder","show_icon_labels_in_drawer","lock_home_screen","hotseat_mode","accent_color","icon_shape","themed_hotseat_qsb")
     private fun allowed(key: String)=key in modern||key=="drawer_columns"||key=="drawer_columns_landscape"
     private val legacyStrings=setOf("pref_iconPackPackage","pref_launcherTheme","pref_drawerListOrder")

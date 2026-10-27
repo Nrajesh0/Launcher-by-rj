@@ -10,7 +10,7 @@ import java.util.*;
 
 /** User-selected local documents, a validated layout, staged images and recoverable settings. */
 public final class DotBackup {
-  private static final Set<String> PREFS=Set.of("dot-style","dot-tiles","dot-folders","dot-categories");
+  private static final Set<String> PREFS=Set.of("dot-style","dot-tiles","dot-folders","dot-categories","dot-documents");
   public static void export(Activity activity,Uri uri) {
     var state=LauncherAppState.getInstance(activity);
     state.getModel().enqueueModelUpdateTask((task,model,apps)->{
@@ -125,7 +125,7 @@ public final class DotBackup {
   private static void validatePreferences(JSONObject source)throws Exception {
     for(String name:PREFS){JSONObject values=source.optJSONObject(name);if(values==null)continue;if(values.length()>4000)throw new IllegalArgumentException();
       for(var keys=values.keys();keys.hasNext();){String key=keys.next();Object value=values.get(key);if(name.equals("dot-style")){
-          if(Set.of("dark","manualAccent","reduceMotion","wallpaperApplied","externalWallpaper","homeOnlyIcons","legacyImported","torchActive").contains(key)&&!(value instanceof Boolean))throw new IllegalArgumentException();
+          if(Set.of("dark","manualAccent","reduceMotion","wallpaperApplied","externalWallpaper","homeOnlyIcons","searchDocuments","legacyImported","torchActive").contains(key)&&!(value instanceof Boolean))throw new IllegalArgumentException();
           if(Set.of("accent","wallpaperAccent","ownedWallpaperId","observedWallpaperId").contains(key)&&!(value instanceof Number))throw new IllegalArgumentException();
           if(Set.of("material","wallpaper","backupWallpaper").contains(key)&&!(value instanceof String))throw new IllegalArgumentException();
         }else if(!(value instanceof String))throw new IllegalArgumentException();

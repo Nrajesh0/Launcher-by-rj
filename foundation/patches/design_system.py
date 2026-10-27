@@ -49,3 +49,15 @@ edit('lawnchair/src/app/lawnchair/search/algorithms/LawnchairLocalSearchAlgorith
 
 # Keep the paused Home preview coherent while its Activity recreation is deferred.
 edit('lawnchair/src/app/lawnchair/qsb/LawnQsbLayout.kt','    private fun setUpBackground(themed: Boolean = false) {','    fun refreshDotAppearance() { setUpBackground() }\n\n    private fun setUpBackground(themed: Boolean = false) {')
+
+edit('lawnchair/src/app/lawnchair/search/algorithms/LawnchairLocalSearchAlgorithm.kt',
+'        SettingsSearchProvider,','        SettingsSearchProvider,\n        dev.dothome.ui.DotDocumentSearchProvider,')
+edit('lawnchair/src/app/lawnchair/search/adapter/SearchTargetFactory.kt',
+'            is FileInfo -> Uri.withAppendedPath(',
+'            is FileInfo -> if(info.fileId.startsWith("content://")) Uri.parse(info.fileId) else Uri.withAppendedPath(')
+
+# The upstream V2 flow persists a provisional widget before configuration. A cancelled
+# configuration must remove that native item as well as its system widget binding.
+edit('src/com/android/launcher3/Launcher.java',
+'        } else if (resultCode == RESULT_CANCELED) {\n            mAppWidgetHolder.deleteAppWidgetId(appWidgetId);\n            animationType = Workspace.CANCEL_TWO_STAGE_WIDGET_DROP_ANIMATION;',
+'        } else if (resultCode == RESULT_CANCELED) {\n            LauncherAppWidgetHostView provisional = mWorkspace.getWidgetForAppWidgetId(appWidgetId);\n            if (enableAddAppWidgetViaConfigActivityV2() && provisional != null\n                    && provisional.getTag() instanceof LauncherAppWidgetInfo item) {\n                removeItem(provisional, item, true, "Widget configuration cancelled");\n            } else {\n                mAppWidgetHolder.deleteAppWidgetId(appWidgetId);\n            }\n            animationType = Workspace.CANCEL_TWO_STAGE_WIDGET_DROP_ANIMATION;')

@@ -196,6 +196,18 @@ open class DotPreferences : Activity() {
         toggle("Calculator",p.searchResultCalculator.get()) {p.searchResultCalculator.set(it)}
         toggle("Settings",p.searchResultSettingsEntry.get()) {p.searchResultSettingsEntry.set(it)}
         toggle("App shortcuts",p.searchResultShortcuts.get()) {p.searchResultShortcuts.set(it)}
+        toggle("Contacts",p.searchResultPeople.get()&&checkSelfPermission(android.Manifest.permission.READ_CONTACTS)==android.content.pm.PackageManager.PERMISSION_GRANTED) {enabled->
+            if(enabled&&checkSelfPermission(android.Manifest.permission.READ_CONTACTS)!=android.content.pm.PackageManager.PERMISSION_GRANTED){p.searchResultPeople.set(false);requestPermissions(arrayOf(android.Manifest.permission.READ_CONTACTS),81)}else p.searchResultPeople.set(enabled)
+        }
+        toggle("Selected documents",style.getBoolean("searchDocuments",false)){style.edit().putBoolean("searchDocuments",it).apply()}
+        row("Choose documents","${DotDocuments.entries(this).length()} selected") {
+            startActivityForResult(Intent(Intent.ACTION_OPEN_DOCUMENT).setType("*/*").addCategory(Intent.CATEGORY_OPENABLE).putExtra(Intent.EXTRA_ALLOW_MULTIPLE,true).addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION),82)
+        }
+        row("Manage selected documents") {
+            val entries=DotDocuments.entries(this);val selected=BooleanArray(entries.length()){true};val names=Array(entries.length()){entries.getJSONObject(it).optString("name","Document")}
+            android.app.AlertDialog.Builder(this).setTitle("Selected documents").setMultiChoiceItems(names,selected){_,which,checked->selected[which]=checked}.setPositiveButton("Done"){_,_->DotDocuments.retain(this,selected);show("search",false)}.setNegativeButton("Cancel",null).show()
+        }
+        body.addView(text("Document search uses selected file names. Removed or inaccessible grants need selecting again.",12f,secondary))
         gap()
         row("Hidden apps in search",when(p2.hiddenAppsInSearch.firstBlocking()) {"on"->"Show";"if_name_typed"->"Exact name only";else->"Hide"}) {
             val choices=arrayOf("Hide","Exact name only","Show")
@@ -349,8 +361,18 @@ open class DotPreferences : Activity() {
         row("Choose a local image") { startActivityForResult(Intent(Intent.ACTION_OPEN_DOCUMENT).setType("image/*").addCategory(Intent.CATEGORY_OPENABLE).addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION), 61) }
     }
 
+    override fun onRequestPermissionsResult(request: Int,permissions: Array<out String>,results: IntArray){
+        super.onRequestPermissionsResult(request,permissions,results)
+        if(request==81){p.searchResultPeople.set(results.firstOrNull()==android.content.pm.PackageManager.PERMISSION_GRANTED);show("search",false)}
+    }
+
     override fun onActivityResult(request: Int, result: Int, data: Intent?) {
         super.onActivityResult(request, result, data)
+        if(request==82&&result==RESULT_OK&&data!=null){
+            val selected=ArrayList<android.net.Uri>()
+            data.clipData?.let {clip->for(n in 0 until minOf(DotDocuments.LIMIT,clip.itemCount))selected.add(clip.getItemAt(n).uri)} ?: data.data?.let {selected.add(it)}
+            work.execute {selected.forEach {uri->runCatching {contentResolver.takePersistableUriPermission(uri,Intent.FLAG_GRANT_READ_URI_PERMISSION)}};DotDocuments.add(this,selected);style.edit().putBoolean("searchDocuments",true).apply();runOnUiThread {if(!isDestroyed)show("search",false)}};return
+        }
         if(result==RESULT_OK && data?.data!=null) {
             if(request==71) {DotBackup.export(this,data.data!!);return}
             if(request==72) {DotBackup.inspect(this,data.data!!);return}

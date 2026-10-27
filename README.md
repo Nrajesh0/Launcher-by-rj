@@ -12,13 +12,13 @@ Download the versioned APK from [Releases](https://github.com/Nrajesh0/Launcher-
 - Arrange selects apps, folders and widgets. Move sends a selection to a page; holding and moving a selected item drags the group. Folder groups selected apps; Remove removes Home items. Done exits.
 - Select one widget in Arrange and tap Style for faces, colours and configuration. Select a folder and tap Style for its cover.
 - Customisation offers the real Home preview, Theme & Style, local wallpapers, icon packs, grid and labels. Light/dark is independent of Classic, Lucent and Dynamic. Picked images have a drag/pinch crop preview.
-- Home settings provides freeze layout, drawer options, hidden icons and local layout backup/restore.
+- Home settings provides freeze layout, drawer options, hidden icons and local layout backup/restore. Search scopes include apps, shortcuts, calculator, settings, optional contacts and file names explicitly chosen through Android’s document picker.
 
 ## Widgets and permissions
 
 Local clock faces, date, battery, Focus, Away time, photos/stickers, notes, calendar, countdown, elapsed timer, usage, compass, media and quick controls share native drag/resize/persistence. The family-first tray also opens the standard installed-app widget picker. Optional Classic/Lucent presets add a new page; existing pages and the dock stay intact.
 
-**No Internet permission, network implementation or online option. No Accessibility service, global gesture overlay or secure-settings permission.** Calendar and flashlight ask for their optional permissions when used; photos use Android's document picker. Media/notification dots and usage history have optional system access settings. Activity recognition is requested for the pedometer. Sound uses the public ringer API; DND asks for optional notification-policy access; Bluetooth opens system settings. A ringing timer opens Clock. Other apps and widget providers have their own permissions.
+**No Internet permission, network implementation or online option. No Accessibility service, global gesture overlay or secure-settings permission.** Calendar, contacts search and flashlight ask for their optional permissions when used; photos use Android's document picker. Media/notification dots and usage history have optional system access settings. Activity recognition is requested for the pedometer. Sound uses the public ringer API; DND asks for optional notification-policy access; Bluetooth opens system settings. A ringing timer opens Clock. Other apps and widget providers have their own permissions.
 
 Android owns Home, Back, Recents and global navigation gestures. Dot Home uses your selected system navigation mode. Manufacturer restrictions on third-party launcher gestures remain a firmware limitation; ADB and Accessibility are not required by this app. Keep your stock launcher installed for the system Recents implementation.
 

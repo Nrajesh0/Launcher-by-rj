@@ -109,7 +109,7 @@ public final class ExperienceSmoke extends FoundationSmoke {
     Map<Integer,String> before=placement();beginExternalWidget(provider);configureFixture(true);
     for(int n=0;n<40&&placement().size()==before.size();n++)SystemClock.sleep(100);check(placement().size()==before.size()+1,"Configured external widget not durably placed");
     int row=-1,widget=-1;SQLiteDatabase db=(SQLiteDatabase)invoke(invoke(invoke(home,"getModel"),"getModelDbController"),"getDb");try(var cursor=db.rawQuery("SELECT _id,appWidgetId FROM favorites WHERE appWidgetProvider LIKE '%WidgetProvider%'",null)){check(cursor.moveToFirst(),"External widget row missing");row=cursor.getInt(0);widget=cursor.getInt(1);}check(manager.getAppWidgetInfo(widget)!=null,"External widget binding missing");visible("Provider widget configured");screenshot("v5-external-widget-configured");
-    Map<Integer,String> placed=placement();beginExternalWidget(provider);configureFixture(false);SystemClock.sleep(400);check(placed.equals(placement()),"Cancelled provider configuration changed the layout");
+    Map<Integer,String> placed=placement();beginExternalWidget(provider);configureFixture(false);for(int n=0;n<40&&!placed.equals(placement());n++)SystemClock.sleep(100);check(placed.equals(placement()),"Cancelled provider configuration changed the layout: before="+placed+" after="+placement());
     final int remove=row;onUi(()->{View view=nativeItem(remove);check(view!=null,"External widget view missing");try{api(home,"removeItem",new Class<?>[]{View.class,cls("com.android.launcher3.model.data.ItemInfo"),boolean.class,String.class},view,view.getTag(),true,"Synthetic widget test cleanup");}catch(Exception error){throw new RuntimeException(error);}});
     for(int n=0;n<40&&!before.equals(placement());n++)SystemClock.sleep(100);check(before.equals(placement()),"External widget removal did not restore the layout");check(manager.getAppWidgetInfo(widget)==null,"Removed external widget binding leaked");homeKey();
   }
@@ -124,6 +124,18 @@ public final class ExperienceSmoke extends FoundationSmoke {
       check(findSystemText(getUiAutomation(UiAutomation.FLAG_DONT_SUPPRESS_ACCESSIBILITY_SERVICES).getRootInActiveWindow(),"42")==null,"Disabled calculator scope still returned a calculation");homeKey();
     }finally{prefs.edit().putBoolean("pref_searchResultCalculator",original).commit();}
   }
+  void selectedDataScopes()throws Exception{
+    settings("search");visible("Contacts");check(clickSystemText("Contacts"),"Contacts scope did not request optional access");
+    check(clickSystemText("Don't allow")||clickSystemText("Deny"),"Contact access refusal was not available");SystemClock.sleep(300);
+    check(home.checkSelfPermission(android.Manifest.permission.READ_CONTACTS)!=android.content.pm.PackageManager.PERMISSION_GRANTED&&!home.getSharedPreferences("com.android.launcher3.prefs",0).getBoolean("pref_searchResultPeople",false),"Refused contact access left its scope enabled");homeKey();
+    java.io.File directory=new java.io.File(home.getCacheDir(),"Overview");directory.mkdirs();java.io.File selected=new java.io.File(directory,"rj-selected-fixture.txt"),unselected=new java.io.File(directory,"rj-unselected-fixture.txt");try(var out=new java.io.FileOutputStream(selected)){out.write("Synthetic selected document".getBytes(java.nio.charset.StandardCharsets.UTF_8));}try(var out=new java.io.FileOutputStream(unselected)){out.write("This must not be indexed".getBytes(java.nio.charset.StandardCharsets.UTF_8));}
+    android.net.Uri uri=(android.net.Uri)cls("androidx.core.content.FileProvider").getMethod("getUriForFile",Context.class,String.class,java.io.File.class).invoke(null,home,"dev.dothome.overview.fileprovider",selected);
+    staticCall("dev.dothome.ui.DotDocuments","add",new Class<?>[]{Context.class,java.util.List.class},home,java.util.List.of(uri));
+    settings("search");visible("Selected documents");if(!home.getSharedPreferences("dot-style",0).getBoolean("searchDocuments",false))clickSystemText("Selected documents");homeKey();
+    var found=(java.util.List<?>)staticCall("dev.dothome.ui.DotDocuments","search",new Class<?>[]{Context.class,String.class},home,"rj-selected");check(found.size()==1,"Selected document metadata was not searchable");check(((java.util.List<?>)staticCall("dev.dothome.ui.DotDocuments","search",new Class<?>[]{Context.class,String.class},home,"rj-unselected")).isEmpty(),"Document search scanned an unselected file");
+    View workspace=(View)invoke(home,"getWorkspace");swipe(workspace,.53f,.72f,0,-300,false);awaitState("ALL_APPS");onUi(()->{int id=home.getResources().getIdentifier("input","id","dev.dothome");EditText field=((View)invoke(home,"getAppsView")).findViewById(id);field.requestFocus();field.setText("rj-selected");});visible("rj-selected-fixture.txt");screenshot("v5-selected-document-search");homeKey();
+    staticCall("dev.dothome.ui.DotDocuments","retain",new Class<?>[]{Context.class,boolean[].class},home,new boolean[]{false});check(((java.util.List<?>)staticCall("dev.dothome.ui.DotDocuments","search",new Class<?>[]{Context.class,String.class},home,"rj-selected")).isEmpty(),"Removed document stayed in search");home.getSharedPreferences("dot-style",0).edit().putBoolean("searchDocuments",false).commit();selected.delete();unselected.delete();
+  }
   void textAndDeniedStates()throws Exception{
     try{
       shell("settings put system font_scale 1.3");SystemClock.sleep(700);settings("appearance");visible("Theme & Style");screenshot("v5-large-text-theme");homeKey();
@@ -131,11 +143,11 @@ public final class ExperienceSmoke extends FoundationSmoke {
       String initial=new JSONObject().put("type","away").toString();onUi(()->home.startActivity(new Intent().setClassName("dev.dothome","dev.dothome.widgets.TileDetails").putExtra("itemId",900004L).putExtra("initial",initial)));
       Activity details=waitForMonitorWithTimeout(monitor,5000);removeMonitor(monitor);check(details!=null,"History detail screen did not open");visible("Allow usage history");screenshot("v5-denied-history");
       onUi(()->details.getWindow().getDecorView().setLayoutDirection(View.LAYOUT_DIRECTION_RTL));SystemClock.sleep(200);screenshot("v5-rtl-owned-screen");shell("input keyevent KEYCODE_BACK");homeKey();
-      for(String permission:new String[]{android.Manifest.permission.CAMERA,android.Manifest.permission.READ_CALENDAR,android.Manifest.permission.ACTIVITY_RECOGNITION})check(home.checkSelfPermission(permission)!=android.content.pm.PackageManager.PERMISSION_GRANTED,"Optional permission unexpectedly granted: "+permission);
+      for(String permission:new String[]{android.Manifest.permission.CAMERA,android.Manifest.permission.READ_CALENDAR,android.Manifest.permission.ACTIVITY_RECOGNITION,android.Manifest.permission.READ_CONTACTS})check(home.checkSelfPermission(permission)!=android.content.pm.PackageManager.PERMISSION_GRANTED,"Optional permission unexpectedly granted: "+permission);
     }finally{shell("settings put system font_scale 1.0");SystemClock.sleep(500);}
   }
   @Override public void onStart(){Bundle result=new Bundle();try{
-    getUiAutomation(UiAutomation.FLAG_DONT_SUPPRESS_ACCESSIBILITY_SERVICES);launchHomeAsync();SystemClock.sleep(800);homeKey();themes();hiddenCancellation();categories();presetUndo();widgetData();externalWidget();calculatorScope();textAndDeniedStates();
+    getUiAutomation(UiAutomation.FLAG_DONT_SUPPRESS_ACCESSIBILITY_SERVICES);launchHomeAsync();SystemClock.sleep(800);homeKey();themes();hiddenCancellation();categories();presetUndo();widgetData();externalWidget();calculatorScope();selectedDataScopes();textAndDeniedStates();
     result.putString("stream","PASS: v5 Classic/Lucent light/dark preserve layout; grid preview; hidden cancellation/back; category correction; preset/undo; note and weather drafts; owned photos/cutout/cycle; wallpaper preview; backup path rejection.\n");finish(Activity.RESULT_OK,result);
   }catch(Throwable error){try{screenshot("v5-failure");}catch(Throwable ignored){}String diagnostics="";try{diagnostics=systemTree(getUiAutomation(UiAutomation.FLAG_DONT_SUPPRESS_ACCESSIBILITY_SERVICES).getRootInActiveWindow(),0);}catch(Throwable ignored){}result.putString("stream","FAIL: "+android.util.Log.getStackTraceString(error)+diagnostics);finish(Activity.RESULT_CANCELED,result);}}
 }
