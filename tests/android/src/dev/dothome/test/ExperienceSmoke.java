@@ -126,7 +126,7 @@ public final class ExperienceSmoke extends FoundationSmoke {
   }
   void selectedDataScopes()throws Exception{
     settings("search");visible("Contacts");check(clickSystemText("Contacts"),"Contacts scope did not request optional access");
-    check(clickSystemText("Don't allow")||clickSystemText("Deny"),"Contact access refusal was not available");SystemClock.sleep(300);
+    check(clickSystemText("Don't allow")||clickSystemText("Don’t allow")||clickSystemText("Deny"),"Contact access refusal was not available");SystemClock.sleep(300);
     check(home.checkSelfPermission(android.Manifest.permission.READ_CONTACTS)!=android.content.pm.PackageManager.PERMISSION_GRANTED&&!home.getSharedPreferences("com.android.launcher3.prefs",0).getBoolean("pref_searchResultPeople",false),"Refused contact access left its scope enabled");homeKey();
     java.io.File directory=new java.io.File(home.getCacheDir(),"Overview");directory.mkdirs();java.io.File selected=new java.io.File(directory,"rj-selected-fixture.txt"),unselected=new java.io.File(directory,"rj-unselected-fixture.txt");try(var out=new java.io.FileOutputStream(selected)){out.write("Synthetic selected document".getBytes(java.nio.charset.StandardCharsets.UTF_8));}try(var out=new java.io.FileOutputStream(unselected)){out.write("This must not be indexed".getBytes(java.nio.charset.StandardCharsets.UTF_8));}
     android.net.Uri uri=(android.net.Uri)cls("androidx.core.content.FileProvider").getMethod("getUriForFile",Context.class,String.class,java.io.File.class).invoke(null,home,"dev.dothome.overview.fileprovider",selected);

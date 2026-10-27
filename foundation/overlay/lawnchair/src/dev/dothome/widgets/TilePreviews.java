@@ -16,6 +16,7 @@ public final class TilePreviews {
       int height=Math.max(1,width*tile.getRows()/tile.getColumns());
       if(original!=null) original[0]=width;
       JSONObject sample=new JSONObject().put("type",tile.getKind()).put("style",tile.getFace()).put("w",tile.getColumns()).put("h",tile.getRows());
+      if(tile.getKind().equals("weather"))sample.put("temperature","21").put("location","Local weather");
       TileArtwork view=new TileArtwork(new TileContext(context),sample,true);
       view.measure(View.MeasureSpec.makeMeasureSpec(width,View.MeasureSpec.EXACTLY),View.MeasureSpec.makeMeasureSpec(height,View.MeasureSpec.EXACTLY));view.layout(0,0,width,height);
       Bitmap bitmap=Bitmap.createBitmap(width,height,Bitmap.Config.ARGB_8888);view.draw(new Canvas(bitmap));return bitmap;
