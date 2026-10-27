@@ -296,6 +296,8 @@ final class TileArtwork extends View {
         break;
       case "photo":
         if (style == 2) {
+          if(!preview && !a.getSharedPreferences("dot-style",0).getBoolean("wallpaperApplied",false))
+            ink=dev.dothome.ui.DotWallpaperDrawable.darkSystemIcons(a,!a.dark())?0xff171b18:0xfff8f8f3;
           drawControl(c, "photo", w / 2, h * .43f, u * .18f, ink);
           text(
               c,

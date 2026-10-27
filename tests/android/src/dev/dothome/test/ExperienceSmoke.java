@@ -50,6 +50,11 @@ public final class ExperienceSmoke extends FoundationSmoke {
     throw new AssertionError("Provider configuration did not expose its "+(apply?"Apply":"Cancel")+" action within 60 seconds");
   }
   void phase(String name){Bundle progress=new Bundle();progress.putString("stream","CHECK: "+name+"\n");sendStatus(0,progress);}
+  @Override void awaitState(String key){
+    try{super.awaitState(key);}catch(AssertionError failed){
+      try{var base=cls("com.android.launcher3.views.BaseDragLayer");var f=base.getDeclaredField("mSystemGestureRegion");f.setAccessible(true);Object layer=invoke(home,"getDragLayer");var insets=home.getWindow().getDecorView().getRootWindowInsets();phase("State failure "+key+"; focus="+home.hasWindowFocus()+"; IME="+(insets!=null&&insets.isVisible(WindowInsets.Type.ime()))+"; gesture region="+f.get(layer)+"; searching="+invoke(invoke(home,"getAppsView"),"isSearching"));}catch(Exception diagnostics){}throw failed;
+    }
+  }
   @Override void homeKey()throws Exception {super.homeKey();check(awaitFocus(true),"System Home did not foreground Dot Home");}
   Class<?> cls(String name)throws Exception{return Class.forName(name,true,getTargetContext().getClassLoader());}
   Map<Integer,String> placement(){
@@ -63,6 +68,16 @@ public final class ExperienceSmoke extends FoundationSmoke {
     onUi(()->home.startActivity(new Intent().setClassName("dev.dothome","app.lawnchair.ui.preferences.PreferenceActivity").putExtra("dotRoute",route)));SystemClock.sleep(550);
   }
   int views(View view,String name){int count=view.getClass().getName().equals(name)?1:0;if(view instanceof ViewGroup group)for(int n=0;n<group.getChildCount();n++)count+=views(group.getChildAt(n),name);return count;}
+  void ownedWallpaperPalette()throws Exception{
+    var style=home.getSharedPreferences("dot-style",0);String before=style.getString("wallpaper","glass");boolean applied=style.getBoolean("wallpaperApplied",false),manual=style.getBoolean("manualAccent",false),external=style.getBoolean("externalWallpaper",false);int accent=style.getInt("accent",0xff6d9a80),seed=style.getInt("wallpaperAccent",0xff7fa88d);
+    try{
+      style.edit().putBoolean("wallpaperApplied",false).putBoolean("manualAccent",false).putString("wallpaper","glass").commit();staticCall("dev.dothome.ui.DotAppearance","refreshWallpaper",new Class<?>[]{Context.class},home);int light=style.getInt("wallpaperAccent",0);
+      style.edit().putString("wallpaper","noir").commit();staticCall("dev.dothome.ui.DotAppearance","refreshWallpaper",new Class<?>[]{Context.class},home);check(light!=style.getInt("wallpaperAccent",0),"Owned wallpaper palette followed the unrelated system background");
+      check(!(Boolean)staticCall("dev.dothome.ui.DotWallpaperDrawable","darkSystemIcons",new Class<?>[]{Context.class,boolean.class},home,true),"Noir selected unreadable dark system icons");
+      style.edit().putBoolean("manualAccent",true).putInt("accent",0xffb34e29).commit();staticCall("dev.dothome.ui.DotAppearance","invalidate",new Class<?>[]{});Object first=staticCall("dev.dothome.ui.DotAppearance","get",new Class<?>[]{Context.class},home);int manualColour=first.getClass().getField("accent").getInt(first);
+      style.edit().putString("wallpaper","glass").commit();staticCall("dev.dothome.ui.DotAppearance","refreshWallpaper",new Class<?>[]{Context.class},home);staticCall("dev.dothome.ui.DotAppearance","invalidate",new Class<?>[]{});Object next=staticCall("dev.dothome.ui.DotAppearance","get",new Class<?>[]{Context.class},home);check(next.getClass().getField("accent").getInt(next)==manualColour,"Wallpaper refresh changed the manual accent");
+    }finally{style.edit().putString("wallpaper",before).putBoolean("wallpaperApplied",applied).putBoolean("manualAccent",manual).putBoolean("externalWallpaper",external).putInt("accent",accent).putInt("wallpaperAccent",seed).commit();staticCall("dev.dothome.ui.DotAppearance","invalidate",new Class<?>[]{});}
+  }
   void themes()throws Exception{
     Map<Integer,String> original=placement();
     for(String material:new String[]{"Classic","Lucent"})for(boolean dark:new boolean[]{false,true}){
@@ -184,7 +199,7 @@ public final class ExperienceSmoke extends FoundationSmoke {
     }finally{shell("settings put system font_scale 1.0");SystemClock.sleep(500);}
   }
   @Override public void onStart(){Bundle result=new Bundle();try{
-    getUiAutomation(UiAutomation.FLAG_DONT_SUPPRESS_ACCESSIBILITY_SERVICES);launchHomeAsync();SystemClock.sleep(800);homeKey();phase("Themes");themes();phase("Hidden gesture");hiddenCancellation();phase("Categories");categories();phase("Preset and undo");presetUndo();phase("Widget data");widgetData();phase("External widget host");externalWidget();phase("Calculator scope");calculatorScope();phase("Selected-data scopes");selectedDataScopes();phase("Large text and denied states");textAndDeniedStates();
+    getUiAutomation(UiAutomation.FLAG_DONT_SUPPRESS_ACCESSIBILITY_SERVICES);launchHomeAsync();SystemClock.sleep(800);homeKey();phase("Owned wallpaper palette");ownedWallpaperPalette();phase("Themes");themes();phase("Hidden gesture");hiddenCancellation();phase("Categories");categories();phase("Preset and undo");presetUndo();phase("Widget data");widgetData();phase("External widget host");externalWidget();phase("Calculator scope");calculatorScope();phase("Selected-data scopes");selectedDataScopes();phase("Large text and denied states");textAndDeniedStates();
     result.putString("stream","PASS: v5 Classic/Lucent light/dark preserve layout; grid preview; hidden cancellation/back; category correction; preset/undo; note and weather drafts; owned photos/cutout/cycle; wallpaper preview; backup path rejection; native external widget configure/cancel/remove; calculator on/off; contacts refusal and selected document scope; large text/owned RTL/denied usage state.\n");finish(Activity.RESULT_OK,result);
   }catch(Throwable error){try{screenshot("v5-failure");}catch(Throwable ignored){}String diagnostics="";try{diagnostics=systemTree(getUiAutomation(UiAutomation.FLAG_DONT_SUPPRESS_ACCESSIBILITY_SERVICES).getRootInActiveWindow(),0);}catch(Throwable ignored){}result.putString("stream","FAIL: "+android.util.Log.getStackTraceString(error)+diagnostics);finish(Activity.RESULT_CANCELED,result);}}
 }

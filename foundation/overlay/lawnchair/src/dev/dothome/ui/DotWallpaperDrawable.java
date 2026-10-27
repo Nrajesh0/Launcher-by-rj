@@ -17,7 +17,7 @@ public final class DotWallpaperDrawable extends Drawable {
   public static boolean darkSystemIcons(android.content.Context context,boolean fallback) {
     var style=context.getSharedPreferences("dot-style",0);
     if(style.getBoolean("wallpaperApplied",false))return fallback;
-    String key=style.getString("wallpaper","glass");return !key.equals("optic")&&!key.equals("graphite");
+    String key=style.getString("wallpaper","glass");return !key.equals("optic")&&!key.equals("graphite")&&!key.equals("noir");
   }
   public DotWallpaperDrawable(String key) {this.key=key;}
   @Override public void draw(Canvas canvas) {

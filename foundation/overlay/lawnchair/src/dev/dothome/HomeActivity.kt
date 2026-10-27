@@ -101,12 +101,27 @@ class HomeActivity : LawnchairLauncher() {
         workspace?.let { dev.dothome.widgets.TileRefresh.setActive(it,state==com.android.launcher3.LauncherState.NORMAL || state==com.android.launcher3.LauncherState.EDIT_MODE) }
     }
 
-    override fun onResume() { super.onResume();if(previewRecreatePending){previewRecreatePending=false;super.recreate();return};dev.dothome.ui.DotAppearance.invalidate();dev.dothome.ui.DotAppearance.refreshWallpaper(this); updateMaterial(); dev.dothome.migration.DotMigration.start(this) }
+    /** Home must not keep the drawer's search/IME input region after leaving Apps. */
+    private fun clearHomeSearchInput() {
+        if(!isInState(com.android.launcher3.LauncherState.NORMAL))return
+        appsView?.searchUiManager?.resetSearch()
+        appsView?.searchUiManager?.editText?.clearFocus()
+        window.insetsController?.hide(android.view.WindowInsets.Type.ime())
+        workspace?.requestFocus()
+        dragLayer?.requestApplyInsets()
+    }
+    override fun onStateSetEnd(state: com.android.launcher3.LauncherState) {
+        super.onStateSetEnd(state)
+        if(state==com.android.launcher3.LauncherState.NORMAL)workspace?.post {if(!isDestroyed)clearHomeSearchInput()}
+    }
+
+    override fun onResume() { super.onResume();if(previewRecreatePending){previewRecreatePending=false;super.recreate();return};dev.dothome.ui.DotAppearance.invalidate();dev.dothome.ui.DotAppearance.refreshWallpaper(this); updateMaterial();clearHomeSearchInput(); dev.dothome.migration.DotMigration.start(this) }
 
     override fun onNewIntent(intent: Intent) {
         dev.dothome.widgets.DotWidgetTray.close();dev.dothome.ui.DotCategoryCard.close()
         dev.dothome.ui.DotHiddenPanel.close(this)
         super.onNewIntent(intent); setIntent(intent)
+        if(intent.action==Intent.ACTION_MAIN)clearHomeSearchInput()
         workspace?.postDelayed({if(!isDestroyed)dev.dothome.widgets.TileRefresh.setActive(workspace,isInState(com.android.launcher3.LauncherState.NORMAL) || isInState(com.android.launcher3.LauncherState.EDIT_MODE))},500)
     }
 

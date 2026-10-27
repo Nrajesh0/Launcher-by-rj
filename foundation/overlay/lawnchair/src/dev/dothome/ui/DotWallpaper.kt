@@ -6,6 +6,16 @@ import java.util.Random
 
 /** Original, bundled optical materials. Computed locally; no images are fetched. */
 object DotWallpaper {
+    private val palettes=mutableMapOf<String,android.app.WallpaperColors>()
+    /** Palette of the backdrop actually drawn by Home before a system wallpaper is applied. */
+    @Synchronized
+    fun palette(key: String): android.app.WallpaperColors {
+        val name=if(key in setOf("glass","mist","optic","graphite","prism","noir"))key else "glass"
+        return palettes.getOrPut(name) {
+            val sample=bitmap(name,96,192)
+            try {android.app.WallpaperColors.fromBitmap(sample)} finally {sample.recycle()}
+        }
+    }
     private val paint = Paint(Paint.ANTI_ALIAS_FLAG)
     private val grain: Bitmap by lazy {
         val random = Random(28471)

@@ -57,7 +57,9 @@ public final class DotAppearance {
     try{
       WallpaperManager wm=WallpaperManager.getInstance(context);
       SharedPreferences p=context.getSharedPreferences("dot-style",0);int id=wm.getWallpaperId(WallpaperManager.FLAG_SYSTEM);
-      WallpaperColors colours=wm.getWallpaperColors(WallpaperManager.FLAG_SYSTEM);
+      WallpaperColors colours=p.getBoolean("wallpaperApplied",false)
+        ?wm.getWallpaperColors(WallpaperManager.FLAG_SYSTEM)
+        :DotWallpaper.INSTANCE.palette(p.getString("wallpaper","glass"));
       int seed=p.getInt("wallpaperAccent",0xff7fa88d);
       if(colours!=null){seed=colours.getPrimaryColor().toArgb();
         if(colours.getSecondaryColor()!=null){int second=colours.getSecondaryColor().toArgb();float[] a=new float[3],b=new float[3];Color.colorToHSV(seed,a);Color.colorToHSV(second,b);if(b[1]>a[1])seed=second;}
