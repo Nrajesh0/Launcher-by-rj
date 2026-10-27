@@ -37,6 +37,17 @@ with tempfile.TemporaryDirectory() as td:
  end=bytearray(data[eocd:])
  struct.pack_into('<I',end,16,signed_central)
  candidate=prefix[:signed_central]+data[central:eocd]+end
+ if candidate[:len(prefix)]!=prefix:
+  first=next(i for i,(a,b) in enumerate(zip(candidate,prefix)) if a!=b)
+  print('Public directory first difference',first,'relative',first-signed_central,'aligned central',central,'signed central',signed_central)
+  print('Actual public bytes',prefix[max(0,first-24):first+40].hex())
+  print('Rebuilt public bytes',candidate[max(0,first-24):first+40].hex())
+  for label,payload,offset in [('actual',prefix,signed_central),('aligned',data,central)]:
+   for _ in range(3):
+    h=struct.unpack_from('<4s6H3I5H2I',payload,offset)
+    size=46+h[10]+h[11]+h[12]
+    print(label,'central entry',h,'name',payload[offset+46:offset+46+h[10]])
+    offset+=size
  assert candidate[:len(prefix)]==prefix,'Reconstructed public directory differs from uploaded prefix'
  assert len(candidate)==34946740
  assert hashlib.sha256(candidate).hexdigest()==expected,'Must exactly equal previously locally signed artifact'

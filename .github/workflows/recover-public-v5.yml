@@ -4,6 +4,7 @@ on:
     branches: [v5-release-recovery]
     paths:
       - '.github/workflows/recover-public-v5.yml'
+      - 'scripts/recover_public_v5.py'
   workflow_dispatch:
 permissions:
   contents: read
