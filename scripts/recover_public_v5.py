@@ -38,17 +38,19 @@ with tempfile.TemporaryDirectory() as td:
  # already uploaded public signed records rather than guessing the padding.
  with zipfile.ZipFile(unsigned) as z:infos={i.filename:i for i in z.infolist()}
  offsets={};pos=0
- while pos<start and prefix[pos:pos+4]==b'PK\x03\x04':
+ while True:
+  pos=prefix.find(b'PK\x03\x04',pos,start)
+  if pos<0:break
   h=struct.unpack_from('<4s5H3I2H',prefix,pos)
-  name=prefix[pos+30:pos+30+h[9]].decode('utf-8')
-  assert name in infos and name not in offsets
-  offsets[name]=pos
-  info=infos[name]
-  assert h[7] in (0,info.compress_size)
-  pos+=30+h[9]+h[10]+info.compress_size
-  if h[2]&8:pos+=16 if prefix[pos:pos+4]==b'PK\x07\x08' else 12
- assert set(offsets)==set(infos),'Every local record must be present in uploaded prefix'
- assert pos==start or (pos<start and not any(prefix[pos:start])),'Unexpected data before signing block'
+  try:name=prefix[pos+30:pos+30+h[9]].decode('utf-8')
+  except UnicodeDecodeError:name=None
+  if name in infos:
+   info=infos[name]
+   if h[3]==info.compress_type and h[7] in (0,info.compress_size):
+    assert name not in offsets,('Duplicate public record',name)
+    offsets[name]=pos
+  pos+=4
+ assert set(offsets)==set(infos),('Missing public local records',len(set(infos)-set(offsets)))
  directory=bytearray(data[central:eocd]);pos=0
  while pos<len(directory):
   h=struct.unpack_from('<4s6H3I5H2I',directory,pos)
