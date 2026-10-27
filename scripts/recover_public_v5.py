@@ -34,9 +34,32 @@ with tempfile.TemporaryDirectory() as td:
  start=signed_central-size-8
  assert struct.unpack_from('<Q',prefix,start)[0]==size
  assert prefix[signed_central:signed_central+4]==b'PK\x01\x02'
+ # apksigner can add local alignment padding; derive offsets from the
+ # already uploaded public signed records rather than guessing the padding.
+ with zipfile.ZipFile(unsigned) as z:infos={i.filename:i for i in z.infolist()}
+ offsets={};pos=0
+ while pos<start and prefix[pos:pos+4]==b'PK\x03\x04':
+  h=struct.unpack_from('<4s5H3I2H',prefix,pos)
+  name=prefix[pos+30:pos+30+h[9]].decode('utf-8')
+  assert name in infos and name not in offsets
+  offsets[name]=pos
+  info=infos[name]
+  assert h[7] in (0,info.compress_size)
+  pos+=30+h[9]+h[10]+info.compress_size
+  if h[2]&8:pos+=16 if prefix[pos:pos+4]==b'PK\x07\x08' else 12
+ assert set(offsets)==set(infos),'Every local record must be present in uploaded prefix'
+ assert pos==start or (pos<start and not any(prefix[pos:start])),'Unexpected data before signing block'
+ directory=bytearray(data[central:eocd]);pos=0
+ while pos<len(directory):
+  h=struct.unpack_from('<4s6H3I5H2I',directory,pos)
+  assert h[0]==b'PK\x01\x02'
+  name=directory[pos+46:pos+46+h[10]].decode('utf-8')
+  struct.pack_into('<I',directory,pos+42,offsets[name])
+  pos+=46+h[10]+h[11]+h[12]
+ assert pos==len(directory)
  end=bytearray(data[eocd:])
  struct.pack_into('<I',end,16,signed_central)
- candidate=prefix[:signed_central]+data[central:eocd]+end
+ candidate=prefix[:signed_central]+directory+end
  if candidate[:len(prefix)]!=prefix:
   first=next(i for i,(a,b) in enumerate(zip(candidate,prefix)) if a!=b)
   print('Public directory first difference',first,'relative',first-signed_central,'aligned central',central,'signed central',signed_central)
