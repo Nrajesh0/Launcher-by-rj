@@ -61,3 +61,8 @@ edit('lawnchair/src/app/lawnchair/search/adapter/SearchTargetFactory.kt',
 edit('src/com/android/launcher3/Launcher.java',
 '        } else if (resultCode == RESULT_CANCELED) {\n            mAppWidgetHolder.deleteAppWidgetId(appWidgetId);\n            animationType = Workspace.CANCEL_TWO_STAGE_WIDGET_DROP_ANIMATION;',
 '        } else if (resultCode == RESULT_CANCELED) {\n            LauncherAppWidgetHostView provisional = mWorkspace.getWidgetForAppWidgetId(appWidgetId);\n            if (enableAddAppWidgetViaConfigActivityV2() && provisional != null\n                    && provisional.getTag() instanceof LauncherAppWidgetInfo item) {\n                removeItem(provisional, item, true, "Widget configuration cancelled");\n            } else {\n                mAppWidgetHolder.deleteAppWidgetId(appWidgetId);\n            }\n            animationType = Workspace.CANCEL_TWO_STAGE_WIDGET_DROP_ANIMATION;')
+
+# Recents/navigation onboarding belongs to the system launcher, not this Home APK.
+edit('quickstep/src/com/android/launcher3/uioverrides/QuickstepLauncher.java',
+'        QuickstepOnboardingPrefs.setup(this);',
+'        if (app.lawnchair.LawnchairApp.isRecentsEnabled()) QuickstepOnboardingPrefs.setup(this);')
