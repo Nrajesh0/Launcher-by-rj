@@ -36,7 +36,12 @@ public class FoundationSmoke extends UiSmoke {
   }
   void awaitState(String key) {
     for(int n=0;n<60;n++) { final boolean[] match={false};onUi(()->match[0]=state(key));if(match[0])return;SystemClock.sleep(80); }
-    throw new AssertionError("Native launcher did not reach "+key);
+    String diagnostic="";
+    try {
+      Object layer=invoke(home,"getDragLayer");Class<?> base=Class.forName("com.android.launcher3.views.BaseDragLayer",true,getTargetContext().getClassLoader());var field=base.getDeclaredField("mSystemGestureRegion");field.setAccessible(true);var insets=home.getWindow().getDecorView().getRootWindowInsets();
+      diagnostic="; focus="+home.hasWindowFocus()+"; gestureRegion="+field.get(layer)+"; IME="+(insets==null?"none":insets.getInsets(WindowInsets.Type.ime()).toString())+"; imeVisible="+(insets!=null&&insets.isVisible(WindowInsets.Type.ime()))+"; search="+invoke(invoke(home,"getAppsView"),"isSearching")+"; current="+invoke(invoke(home,"getStateManager"),"getState");
+    }catch(Exception missing){diagnostic="; diagnostic="+missing.getClass().getSimpleName();}
+    throw new AssertionError("Native launcher did not reach "+key+diagnostic);
   }
   void visible(String value) {
     for(int n=0;n<40;n++) {

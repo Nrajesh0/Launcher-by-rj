@@ -54,6 +54,7 @@ class HomeActivity : LawnchairLauncher() {
     private var drawerDownY=0f
     private var drawerSwipe=false
     private var hiddenDragging=false
+    private var homeSearchCleanupPending=false
     override fun getOnBackPressedHandler(): com.android.launcher3.OnBackPressedHandler {
         if(dev.dothome.ui.DotHiddenPanel.isOpen(this))return object: com.android.launcher3.OnBackPressedHandler {
             override fun onBackInvoked() {dev.dothome.ui.DotHiddenPanel.close(this@HomeActivity)}
@@ -97,17 +98,24 @@ class HomeActivity : LawnchairLauncher() {
     override fun onDestroy() {dev.dothome.widgets.DotWidgetTray.close();dev.dothome.ui.DotCategoryCard.close();dev.dothome.ui.DotHiddenPanel.close(this); unregisterReceiver(unlockReceiver);android.app.WallpaperManager.getInstance(this).removeOnColorsChangedListener(wallpaperListener);dev.dothome.ui.DotArrange.end(this); super.onDestroy() }
 
     override fun onStateSetStart(state: com.android.launcher3.LauncherState) {
+        if(state==com.android.launcher3.LauncherState.NORMAL && hasDrawerSearchInput())homeSearchCleanupPending=true
         super.onStateSetStart(state)
         workspace?.let { dev.dothome.widgets.TileRefresh.setActive(it,state==com.android.launcher3.LauncherState.NORMAL || state==com.android.launcher3.LauncherState.EDIT_MODE) }
     }
 
-    /** Home must not keep the drawer's search/IME input region after leaving Apps. */
+    private fun hasDrawerSearchInput(): Boolean {
+        val apps=appsView ?: return false
+        val input=apps.searchUiManager?.editText
+        val imeVisible=window.decorView.rootWindowInsets?.isVisible(android.view.WindowInsets.Type.ime())==true
+        return apps.isSearching || !input?.text.isNullOrEmpty() || (input?.hasFocus()==true && imeVisible)
+    }
+    /** Clean up only an actual search return; a fresh Home keeps native input handling. */
     private fun clearHomeSearchInput() {
-        if(!isInState(com.android.launcher3.LauncherState.NORMAL))return
+        if(!homeSearchCleanupPending || !isInState(com.android.launcher3.LauncherState.NORMAL))return
+        homeSearchCleanupPending=false
         appsView?.searchUiManager?.resetSearch()
         appsView?.searchUiManager?.editText?.clearFocus()
         window.insetsController?.hide(android.view.WindowInsets.Type.ime())
-        workspace?.requestFocus()
         dragLayer?.requestApplyInsets()
     }
     override fun onStateSetEnd(state: com.android.launcher3.LauncherState) {
@@ -118,6 +126,7 @@ class HomeActivity : LawnchairLauncher() {
     override fun onResume() { super.onResume();if(previewRecreatePending){previewRecreatePending=false;super.recreate();return};dev.dothome.ui.DotAppearance.invalidate();dev.dothome.ui.DotAppearance.refreshWallpaper(this); updateMaterial();clearHomeSearchInput(); dev.dothome.migration.DotMigration.start(this) }
 
     override fun onNewIntent(intent: Intent) {
+        if(intent.action==Intent.ACTION_MAIN && hasDrawerSearchInput())homeSearchCleanupPending=true
         dev.dothome.widgets.DotWidgetTray.close();dev.dothome.ui.DotCategoryCard.close()
         dev.dothome.ui.DotHiddenPanel.close(this)
         super.onNewIntent(intent); setIntent(intent)
