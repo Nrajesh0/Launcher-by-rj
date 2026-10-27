@@ -11,8 +11,20 @@ import java.util.*;
 
 /** v5 checks use synthetic local data and the actual Activity/widget renderers. */
 public final class ExperienceSmoke extends FoundationSmoke {
+  boolean focusedTap(String value){
+    var automation=getUiAutomation(UiAutomation.FLAG_DONT_SUPPRESS_ACCESSIBILITY_SERVICES);
+    var node=findSystemText(automation.getRootInActiveWindow(),value);
+    if(node==null||!node.isVisibleToUser()||!node.isEnabled())return false;
+    var window=node.getWindow();if(window!=null&&!window.isFocused())return false;
+    Rect before=new Rect();node.getBoundsInScreen(before);if(before.isEmpty())return false;int windowId=node.getWindowId();
+    SystemClock.sleep(200);node=findSystemText(automation.getRootInActiveWindow(),value);
+    if(node==null||node.getWindowId()!=windowId||!node.isVisibleToUser()||!node.isEnabled())return false;
+    window=node.getWindow();if(window!=null&&!window.isFocused())return false;
+    Rect after=new Rect();node.getBoundsInScreen(after);if(!before.equals(after))return false;
+    try{shell("input touchscreen tap "+after.centerX()+" "+after.centerY());return true;}catch(Exception error){throw new RuntimeException(error);}
+  }
   @Override boolean clickSystemText(String value){
-    for(int n=0;n<30;n++){if(super.clickSystemText(value)){SystemClock.sleep(200);return true;}SystemClock.sleep(80);}return false;
+    for(int n=0;n<30;n++){if(focusedTap(value)){SystemClock.sleep(200);return true;}SystemClock.sleep(80);}return false;
   }
   // Launcher-owned animations can keep Instrumentation.waitForIdleSync waiting forever.
   // Wait for the submitted main-thread action, then use a bounded accessibility idle wait;
@@ -28,11 +40,12 @@ public final class ExperienceSmoke extends FoundationSmoke {
   @Override void configureFixture(boolean apply)throws Exception {
     long deadline=SystemClock.uptimeMillis()+60000;
     while(SystemClock.uptimeMillis()<deadline){
-      if(super.clickSystemText(apply?"Apply test widget":"Cancel test widget")){
-        check(awaitFocus(true),"Provider configuration did not return Home");SystemClock.sleep(350);return;
+      if(focusedTap(apply?"Apply test widget":"Cancel test widget")){
+        if(awaitFocus(true)){SystemClock.sleep(350);return;}
       }
-      // Single-pass probes here preserve the absolute deadline even if no dialog opens.
-      super.clickSystemText("Allow");super.clickSystemText("Create");SystemClock.sleep(150);
+      // A first-launch hierarchy can precede its input-ready window. Retry the real
+      // tap within the deadline, and require the Home focus and native DB assertions.
+      focusedTap("Allow");focusedTap("Create");SystemClock.sleep(150);
     }
     throw new AssertionError("Provider configuration did not expose its "+(apply?"Apply":"Cancel")+" action within 60 seconds");
   }
@@ -172,6 +185,6 @@ public final class ExperienceSmoke extends FoundationSmoke {
   }
   @Override public void onStart(){Bundle result=new Bundle();try{
     getUiAutomation(UiAutomation.FLAG_DONT_SUPPRESS_ACCESSIBILITY_SERVICES);launchHomeAsync();SystemClock.sleep(800);homeKey();phase("Themes");themes();phase("Hidden gesture");hiddenCancellation();phase("Categories");categories();phase("Preset and undo");presetUndo();phase("Widget data");widgetData();phase("External widget host");externalWidget();phase("Calculator scope");calculatorScope();phase("Selected-data scopes");selectedDataScopes();phase("Large text and denied states");textAndDeniedStates();
-    result.putString("stream","PASS: v5 Classic/Lucent light/dark preserve layout; grid preview; hidden cancellation/back; category correction; preset/undo; note and weather drafts; owned photos/cutout/cycle; wallpaper preview; backup path rejection.\n");finish(Activity.RESULT_OK,result);
+    result.putString("stream","PASS: v5 Classic/Lucent light/dark preserve layout; grid preview; hidden cancellation/back; category correction; preset/undo; note and weather drafts; owned photos/cutout/cycle; wallpaper preview; backup path rejection; native external widget configure/cancel/remove; calculator on/off; contacts refusal and selected document scope; large text/owned RTL/denied usage state.\n");finish(Activity.RESULT_OK,result);
   }catch(Throwable error){try{screenshot("v5-failure");}catch(Throwable ignored){}String diagnostics="";try{diagnostics=systemTree(getUiAutomation(UiAutomation.FLAG_DONT_SUPPRESS_ACCESSIBILITY_SERVICES).getRootInActiveWindow(),0);}catch(Throwable ignored){}result.putString("stream","FAIL: "+android.util.Log.getStackTraceString(error)+diagnostics);finish(Activity.RESULT_CANCELED,result);}}
 }
