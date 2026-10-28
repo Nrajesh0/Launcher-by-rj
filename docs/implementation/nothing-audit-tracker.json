@@ -8,10 +8,10 @@
     "current": "Lawnicons outlines are visible throughout Home and drawer.",
     "action": "Replace primary artwork while keeping component mapping and readable fallbacks.",
     "milestone": "2",
-    "implementation": "implementing",
-    "verification": "pending",
-    "evidence": "Local source changes; compilation/runtime/visual gates pending.",
-    "remaining_limit": ""
+    "implementation": "implemented",
+    "verification": "Android 16 instrumentation and capture review",
+    "evidence": "Source d3b5f27e77bdae86b3e435ee506004d45ab412e3; full CI https://github.com/Nrajesh0/Launcher-by-rj/actions/runs/40563188991; release-verification-v5.md records exact checks.",
+    "remaining_limit": "Original filled primary glyphs plus retained third-party mappings; this is not proprietary Nothing icon artwork."
   },
   {
     "id": "A02",
@@ -22,10 +22,10 @@
     "current": "Controls, dock discs and widget surfaces use different inset rules.",
     "action": "Calibrate visible sizes independently of cell bounds and touch targets.",
     "milestone": "1",
-    "implementation": "implementing",
-    "verification": "pending",
-    "evidence": "v5 source and preservation changes; latest Android 16/UI/visual gates pending.",
-    "remaining_limit": ""
+    "implementation": "implemented",
+    "verification": "source/API review; model checks where applicable",
+    "evidence": "Source d3b5f27e77bdae86b3e435ee506004d45ab412e3; full CI https://github.com/Nrajesh0/Launcher-by-rj/actions/runs/40563188991; release-verification-v5.md records exact checks.",
+    "remaining_limit": "Actual emulator captures reviewed; final optical/visual acceptance remains with the user."
   },
   {
     "id": "A03",
@@ -36,9 +36,9 @@
     "current": "Geist plus generic serif/monospace and custom digit renderers.",
     "action": "Define controlled body, metadata, display and matrix roles.",
     "milestone": "1",
-    "implementation": "implementing",
-    "verification": "pending",
-    "evidence": "Local source changes; compilation/runtime/visual gates pending.",
+    "implementation": "implemented",
+    "verification": "source/API review; model checks where applicable",
+    "evidence": "Source d3b5f27e77bdae86b3e435ee506004d45ab412e3; full CI https://github.com/Nrajesh0/Launcher-by-rj/actions/runs/40563188991; release-verification-v5.md records exact checks.",
     "remaining_limit": ""
   },
   {
@@ -50,9 +50,9 @@
     "current": "Real neutral light/dark surfaces exist.",
     "action": "Refine contrast, component hierarchy and state styling.",
     "milestone": "1",
-    "implementation": "implementing",
-    "verification": "pending",
-    "evidence": "Local source changes; compilation/runtime/visual gates pending.",
+    "implementation": "implemented",
+    "verification": "Android 16 instrumentation and capture review",
+    "evidence": "Source d3b5f27e77bdae86b3e435ee506004d45ab412e3; full CI https://github.com/Nrajesh0/Launcher-by-rj/actions/runs/40563188991; release-verification-v5.md records exact checks.",
     "remaining_limit": ""
   },
   {
@@ -64,10 +64,10 @@
     "current": "Tiles sample a locally saved wallpaper and add tint.",
     "action": "Unify blur/surface recipes, contrast, coordinates and source invalidation.",
     "milestone": "1",
-    "implementation": "implementing",
-    "verification": "pending",
-    "evidence": "Local source changes; compilation/runtime/visual gates pending.",
-    "remaining_limit": ""
+    "implementation": "implemented",
+    "verification": "Android 16 instrumentation and capture review",
+    "evidence": "Source d3b5f27e77bdae86b3e435ee506004d45ab412e3; full CI https://github.com/Nrajesh0/Launcher-by-rj/actions/runs/40563188991; release-verification-v5.md records exact checks.",
+    "remaining_limit": "Blur uses readable app-owned wallpaper pixels; inaccessible external/live wallpaper uses a tint fallback. No system compositor blur claim."
   },
   {
     "id": "A06",
@@ -78,9 +78,9 @@
     "current": "Engine icon colours and saved widget accents follow different paths.",
     "action": "Resolve one appearance state for all owned renderers.",
     "milestone": "1",
-    "implementation": "implementing",
-    "verification": "pending",
-    "evidence": "Local source changes; compilation/runtime/visual gates pending.",
+    "implementation": "implemented",
+    "verification": "Android 16 instrumentation and capture review",
+    "evidence": "Source d3b5f27e77bdae86b3e435ee506004d45ab412e3; full CI https://github.com/Nrajesh0/Launcher-by-rj/actions/runs/40563188991; release-verification-v5.md records exact checks.",
     "remaining_limit": ""
   },
   {
@@ -92,9 +92,9 @@
     "current": "Engine palette integration exists; widget surfaces mix saved accent.",
     "action": "Make mode differences coherent and visibly previewable.",
     "milestone": "1",
-    "implementation": "implementing",
-    "verification": "pending",
-    "evidence": "Local source changes; compilation/runtime/visual gates pending.",
+    "implementation": "implemented",
+    "verification": "Android 16 instrumentation and capture review",
+    "evidence": "Source d3b5f27e77bdae86b3e435ee506004d45ab412e3; full CI https://github.com/Nrajesh0/Launcher-by-rj/actions/runs/40563188991; release-verification-v5.md records exact checks.",
     "remaining_limit": ""
   },
   {
@@ -106,9 +106,9 @@
     "current": "Torch has an active colour; other controls are mostly shortcuts.",
     "action": "Use true supported state and consistent active/inactive colours.",
     "milestone": "1",
-    "implementation": "implementing",
-    "verification": "pending",
-    "evidence": "Local source changes; compilation/runtime/visual gates pending.",
+    "implementation": "implemented",
+    "verification": "source/API review; model checks where applicable",
+    "evidence": "Source d3b5f27e77bdae86b3e435ee506004d45ab412e3; full CI https://github.com/Nrajesh0/Launcher-by-rj/actions/runs/40563188991; release-verification-v5.md records exact checks.",
     "remaining_limit": ""
   },
   {
@@ -120,9 +120,9 @@
     "current": "Native engine supports pages and item persistence.",
     "action": "Preserve; verify visual indicators and state after theme changes.",
     "milestone": "0",
-    "implementation": "implementing",
-    "verification": "pending",
-    "evidence": "v5 source and preservation changes; latest Android 16/UI/visual gates pending.",
+    "implementation": "implemented",
+    "verification": "Android 16 instrumentation and capture review",
+    "evidence": "Source d3b5f27e77bdae86b3e435ee506004d45ab412e3; full CI https://github.com/Nrajesh0/Launcher-by-rj/actions/runs/40563188991; release-verification-v5.md records exact checks.",
     "remaining_limit": ""
   },
   {
@@ -134,9 +134,9 @@
     "current": "Actual release-source UI test opens the drawer.",
     "action": "Preserve and tune gesture cancellation/velocity.",
     "milestone": "0",
-    "implementation": "implementing",
-    "verification": "pending",
-    "evidence": "v5 source and preservation changes; latest Android 16/UI/visual gates pending.",
+    "implementation": "implemented",
+    "verification": "Android 16 instrumentation and capture review",
+    "evidence": "Source d3b5f27e77bdae86b3e435ee506004d45ab412e3; full CI https://github.com/Nrajesh0/Launcher-by-rj/actions/runs/40563188991; release-verification-v5.md records exact checks.",
     "remaining_limit": ""
   },
   {
@@ -148,9 +148,9 @@
     "current": "Real role chooser and selection tested.",
     "action": "Preserve role through upgrades, process restarts and Home presses.",
     "milestone": "0",
-    "implementation": "implementing",
-    "verification": "pending",
-    "evidence": "v5 source and preservation changes; latest Android 16/UI/visual gates pending.",
+    "implementation": "implemented",
+    "verification": "Android 16 instrumentation and capture review",
+    "evidence": "Source d3b5f27e77bdae86b3e435ee506004d45ab412e3; full CI https://github.com/Nrajesh0/Launcher-by-rj/actions/runs/40563188991; release-verification-v5.md records exact checks.",
     "remaining_limit": ""
   },
   {
@@ -162,9 +162,9 @@
     "current": "One fixed seed with a large middle gap.",
     "action": "Optional complete reference-inspired presets; never replace user layout.",
     "milestone": "2",
-    "implementation": "implementing",
-    "verification": "pending",
-    "evidence": "v5 source and preservation changes; latest Android 16/UI/visual gates pending.",
+    "implementation": "implemented",
+    "verification": "Android 16 instrumentation and capture review",
+    "evidence": "Source d3b5f27e77bdae86b3e435ee506004d45ab412e3; full CI https://github.com/Nrajesh0/Launcher-by-rj/actions/runs/40563188991; release-verification-v5.md records exact checks.",
     "remaining_limit": ""
   },
   {
@@ -176,9 +176,9 @@
     "current": "Native cell spans and shortcut action are implemented.",
     "action": "Calibrate glyph scaling and transition at both sizes.",
     "milestone": "2",
-    "implementation": "implementing",
-    "verification": "pending",
-    "evidence": "v5 source and preservation changes; latest Android 16/UI/visual gates pending.",
+    "implementation": "implemented",
+    "verification": "Android 16 instrumentation and capture review",
+    "evidence": "Source d3b5f27e77bdae86b3e435ee506004d45ab412e3; full CI https://github.com/Nrajesh0/Launcher-by-rj/actions/runs/40563188991; release-verification-v5.md records exact checks.",
     "remaining_limit": ""
   },
   {
@@ -190,9 +190,9 @@
     "current": "Four icons and local Search are present.",
     "action": "Match visual proportions, material and search transition.",
     "milestone": "1",
-    "implementation": "implementing",
-    "verification": "pending",
-    "evidence": "Local source changes; compilation/runtime/visual gates pending.",
+    "implementation": "implemented",
+    "verification": "Android 16 instrumentation and capture review",
+    "evidence": "Source d3b5f27e77bdae86b3e435ee506004d45ab412e3; full CI https://github.com/Nrajesh0/Launcher-by-rj/actions/runs/40563188991; release-verification-v5.md records exact checks.",
     "remaining_limit": ""
   },
   {
@@ -204,9 +204,9 @@
     "current": "Native lock setting and arrangement guard exist.",
     "action": "Check every mutation path respects freeze.",
     "milestone": "0",
-    "implementation": "implementing",
-    "verification": "pending",
-    "evidence": "v5 source and preservation changes; latest Android 16/UI/visual gates pending.",
+    "implementation": "implemented",
+    "verification": "Android 16 instrumentation and capture review",
+    "evidence": "Source d3b5f27e77bdae86b3e435ee506004d45ab412e3; full CI https://github.com/Nrajesh0/Launcher-by-rj/actions/runs/40563188991; release-verification-v5.md records exact checks.",
     "remaining_limit": ""
   },
   {
@@ -218,9 +218,9 @@
     "current": "Four procedural gradient/arc designs.",
     "action": "Create a stronger local library and measured crops.",
     "milestone": "2",
-    "implementation": "implementing",
-    "verification": "pending",
-    "evidence": "v5 source and preservation changes; latest Android 16/UI/visual gates pending.",
+    "implementation": "implemented",
+    "verification": "source/API review; model checks where applicable",
+    "evidence": "Source d3b5f27e77bdae86b3e435ee506004d45ab412e3; full CI https://github.com/Nrajesh0/Launcher-by-rj/actions/runs/40563188991; release-verification-v5.md records exact checks.",
     "remaining_limit": ""
   },
   {
@@ -232,9 +232,9 @@
     "current": "Local document selection plus pinch/position.",
     "action": "Preserve and test revoked links and oversized photos.",
     "milestone": "0",
-    "implementation": "implementing",
-    "verification": "pending",
-    "evidence": "v5 source and preservation changes; latest Android 16/UI/visual gates pending.",
+    "implementation": "implemented",
+    "verification": "Android 16 instrumentation and capture review",
+    "evidence": "Source d3b5f27e77bdae86b3e435ee506004d45ab412e3; full CI https://github.com/Nrajesh0/Launcher-by-rj/actions/runs/40563188991; release-verification-v5.md records exact checks.",
     "remaining_limit": ""
   },
   {
@@ -246,9 +246,9 @@
     "current": "A wallpaper named Glass is not an effect applied to user photos.",
     "action": "Build an actual optional local image-processing effect.",
     "milestone": "2",
-    "implementation": "implementing",
-    "verification": "pending",
-    "evidence": "v5 source and preservation changes; latest Android 16/UI/visual gates pending.",
+    "implementation": "implemented",
+    "verification": "Android 16 instrumentation and capture review",
+    "evidence": "Source d3b5f27e77bdae86b3e435ee506004d45ab412e3; full CI https://github.com/Nrajesh0/Launcher-by-rj/actions/runs/40563188991; release-verification-v5.md records exact checks.",
     "remaining_limit": ""
   },
   {
@@ -260,10 +260,10 @@
     "current": "An Atmosphere-named static preset is not the dynamic effect.",
     "action": "Define a Home-side effect without promising firmware unlock animation.",
     "milestone": "2",
-    "implementation": "implementing",
-    "verification": "pending",
-    "evidence": "v5 source and preservation changes; latest Android 16/UI/visual gates pending.",
-    "remaining_limit": "Optional visible-only live wallpaper motion, not a firmware unlock animation."
+    "implementation": "implemented",
+    "verification": "source/API review; model checks where applicable",
+    "evidence": "Source d3b5f27e77bdae86b3e435ee506004d45ab412e3; full CI https://github.com/Nrajesh0/Launcher-by-rj/actions/runs/40563188991; release-verification-v5.md records exact checks.",
+    "remaining_limit": "Local image effect and optional visible-only live wallpaper motion; no firmware unlock animation."
   },
   {
     "id": "A20",
@@ -274,10 +274,10 @@
     "current": "Backdrop cache keys only describe saved/generated wallpaper.",
     "action": "Verify and handle wallpaper changes outside our picker/live wallpapers.",
     "milestone": "2",
-    "implementation": "implementing",
-    "verification": "pending",
-    "evidence": "v5 source and preservation changes; latest Android 16/UI/visual gates pending.",
-    "remaining_limit": ""
+    "implementation": "implemented",
+    "verification": "source/API review; model checks where applicable",
+    "evidence": "Source d3b5f27e77bdae86b3e435ee506004d45ab412e3; full CI https://github.com/Nrajesh0/Launcher-by-rj/actions/runs/40563188991; release-verification-v5.md records exact checks.",
+    "remaining_limit": "External wallpaper metadata is public; inaccessible pixels use safe tint fallback."
   },
   {
     "id": "A21",
@@ -288,9 +288,9 @@
     "current": "Preview plus four relevant routes exist.",
     "action": "Apply one consistent visual system and improve density.",
     "milestone": "3",
-    "implementation": "implementing",
-    "verification": "pending",
-    "evidence": "Local source changes; compilation/runtime/visual gates pending.",
+    "implementation": "implemented",
+    "verification": "Android 16 instrumentation and capture review",
+    "evidence": "Source d3b5f27e77bdae86b3e435ee506004d45ab412e3; full CI https://github.com/Nrajesh0/Launcher-by-rj/actions/runs/40563188991; release-verification-v5.md records exact checks.",
     "remaining_limit": ""
   },
   {
@@ -302,9 +302,9 @@
     "current": "Only one scaled native Home view is drawn.",
     "action": "Interactive page-aware preview with current layout and palette.",
     "milestone": "3",
-    "implementation": "implementing",
-    "verification": "pending",
-    "evidence": "Local source changes; compilation/runtime/visual gates pending.",
+    "implementation": "implemented",
+    "verification": "Android 16 instrumentation and capture review",
+    "evidence": "Source d3b5f27e77bdae86b3e435ee506004d45ab412e3; full CI https://github.com/Nrajesh0/Launcher-by-rj/actions/runs/40563188991; release-verification-v5.md records exact checks.",
     "remaining_limit": ""
   },
   {
@@ -316,9 +316,9 @@
     "current": "Translucent, Classic and Dynamic labels exist.",
     "action": "Match behaviour and version-specific naming; not just labels.",
     "milestone": "1",
-    "implementation": "implementing",
-    "verification": "pending",
-    "evidence": "Local source changes; compilation/runtime/visual gates pending.",
+    "implementation": "implemented",
+    "verification": "Android 16 instrumentation and capture review",
+    "evidence": "Source d3b5f27e77bdae86b3e435ee506004d45ab412e3; full CI https://github.com/Nrajesh0/Launcher-by-rj/actions/runs/40563188991; release-verification-v5.md records exact checks.",
     "remaining_limit": ""
   },
   {
@@ -330,9 +330,9 @@
     "current": "Six independent flat swatches.",
     "action": "Coordinated palette choices with a clear wallpaper/manual source.",
     "milestone": "1",
-    "implementation": "implementing",
-    "verification": "pending",
-    "evidence": "Local source changes; compilation/runtime/visual gates pending.",
+    "implementation": "implemented",
+    "verification": "Android 16 instrumentation and capture review",
+    "evidence": "Source d3b5f27e77bdae86b3e435ee506004d45ab412e3; full CI https://github.com/Nrajesh0/Launcher-by-rj/actions/runs/40563188991; release-verification-v5.md records exact checks.",
     "remaining_limit": ""
   },
   {
@@ -344,9 +344,9 @@
     "current": "Four grids and label toggles are exposed.",
     "action": "Placement-aware preview and safe migration of occupied layouts.",
     "milestone": "3",
-    "implementation": "implementing",
-    "verification": "pending",
-    "evidence": "v5 source and preservation changes; latest Android 16/UI/visual gates pending.",
+    "implementation": "implemented",
+    "verification": "Android 16 instrumentation and capture review",
+    "evidence": "Source d3b5f27e77bdae86b3e435ee506004d45ab412e3; full CI https://github.com/Nrajesh0/Launcher-by-rj/actions/runs/40563188991; release-verification-v5.md records exact checks.",
     "remaining_limit": ""
   },
   {
@@ -358,9 +358,9 @@
     "current": "Stock AlertDialog text list.",
     "action": "Visual previews for normal, expanded and covered styles.",
     "milestone": "3",
-    "implementation": "implementing",
-    "verification": "pending",
-    "evidence": "Local source changes; compilation/runtime/visual gates pending.",
+    "implementation": "implemented",
+    "verification": "source/API review; model checks where applicable",
+    "evidence": "Source d3b5f27e77bdae86b3e435ee506004d45ab412e3; full CI https://github.com/Nrajesh0/Launcher-by-rj/actions/runs/40563188991; release-verification-v5.md records exact checks.",
     "remaining_limit": ""
   },
   {
@@ -372,9 +372,9 @@
     "current": "Functional compact popup/native item actions.",
     "action": "Unify typography, row geometry, iconography and motion.",
     "milestone": "3",
-    "implementation": "implementing",
-    "verification": "pending",
-    "evidence": "v5 source and preservation changes; latest Android 16/UI/visual gates pending.",
+    "implementation": "implemented",
+    "verification": "Android 16 instrumentation and capture review",
+    "evidence": "Source d3b5f27e77bdae86b3e435ee506004d45ab412e3; full CI https://github.com/Nrajesh0/Launcher-by-rj/actions/runs/40563188991; release-verification-v5.md records exact checks.",
     "remaining_limit": ""
   },
   {
@@ -386,9 +386,9 @@
     "current": "Native grid with local app search.",
     "action": "Calibrate density, labels, search and scrolling.",
     "milestone": "4",
-    "implementation": "implementing",
-    "verification": "pending",
-    "evidence": "v5 source and preservation changes; latest Android 16/UI/visual gates pending.",
+    "implementation": "implemented",
+    "verification": "Android 16 instrumentation and capture review",
+    "evidence": "Source d3b5f27e77bdae86b3e435ee506004d45ab412e3; full CI https://github.com/Nrajesh0/Launcher-by-rj/actions/runs/40563188991; release-verification-v5.md records exact checks.",
     "remaining_limit": ""
   },
   {
@@ -400,9 +400,9 @@
     "current": "Offline category rules create ordinary adapter folders.",
     "action": "Build large category cards and intentional child/overflow targets.",
     "milestone": "4",
-    "implementation": "implementing",
-    "verification": "pending",
-    "evidence": "Local source changes; compilation/runtime/visual gates pending.",
+    "implementation": "implemented",
+    "verification": "Android 16 instrumentation and capture review",
+    "evidence": "Source d3b5f27e77bdae86b3e435ee506004d45ab412e3; full CI https://github.com/Nrajesh0/Launcher-by-rj/actions/runs/40563188991; release-verification-v5.md records exact checks.",
     "remaining_limit": ""
   },
   {
@@ -414,9 +414,9 @@
     "current": "Replacement settings expose no category editor.",
     "action": "Add local correction as an improvement, not a stock-parity claim.",
     "milestone": "4",
-    "implementation": "implementing",
-    "verification": "pending",
-    "evidence": "Local source changes; compilation/runtime/visual gates pending.",
+    "implementation": "implemented",
+    "verification": "Android 16 instrumentation and capture review",
+    "evidence": "Source d3b5f27e77bdae86b3e435ee506004d45ab412e3; full CI https://github.com/Nrajesh0/Launcher-by-rj/actions/runs/40563188991; release-verification-v5.md records exact checks.",
     "remaining_limit": ""
   },
   {
@@ -428,9 +428,9 @@
     "current": "Rightward threshold launches a separate Activity.",
     "action": "Integrated reversible drawer page and coordinated touch handling.",
     "milestone": "4",
-    "implementation": "implementing",
-    "verification": "pending",
-    "evidence": "Local source changes; compilation/runtime/visual gates pending.",
+    "implementation": "implemented",
+    "verification": "Android 16 instrumentation and capture review",
+    "evidence": "Source d3b5f27e77bdae86b3e435ee506004d45ab412e3; full CI https://github.com/Nrajesh0/Launcher-by-rj/actions/runs/40563188991; release-verification-v5.md records exact checks.",
     "remaining_limit": ""
   },
   {
@@ -442,9 +442,9 @@
     "current": "Generic checkbox list.",
     "action": "Consistent search, icon selection and saved-state feedback.",
     "milestone": "4",
-    "implementation": "implementing",
-    "verification": "pending",
-    "evidence": "Local source changes; compilation/runtime/visual gates pending.",
+    "implementation": "implemented",
+    "verification": "Android 16 instrumentation and capture review",
+    "evidence": "Source d3b5f27e77bdae86b3e435ee506004d45ab412e3; full CI https://github.com/Nrajesh0/Launcher-by-rj/actions/runs/40563188991; release-verification-v5.md records exact checks.",
     "remaining_limit": ""
   },
   {
@@ -456,9 +456,9 @@
     "current": "Engine defaults to NEVER; replacement settings omit the control.",
     "action": "Expose and explain intended privacy/organisation policy.",
     "milestone": "4",
-    "implementation": "implementing",
-    "verification": "pending",
-    "evidence": "Local source changes; compilation/runtime/visual gates pending.",
+    "implementation": "implemented",
+    "verification": "Android 16 instrumentation and capture review",
+    "evidence": "Source d3b5f27e77bdae86b3e435ee506004d45ab412e3; full CI https://github.com/Nrajesh0/Launcher-by-rj/actions/runs/40563188991; release-verification-v5.md records exact checks.",
     "remaining_limit": ""
   },
   {
@@ -470,10 +470,10 @@
     "current": "Local search machinery exists but settings/permissions are limited.",
     "action": "Ship coherent app/shortcut/settings/calculator and selected-data scopes.",
     "milestone": "4",
-    "implementation": "implementing",
-    "verification": "pending",
-    "evidence": "Local source changes; compilation/runtime/visual gates pending.",
-    "remaining_limit": ""
+    "implementation": "implemented",
+    "verification": "Android 16 instrumentation and capture review",
+    "evidence": "Source d3b5f27e77bdae86b3e435ee506004d45ab412e3; full CI https://github.com/Nrajesh0/Launcher-by-rj/actions/runs/40563188991; release-verification-v5.md records exact checks.",
+    "remaining_limit": "Apps/shortcuts/settings/calculator, optional contacts and explicitly selected document names. No storage scan, file-content indexing or web scope."
   },
   {
     "id": "A35",
@@ -485,8 +485,8 @@
     "action": "Keep absent; do not add an online option.",
     "milestone": "boundary",
     "implementation": "constraint",
-    "verification": "pending",
-    "evidence": "",
+    "verification": "scope boundary retained",
+    "evidence": "Absolute offline/native-OS/hardware scope; see implementation plan.",
     "remaining_limit": ""
   },
   {
@@ -498,10 +498,10 @@
     "current": "Core contains profile support, but physical OEM flow is untested.",
     "action": "Verify actual available profiles, badges, locks and hidden state.",
     "milestone": "4",
-    "implementation": "planned",
-    "verification": "pending",
-    "evidence": "",
-    "remaining_limit": ""
+    "implementation": "implemented",
+    "verification": "pending physical device/user review",
+    "evidence": "Native foundation retained; device-validation.md defines the remaining checks.",
+    "remaining_limit": "Native profile handling and user-keyed state are retained; POCO work/private/cloned-profile compatibility requires device fixtures."
   },
   {
     "id": "A37",
@@ -512,9 +512,9 @@
     "current": "Native engine supports single-item movement and reorder.",
     "action": "Preserve while tuning visual feedback.",
     "milestone": "0",
-    "implementation": "implementing",
-    "verification": "pending",
-    "evidence": "v5 source and preservation changes; latest Android 16/UI/visual gates pending.",
+    "implementation": "implemented",
+    "verification": "Android 16 instrumentation and capture review",
+    "evidence": "Source d3b5f27e77bdae86b3e435ee506004d45ab412e3; full CI https://github.com/Nrajesh0/Launcher-by-rj/actions/runs/40563188991; release-verification-v5.md records exact checks.",
     "remaining_limit": ""
   },
   {
@@ -526,9 +526,9 @@
     "current": "Implemented fixed 3-by-3 preview and child hit testing.",
     "action": "Improve optical layout, overflow, labels, profiles and transitions.",
     "milestone": "4",
-    "implementation": "implementing",
-    "verification": "pending",
-    "evidence": "v5 source and preservation changes; latest Android 16/UI/visual gates pending.",
+    "implementation": "implemented",
+    "verification": "Android 16 instrumentation and capture review",
+    "evidence": "Source d3b5f27e77bdae86b3e435ee506004d45ab412e3; full CI https://github.com/Nrajesh0/Launcher-by-rj/actions/runs/40563188991; release-verification-v5.md records exact checks.",
     "remaining_limit": ""
   },
   {
@@ -540,9 +540,9 @@
     "current": "Four simple custom dot covers plus previews.",
     "action": "Consistent cover library and a visual selection flow.",
     "milestone": "4",
-    "implementation": "implementing",
-    "verification": "pending",
-    "evidence": "Local source changes; compilation/runtime/visual gates pending.",
+    "implementation": "implemented",
+    "verification": "source/API review; model checks where applicable",
+    "evidence": "Source d3b5f27e77bdae86b3e435ee506004d45ab412e3; full CI https://github.com/Nrajesh0/Launcher-by-rj/actions/runs/40563188991; release-verification-v5.md records exact checks.",
     "remaining_limit": ""
   },
   {
@@ -554,9 +554,9 @@
     "current": "Transactional move works; custom rectangular N-items ghost.",
     "action": "Artwork/count drag feedback, outlines and better placement prediction.",
     "milestone": "4",
-    "implementation": "implementing",
-    "verification": "pending",
-    "evidence": "Local source changes; compilation/runtime/visual gates pending.",
+    "implementation": "implemented",
+    "verification": "Android 16 instrumentation and capture review",
+    "evidence": "Source d3b5f27e77bdae86b3e435ee506004d45ab412e3; full CI https://github.com/Nrajesh0/Launcher-by-rj/actions/runs/40563188991; release-verification-v5.md records exact checks.",
     "remaining_limit": ""
   },
   {
@@ -568,9 +568,9 @@
     "current": "Offsets preserved; occupied drops are rejected.",
     "action": "Specify neighbour reflow, useful feedback and reversible outcomes.",
     "milestone": "4",
-    "implementation": "implementing",
-    "verification": "pending",
-    "evidence": "Local source changes; compilation/runtime/visual gates pending.",
+    "implementation": "implemented",
+    "verification": "Android 16 instrumentation and capture review",
+    "evidence": "Source d3b5f27e77bdae86b3e435ee506004d45ab412e3; full CI https://github.com/Nrajesh0/Launcher-by-rj/actions/runs/40563188991; release-verification-v5.md records exact checks.",
     "remaining_limit": ""
   },
   {
@@ -582,9 +582,9 @@
     "current": "No complete local undo flow in the added arrangement layer.",
     "action": "Add as a product improvement; do not claim stock feature parity.",
     "milestone": "4",
-    "implementation": "implementing",
-    "verification": "pending",
-    "evidence": "Local source changes; compilation/runtime/visual gates pending.",
+    "implementation": "implemented",
+    "verification": "Android 16 instrumentation and capture review",
+    "evidence": "Source d3b5f27e77bdae86b3e435ee506004d45ab412e3; full CI https://github.com/Nrajesh0/Launcher-by-rj/actions/runs/40563188991; release-verification-v5.md records exact checks.",
     "remaining_limit": ""
   },
   {
@@ -596,9 +596,9 @@
     "current": "Real providers, bind/configure, resize and persistence.",
     "action": "Preserve standard provider flows and cancel/reconnect states.",
     "milestone": "0",
-    "implementation": "implementing",
-    "verification": "pending",
-    "evidence": "v5 source and preservation changes; latest Android 16/UI/visual gates pending.",
+    "implementation": "implemented",
+    "verification": "Android 16 instrumentation and capture review",
+    "evidence": "Source d3b5f27e77bdae86b3e435ee506004d45ab412e3; full CI https://github.com/Nrajesh0/Launcher-by-rj/actions/runs/40563188991; release-verification-v5.md records exact checks.",
     "remaining_limit": ""
   },
   {
@@ -610,9 +610,9 @@
     "current": "Native provider list; own variants grouped under Dot Home.",
     "action": "Family-first catalogue with accurate sizes and live-style previews.",
     "milestone": "5",
-    "implementation": "implementing",
-    "verification": "pending",
-    "evidence": "Local source changes; compilation/runtime/visual gates pending.",
+    "implementation": "implemented",
+    "verification": "Android 16 instrumentation and capture review",
+    "evidence": "Source d3b5f27e77bdae86b3e435ee506004d45ab412e3; full CI https://github.com/Nrajesh0/Launcher-by-rj/actions/runs/40563188991; release-verification-v5.md records exact checks.",
     "remaining_limit": ""
   },
   {
@@ -624,9 +624,9 @@
     "current": "Fixed-height generic style sheet.",
     "action": "Distinct clock/photo/history/session/data-access editors.",
     "milestone": "3",
-    "implementation": "implementing",
-    "verification": "pending",
-    "evidence": "Local source changes; compilation/runtime/visual gates pending.",
+    "implementation": "implemented",
+    "verification": "Android 16 instrumentation and capture review",
+    "evidence": "Source d3b5f27e77bdae86b3e435ee506004d45ab412e3; full CI https://github.com/Nrajesh0/Launcher-by-rj/actions/runs/40563188991; release-verification-v5.md records exact checks.",
     "remaining_limit": ""
   },
   {
@@ -638,9 +638,9 @@
     "current": "Real clocks and multiple faces exist.",
     "action": "Reference typography, geometry, motion and supported spans.",
     "milestone": "5",
-    "implementation": "implementing",
-    "verification": "pending",
-    "evidence": "v5 source and preservation changes; latest Android 16/UI/visual gates pending.",
+    "implementation": "implemented",
+    "verification": "source/API review; model checks where applicable",
+    "evidence": "Source d3b5f27e77bdae86b3e435ee506004d45ab412e3; full CI https://github.com/Nrajesh0/Launcher-by-rj/actions/runs/40563188991; release-verification-v5.md records exact checks.",
     "remaining_limit": ""
   },
   {
@@ -652,9 +652,9 @@
     "current": "Date works; agenda uses generic text rendering.",
     "action": "Rich hierarchy, multiline layout and meaningful event actions.",
     "milestone": "5",
-    "implementation": "implementing",
-    "verification": "pending",
-    "evidence": "Local source changes; compilation/runtime/visual gates pending.",
+    "implementation": "implemented",
+    "verification": "source/API review; model checks where applicable",
+    "evidence": "Source d3b5f27e77bdae86b3e435ee506004d45ab412e3; full CI https://github.com/Nrajesh0/Launcher-by-rj/actions/runs/40563188991; release-verification-v5.md records exact checks.",
     "remaining_limit": ""
   },
   {
@@ -666,10 +666,10 @@
     "current": "No built-in weather family.",
     "action": "Manual/local information or an explicit external provider; no fetcher.",
     "milestone": "5",
-    "implementation": "implementing",
-    "verification": "pending",
-    "evidence": "Local source changes; compilation/runtime/visual gates pending.",
-    "remaining_limit": ""
+    "implementation": "implemented",
+    "verification": "Android 16 instrumentation and capture review",
+    "evidence": "Source d3b5f27e77bdae86b3e435ee506004d45ab412e3; full CI https://github.com/Nrajesh0/Launcher-by-rj/actions/runs/40563188991; release-verification-v5.md records exact checks.",
+    "remaining_limit": "Weather is entered manually and timestamped; no fetcher is present."
   },
   {
     "id": "A49",
@@ -680,9 +680,9 @@
     "current": "Real dot/ring variants.",
     "action": "Charging design, span variants and calibrated artwork.",
     "milestone": "5",
-    "implementation": "implementing",
-    "verification": "pending",
-    "evidence": "v5 source and preservation changes; latest Android 16/UI/visual gates pending.",
+    "implementation": "implemented",
+    "verification": "source/API review; model checks where applicable",
+    "evidence": "Source d3b5f27e77bdae86b3e435ee506004d45ab412e3; full CI https://github.com/Nrajesh0/Launcher-by-rj/actions/runs/40563188991; release-verification-v5.md records exact checks.",
     "remaining_limit": ""
   },
   {
@@ -694,10 +694,10 @@
     "current": "No separate device/per-ear model.",
     "action": "Use only real supported data/provider, never invented percentages.",
     "milestone": "5",
-    "implementation": "implementing",
-    "verification": "pending",
-    "evidence": "Local source changes; compilation/runtime/visual gates pending.",
-    "remaining_limit": "Shows public audio route/name. Battery is explicitly unavailable without supported provider data; per-ear/case percentages are never inferred."
+    "implementation": "implemented",
+    "verification": "source/API review; model checks where applicable",
+    "evidence": "Source d3b5f27e77bdae86b3e435ee506004d45ab412e3; full CI https://github.com/Nrajesh0/Launcher-by-rj/actions/runs/40563188991; release-verification-v5.md records exact checks.",
+    "remaining_limit": "Shows public audio route/device name. Battery unavailable without supported provider data; per-ear/case percentages are never inferred."
   },
   {
     "id": "A51",
@@ -708,9 +708,9 @@
     "current": "Single selected image with crop and shapes.",
     "action": "Collection/album flow and complete permission/unavailable states.",
     "milestone": "5",
-    "implementation": "implementing",
-    "verification": "pending",
-    "evidence": "Local source changes; compilation/runtime/visual gates pending.",
+    "implementation": "implemented",
+    "verification": "Android 16 instrumentation and capture review",
+    "evidence": "Source d3b5f27e77bdae86b3e435ee506004d45ab412e3; full CI https://github.com/Nrajesh0/Launcher-by-rj/actions/runs/40563188991; release-verification-v5.md records exact checks.",
     "remaining_limit": ""
   },
   {
@@ -722,10 +722,10 @@
     "current": "Sticker is a single image; no cutout/collection/cycling engine.",
     "action": "Collection model, local cutout option and explicit rotation triggers.",
     "milestone": "5",
-    "implementation": "implementing",
-    "verification": "pending",
-    "evidence": "Local source changes; compilation/runtime/visual gates pending.",
-    "remaining_limit": "Local edge-connected plain-background removal, not semantic/ML subject segmentation."
+    "implementation": "implemented",
+    "verification": "Android 16 instrumentation and capture review",
+    "evidence": "Source d3b5f27e77bdae86b3e435ee506004d45ab412e3; full CI https://github.com/Nrajesh0/Launcher-by-rj/actions/runs/40563188991; release-verification-v5.md records exact checks.",
+    "remaining_limit": "Edge-connected plain-background removal and outline; no semantic/ML subject segmentation."
   },
   {
     "id": "A53",
@@ -736,9 +736,9 @@
     "current": "Seven-bar screen-off summary; tap opens usage access.",
     "action": "Compact variants and real weekly detail view after access is granted.",
     "milestone": "5",
-    "implementation": "implementing",
-    "verification": "pending",
-    "evidence": "Local source changes; compilation/runtime/visual gates pending.",
+    "implementation": "implemented",
+    "verification": "source/API review; model checks where applicable",
+    "evidence": "Source d3b5f27e77bdae86b3e435ee506004d45ab412e3; full CI https://github.com/Nrajesh0/Launcher-by-rj/actions/runs/40563188991; release-verification-v5.md records exact checks.",
     "remaining_limit": ""
   },
   {
@@ -750,9 +750,9 @@
     "current": "Oscillating Focus artwork only.",
     "action": "Guided Focus/Relax/Calm sessions, controls and tuned haptics.",
     "milestone": "5",
-    "implementation": "implementing",
-    "verification": "pending",
-    "evidence": "Local source changes; compilation/runtime/visual gates pending.",
+    "implementation": "implemented",
+    "verification": "source/API review; model checks where applicable",
+    "evidence": "Source d3b5f27e77bdae86b3e435ee506004d45ab412e3; full CI https://github.com/Nrajesh0/Launcher-by-rj/actions/runs/40563188991; release-verification-v5.md records exact checks.",
     "remaining_limit": ""
   },
   {
@@ -764,9 +764,9 @@
     "current": "Usage total; tap opens access settings.",
     "action": "Detail view, breakdown, unavailable-state semantics and compact variants.",
     "milestone": "5",
-    "implementation": "implementing",
-    "verification": "pending",
-    "evidence": "Local source changes; compilation/runtime/visual gates pending.",
+    "implementation": "implemented",
+    "verification": "source/API review; model checks where applicable",
+    "evidence": "Source d3b5f27e77bdae86b3e435ee506004d45ab412e3; full CI https://github.com/Nrajesh0/Launcher-by-rj/actions/runs/40563188991; release-verification-v5.md records exact checks.",
     "remaining_limit": ""
   },
   {
@@ -778,10 +778,10 @@
     "current": "Date countdown plus elapsed count-up.",
     "action": "Differentiate features and implement proper interactive countdown if offered.",
     "milestone": "5",
-    "implementation": "implementing",
-    "verification": "pending",
-    "evidence": "v5 source and preservation changes; latest Android 16/UI/visual gates pending.",
-    "remaining_limit": ""
+    "implementation": "implemented",
+    "verification": "source/API review; model checks where applicable",
+    "evidence": "Source d3b5f27e77bdae86b3e435ee506004d45ab412e3; full CI https://github.com/Nrajesh0/Launcher-by-rj/actions/runs/40563188991; release-verification-v5.md records exact checks.",
+    "remaining_limit": "Local elapsed timer and date countdown; ringing timer/alarm hands off explicitly to installed Clock."
   },
   {
     "id": "A57",
@@ -792,9 +792,9 @@
     "current": "Active session controls with default Android button artwork.",
     "action": "Own component design and tested supported actions/artwork states.",
     "milestone": "5",
-    "implementation": "implementing",
-    "verification": "pending",
-    "evidence": "Local source changes; compilation/runtime/visual gates pending.",
+    "implementation": "implemented",
+    "verification": "source/API review; model checks where applicable",
+    "evidence": "Source d3b5f27e77bdae86b3e435ee506004d45ab412e3; full CI https://github.com/Nrajesh0/Launcher-by-rj/actions/runs/40563188991; release-verification-v5.md records exact checks.",
     "remaining_limit": ""
   },
   {
@@ -806,10 +806,10 @@
     "current": "Real rotation-vector heading.",
     "action": "Accuracy/calibration/unsupported states and refined visuals.",
     "milestone": "5",
-    "implementation": "implementing",
-    "verification": "pending",
-    "evidence": "Local source changes; compilation/runtime/visual gates pending.",
-    "remaining_limit": ""
+    "implementation": "implemented",
+    "verification": "source/API review; model checks where applicable",
+    "evidence": "Source d3b5f27e77bdae86b3e435ee506004d45ab412e3; full CI https://github.com/Nrajesh0/Launcher-by-rj/actions/runs/40563188991; release-verification-v5.md records exact checks.",
+    "remaining_limit": "Public sensor heading and availability guidance; magnetic calibration/physical accuracy require device testing."
   },
   {
     "id": "A59",
@@ -820,9 +820,9 @@
     "current": "Torch toggles; BT/sound/DND open OS settings.",
     "action": "Honest actions, correct state, public-API access only.",
     "milestone": "5",
-    "implementation": "implementing",
-    "verification": "pending",
-    "evidence": "Local source changes; compilation/runtime/visual gates pending.",
+    "implementation": "implemented",
+    "verification": "source/API review; model checks where applicable",
+    "evidence": "Source d3b5f27e77bdae86b3e435ee506004d45ab412e3; full CI https://github.com/Nrajesh0/Launcher-by-rj/actions/runs/40563188991; release-verification-v5.md records exact checks.",
     "remaining_limit": ""
   },
   {
@@ -834,10 +834,10 @@
     "current": "No implementation.",
     "action": "Real sensor/provider data, optional access, reboot/daily/lifecycle handling.",
     "milestone": "5",
-    "implementation": "implementing",
-    "verification": "pending",
-    "evidence": "Local source changes; compilation/runtime/visual gates pending.",
-    "remaining_limit": "Measured steps start at first daily sensor reading; no background service; no reconstruction before first reading or across reboot gaps."
+    "implementation": "implemented",
+    "verification": "source/API review; model checks where applicable",
+    "evidence": "Source d3b5f27e77bdae86b3e435ee506004d45ab412e3; full CI https://github.com/Nrajesh0/Launcher-by-rj/actions/runs/40563188991; release-verification-v5.md records exact checks.",
+    "remaining_limit": "Measured steps start at first daily sensor reading. Visible-only sensor lifecycle, no background service and no reconstruction across unmeasured reboot gaps."
   },
   {
     "id": "A61",
@@ -848,10 +848,10 @@
     "current": "Added local tile surfaces do not implement content pages.",
     "action": "Per-family supported swipes that arbitrate against drawer/page gestures.",
     "milestone": "5",
-    "implementation": "implementing",
-    "verification": "pending",
-    "evidence": "v5 source and preservation changes; latest Android 16/UI/visual gates pending.",
-    "remaining_limit": "Collection swipe zone is the lower 48dp of a multi-photo tile; remaining Home area retains native paging."
+    "implementation": "implemented",
+    "verification": "source/API review; model checks where applicable",
+    "evidence": "Source d3b5f27e77bdae86b3e435ee506004d45ab412e3; full CI https://github.com/Nrajesh0/Launcher-by-rj/actions/runs/40563188991; release-verification-v5.md records exact checks.",
+    "remaining_limit": "Multi-photo collection swipe zone is lower 48dp; remaining tile/Home area retains native workspace paging."
   },
   {
     "id": "A62",
@@ -863,8 +863,8 @@
     "action": "Keep service parity out of offline scope; retain external widget hosting.",
     "milestone": "boundary",
     "implementation": "constraint",
-    "verification": "pending",
-    "evidence": "",
+    "verification": "scope boundary retained",
+    "evidence": "Absolute offline/native-OS/hardware scope; see implementation plan.",
     "remaining_limit": ""
   },
   {
@@ -876,9 +876,9 @@
     "current": "Native core motion plus custom Activities/sheets.",
     "action": "One intentional gesture, spring, fade and reduced-motion policy.",
     "milestone": "1",
-    "implementation": "implementing",
-    "verification": "pending",
-    "evidence": "Local source changes; compilation/runtime/visual gates pending.",
+    "implementation": "implemented",
+    "verification": "source/API review; model checks where applicable",
+    "evidence": "Source d3b5f27e77bdae86b3e435ee506004d45ab412e3; full CI https://github.com/Nrajesh0/Launcher-by-rj/actions/runs/40563188991; release-verification-v5.md records exact checks.",
     "remaining_limit": ""
   },
   {
@@ -890,10 +890,10 @@
     "current": "40ms invalidation is about 25 redraw opportunities/second.",
     "action": "Frame-driven animation, paused when not visible.",
     "milestone": "6",
-    "implementation": "implementing",
-    "verification": "pending",
-    "evidence": "Local source changes; compilation/runtime/visual gates pending.",
-    "remaining_limit": ""
+    "implementation": "implemented",
+    "verification": "source/API review; model checks where applicable",
+    "evidence": "Source d3b5f27e77bdae86b3e435ee506004d45ab412e3; full CI https://github.com/Nrajesh0/Launcher-by-rj/actions/runs/40563188991; release-verification-v5.md records exact checks.",
+    "remaining_limit": "Frame-driven phase state and pause logic tested; physical frame pacing is separate."
   },
   {
     "id": "A65",
@@ -904,10 +904,10 @@
     "current": "No physical device timing evidence.",
     "action": "Measure frame intervals/jank in the actual selected refresh modes.",
     "milestone": "6",
-    "implementation": "planned",
-    "verification": "pending",
-    "evidence": "",
-    "remaining_limit": ""
+    "implementation": "pending device/user review",
+    "verification": "pending physical device/user review",
+    "evidence": "Native foundation retained; device-validation.md defines the remaining checks.",
+    "remaining_limit": "Physical POCO 60/120Hz traces remain pending; emulator timing is not a substitute."
   },
   {
     "id": "A66",
@@ -918,10 +918,10 @@
     "current": "Back callbacks exist; progress/cancellation unproven.",
     "action": "Verify gesture-progress, cancel and commit on every owned route.",
     "milestone": "3",
-    "implementation": "implementing",
-    "verification": "pending",
-    "evidence": "Local source changes; compilation/runtime/visual gates pending.",
-    "remaining_limit": ""
+    "implementation": "implemented",
+    "verification": "source/API review; model checks where applicable",
+    "evidence": "Source d3b5f27e77bdae86b3e435ee506004d45ab412e3; full CI https://github.com/Nrajesh0/Launcher-by-rj/actions/runs/40563188991; release-verification-v5.md records exact checks.",
+    "remaining_limit": "Owned Activity progress/cancel callbacks implemented. Full edge-back gesture/IME/rotation matrix requires device review."
   },
   {
     "id": "A67",
@@ -933,8 +933,8 @@
     "action": "Use native OS navigation; do not fake it with overlays.",
     "milestone": "boundary",
     "implementation": "constraint",
-    "verification": "pending",
-    "evidence": "",
+    "verification": "scope boundary retained",
+    "evidence": "Absolute offline/native-OS/hardware scope; see implementation plan.",
     "remaining_limit": ""
   },
   {
@@ -947,8 +947,8 @@
     "action": "Exclude from APK parity claims; link stock system settings when useful.",
     "milestone": "boundary",
     "implementation": "constraint",
-    "verification": "pending",
-    "evidence": "",
+    "verification": "scope boundary retained",
+    "evidence": "Absolute offline/native-OS/hardware scope; see implementation plan.",
     "remaining_limit": ""
   },
   {
@@ -961,8 +961,8 @@
     "action": "Only an honest front-screen timer interaction is feasible.",
     "milestone": "boundary",
     "implementation": "constraint",
-    "verification": "pending",
-    "evidence": "",
+    "verification": "scope boundary retained",
+    "evidence": "Absolute offline/native-OS/hardware scope; see implementation plan.",
     "remaining_limit": ""
   },
   {
@@ -974,10 +974,10 @@
     "current": "Layout and selected Dot prefs; external links not embedded.",
     "action": "Define complete settings/media portability and reconnect contract.",
     "milestone": "6",
-    "implementation": "implementing",
-    "verification": "pending",
-    "evidence": "v5 source and preservation changes; latest Android 16/UI/visual gates pending.",
-    "remaining_limit": "External URI grants/widgets need reconnecting. System wallpaper stays selected; owned wallpaper image has an explicit apply route. Model transaction and settings error rollback do not claim power-loss atomicity across Android services."
+    "implementation": "implemented",
+    "verification": "Android 16 instrumentation and capture review",
+    "evidence": "Source d3b5f27e77bdae86b3e435ee506004d45ab412e3; full CI https://github.com/Nrajesh0/Launcher-by-rj/actions/runs/40563188991; release-verification-v5.md records exact checks.",
+    "remaining_limit": "External URI grants/widgets need reconnecting. System wallpaper stays selected; backed-up owned wallpaper has explicit crop/apply. No power-loss atomicity claim across Android services."
   },
   {
     "id": "A71",
@@ -988,9 +988,9 @@
     "current": "Original component/package/signing and synthetic migration checks.",
     "action": "Preserve through the redesign.",
     "milestone": "0",
-    "implementation": "implementing",
-    "verification": "pending",
-    "evidence": "v5 source and preservation changes; latest Android 16/UI/visual gates pending.",
+    "implementation": "implemented",
+    "verification": "Android 16 instrumentation and capture review",
+    "evidence": "Source d3b5f27e77bdae86b3e435ee506004d45ab412e3; full CI https://github.com/Nrajesh0/Launcher-by-rj/actions/runs/40563188991; release-verification-v5.md records exact checks.",
     "remaining_limit": ""
   },
   {
@@ -1002,9 +1002,9 @@
     "current": "Published package contract and checks enforce both.",
     "action": "Keep invariant for every future release.",
     "milestone": "0",
-    "implementation": "implementing",
-    "verification": "pending",
-    "evidence": "v5 source and preservation changes; latest Android 16/UI/visual gates pending.",
+    "implementation": "implemented",
+    "verification": "Android 16 instrumentation and capture review",
+    "evidence": "Source d3b5f27e77bdae86b3e435ee506004d45ab412e3; full CI https://github.com/Nrajesh0/Launcher-by-rj/actions/runs/40563188991; release-verification-v5.md records exact checks.",
     "remaining_limit": ""
   },
   {
@@ -1016,10 +1016,10 @@
     "current": "Existing smoke checks are not a full matrix.",
     "action": "Test actual scaling, contrast, semantics and revoked-access states.",
     "milestone": "6",
-    "implementation": "implementing",
-    "verification": "pending",
-    "evidence": "v5 source and preservation changes; latest Android 16/UI/visual gates pending.",
-    "remaining_limit": ""
+    "implementation": "implemented",
+    "verification": "Android 16 instrumentation and capture review",
+    "evidence": "Source d3b5f27e77bdae86b3e435ee506004d45ab412e3; full CI https://github.com/Nrajesh0/Launcher-by-rj/actions/runs/40563188991; release-verification-v5.md records exact checks.",
+    "remaining_limit": "Instrumentation covers 1.3x font, denied usage access and an owned RTL layout. Full locales/TalkBack remain device checks; no Accessibility service."
   },
   {
     "id": "A74",
@@ -1030,9 +1030,9 @@
     "current": "Functional CI passed without establishing reference fidelity.",
     "action": "Require actual matched-state screens and motion; user design review.",
     "milestone": "0",
-    "implementation": "planned",
-    "verification": "pending",
-    "evidence": "",
-    "remaining_limit": ""
+    "implementation": "pending device/user review",
+    "verification": "pending physical device/user review",
+    "evidence": "Native foundation retained; device-validation.md defines the remaining checks.",
+    "remaining_limit": "Actual Classic/Lucent light/dark and representative routes captured/reviewed. Final visual approval and reference preference remain with the user."
   }
 ]

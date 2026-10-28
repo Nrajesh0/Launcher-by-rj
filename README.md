@@ -44,3 +44,5 @@ GitHub Actions builds the release APK, exercises actual UI interactions and test
 Launcher3/Lawnchair, System UI support libraries and Lawnicons retain their licences and notices. Geist, Libre Caslon Display and Space Mono are bundled under OFL. Attribution is available in Home settings and APK assets.
 
 Photo collections support up to 24 locally imported images, reorder/remove, unlock rotation and swiping along the bottom of the tile. Sticker background removal is intended for plain backgrounds; it is not semantic subject segmentation. Weather is manually entered and timestamped. Step totals start from the first sensor reading that day; no background service reconstructs missing history. Audio-device widgets never guess per-ear/case battery percentages. Physical POCO 60/120Hz timing and OEM profile behaviour remain device checks.
+
+See the [v5 verification record](docs/implementation/release-verification-v5.md) and [actual app review sheet](docs/reference/v5-actual-review.jpg) for tested behaviour and remaining device checks.
