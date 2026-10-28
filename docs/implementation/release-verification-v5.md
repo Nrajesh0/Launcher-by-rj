@@ -25,3 +25,13 @@ Current constraints: sampled blur needs readable app-owned wallpaper pixels; ina
 Physical POCO 60/120Hz timing, OEM work/private/cloned profiles, full RTL locales/TalkBack, predictive-Back gesture/IME/rotation matrix and the user's final visual approval remain pending. See [device validation](device-validation.md). Global navigation/Recents, lock screen/AOD/Quick Settings/status bar, Glyph hardware and Nothing cloud services remain OS/hardware/offline boundaries.
 
 Publication checks are recorded separately: original certificate and public checksum, stable/latest GitHub release, versioned APK/checksum assets, and main/tag/publisher Actions must all pass before release completion is reported.
+
+## Completed publication checks — 2026-10-28
+
+- [Stable/latest v5.0.0](https://github.com/Nrajesh0/Launcher-by-rj/releases/tag/v5.0.0): draft false, prerelease false, versioned APK and checksum present. Version code 7.
+- [Publisher](https://github.com/Nrajesh0/Launcher-by-rj/actions/runs/40623345030): success; independently verified source CI, original signature, checksum and original CI payload before publishing.
+- [Post-push Android build, UI and v3/v4 upgrades](https://github.com/Nrajesh0/Launcher-by-rj/actions/runs/40623345004): success for release commit `0d2c0dea4b70d6784025e09fdacd0dfc1516daf0`.
+- Public APK downloaded and compared with the separately downloaded checksum: 34,946,740 bytes, SHA-256 `79efbaf9dd9471558676414da25ac4a2aa079e030fb9da558099a46d36f67e85`. Original certificate, package/code, POCO arm64 support, privacy contract and unchanged successful CI payload reverified on that public download.
+- Release tag targets implementation source `d3b5f27e77bdae86b3e435ee506004d45ab412e3`; the release commit changes only documentation and public release assets.
+
+This completion record is a documentation-only follow-up. It does not alter the tested or published APK. Device/user limits above remain explicit.

@@ -162,8 +162,8 @@ Gate: no regressions in launcher-role/navigation/layout persistence; no unnecess
 - [x] Increment app version/code; retain original certificate and package/component identity.
 - [x] Push source to a reviewable branch and monitor GitHub Actions; fix build/test failures.
 - [x] Sign only the validated artifact locally. Publish only the signed public APK/checksum/provenance, never signing material or private device files.
-- [ ] Promote validated source, publish stable/latest release with versioned APK and checksum, and verify the public download and Obtainium-visible latest release.
-- [ ] Monitor publishing and post-push Actions to completion. Final notes describe implemented features and actual remaining limits without asserting pixel-perfect firmware parity.
+- [x] Promote validated source, publish stable/latest release with versioned APK and checksum, and verify the public download and Obtainium-visible latest release.
+- [x] Monitor publishing and post-push Actions to completion. Final notes describe implemented features and actual remaining limits without asserting pixel-perfect firmware parity.
 
 ## Explicit scope boundaries
 
@@ -194,3 +194,7 @@ The second batch adds draft-safe family editors, collection remove/reorder/swipe
 Source `d3b5f27e77bdae86b3e435ee506004d45ab412e3` implements the launcher-owned work in milestones 0–6. Full build, baseline UI, extended experience and v3/v4 upgrade checks passed in [CI 40563188991](https://github.com/Nrajesh0/Launcher-by-rj/actions/runs/40563188991). The [verification record](release-verification-v5.md) separates actual tested behaviour, source-reviewed adapters and remaining physical/device/user gates. Classic/Lucent light/dark captures and representative menus/editors were inspected.
 
 The checklist above records the original target scope; unobserved full profile/family/span/locale/device matrices are not silently promoted to passed tests. A36 OEM profiles, A65 physical timing and A74 final visual approval remain pending. A35/A62/A67–A69 remain explicit scope boundaries. Public signing and stable/latest publication are the final milestone; private signing material stays local.
+
+### Verified publication — 2026-10-28
+
+[v5.0.0](https://github.com/Nrajesh0/Launcher-by-rj/releases/tag/v5.0.0) is stable/latest with the versioned APK and checksum. [Publisher 40623345030](https://github.com/Nrajesh0/Launcher-by-rj/actions/runs/40623345030) and [post-push build/UI/upgrade checks 40623345004](https://github.com/Nrajesh0/Launcher-by-rj/actions/runs/40623345004) completed successfully. The separately downloaded public APK and checksum match the locally verified original-signed artifact. Physical-device, broad matrix and final user visual checks above remain pending.
